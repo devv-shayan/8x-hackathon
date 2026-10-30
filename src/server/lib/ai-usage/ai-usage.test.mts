@@ -8,11 +8,11 @@ import { buildRow, createAiTracker, type AiCallSpec, type AiUsageRow } from './t
 // Real rates, copied from OpenRouter's catalogue. Using invented round
 // numbers would let a units bug (per-token vs. per-million) pass every
 // assertion here and still be off by six orders of magnitude in production.
-const OPUS: OpenRouterRates = {
-	prompt: '0.000005',
-	completion: '0.000025',
-	input_cache_read: '0.0000005',
-	input_cache_write: '0.00000625'
+const FLASH: OpenRouterRates = {
+	prompt: '0.0000003',
+	completion: '0.0000025',
+	input_cache_read: '0.00000003',
+	input_cache_write: '0.0000003'
 }
 
 const LONG_CONTEXT: OpenRouterRates = {
@@ -38,14 +38,14 @@ const NO_TOKENS = {
 
 // --- the model map ---------------------------------------------------------
 
-test('maps a known model and leaves an unknown one unpriced', () => {
-	assert.equal(openRouterSlug('claude-opus-5'), 'anthropic/claude-opus-5')
-	assert.equal(openRouterSlug('claude-opus-6-20270101'), null)
+test('maps a known free-tier Gemini model and leaves an unknown one unpriced', () => {
+	assert.equal(openRouterSlug('gemini-3.5-flash'), 'google/gemini-3.5-flash')
+	assert.equal(openRouterSlug('gemini-2.5-flash'), null)
 })
 
 test('batch is a separate upstream entry, fast is not', () => {
-	assert.equal(openRouterSlug('claude-opus-5', 'batch'), 'anthropic/claude-opus-5:batch')
-	assert.equal(openRouterSlug('claude-opus-5', 'fast'), 'anthropic/claude-opus-5')
+	assert.equal(openRouterSlug('gemini-3.5-flash', 'batch'), 'google/gemini-3.5-flash:batch')
+	assert.equal(openRouterSlug('gemini-3.5-flash', 'fast'), 'google/gemini-3.5-flash')
 })
 
 // --- pricing ---------------------------------------------------------------
@@ -53,10 +53,10 @@ test('batch is a separate upstream entry, fast is not', () => {
 test('prices all four token buckets at their own rate', () => {
 	const cost = costMicroUsd(
 		{ inputTokens: 1000, outputTokens: 500, cacheWriteTokens: 200, cacheReadTokens: 10_000 },
-		OPUS
+		FLASH
 	)
-	// 0.005 + 0.0125 + 0.00125 + 0.005 = 0.02375 USD
-	assert.equal(cost, 23_750)
+	// 0.0003 + 0.00125 + 0.00006 + 0.0003 = 0.00191 USD
+	assert.equal(cost, 1_910)
 })
 
 test('an unmapped model prices as null, never as zero', () => {
@@ -75,8 +75,6 @@ test('a long-context call is priced at the override tier', () => {
 })
 
 test('cached tokens count toward the long-context threshold', () => {
-	// 100 fresh tokens, but a 300k context — the provider charges for the
-	// window, not for what changed in it.
 	const cost = costMicroUsd(
 		{ ...NO_TOKENS, inputTokens: 100, cacheReadTokens: 300_000 },
 		LONG_CONTEXT
@@ -91,7 +89,6 @@ test('an override leaves the rates it does not declare alone', () => {
 		overrides: [{ min_prompt_tokens: 272_000, prompt: '0.000005' }]
 	}
 	const cost = costMicroUsd({ ...NO_TOKENS, inputTokens: 300_000, outputTokens: 100 }, promptOnly)
-	// Prompt doubles, completion stays at the base rate: 1.5 + 0.0015
 	assert.equal(cost, 1_501_500)
 })
 
@@ -132,8 +129,6 @@ test('openai prompt_tokens includes cache, so cached tokens are subtracted out',
 			prompt_tokens_details: { cached_tokens: 10_000 }
 		}
 	})
-	// The trap: billing 11,000 fresh input tokens here would double-count
-	// every cache hit and inflate the reported spend on the cheapest calls.
 	assert.equal(extracted?.tokens.inputTokens, 1000)
 	assert.equal(extracted?.tokens.cacheReadTokens, 10_000)
 })
@@ -141,7 +136,7 @@ test('openai prompt_tokens includes cache, so cached tokens are subtracted out',
 test('google cachedContentTokenCount is subtracted out of the prompt count too', () => {
 	const extracted = extractUsage('google', {
 		responseId: 'resp-1',
-		modelVersion: 'gemini-3.8-flash',
+		modelVersion: 'gemini-3.5-flash',
 		usageMetadata: {
 			promptTokenCount: 11_000,
 			candidatesTokenCount: 500,
@@ -155,7 +150,7 @@ test('google cachedContentTokenCount is subtracted out of the prompt count too',
 test('google thinking tokens are billed as output, so they land in the output count', () => {
 	const extracted = extractUsage('google', {
 		responseId: 'resp-2',
-		modelVersion: 'gemini-3.8-flash',
+		modelVersion: 'gemini-3.5-flash',
 		usageMetadata: {
 			promptTokenCount: 1000,
 			candidatesTokenCount: 500,
@@ -163,10 +158,6 @@ test('google thinking tokens are billed as output, so they land in the output co
 			thoughtsTokenCount: 4000
 		}
 	})
-	// The output-side twin of the trap above. candidatesTokenCount alone
-	// reports 500 of the 4,500 output tokens Google charges for, and a
-	// reasoning-heavy call is mostly thinking. Anthropic and OpenAI fold
-	// reasoning into their completion counts upstream; Google does not.
 	assert.equal(extracted?.tokens.outputTokens, 4500)
 })
 
@@ -182,34 +173,50 @@ test('a refusal is recorded as a refusal, not as a plain success', () => {
 		usage: { prompt_tokens: 10, completion_tokens: 0 }
 	})
 	assert.equal(openai?.status, 'refusal')
+
+	const google = extractUsage('google', {
+		candidates: [{ finishReason: 'SAFETY' }],
+		usageMetadata: {
+			promptTokenCount: 10,
+			candidatesTokenCount: 0,
+			cachedContentTokenCount: 0,
+			thoughtsTokenCount: 0
+		}
+	})
+	assert.equal(google?.status, 'refusal')
 })
 
 test('an unrecognised response shape yields no usage rather than throwing', () => {
 	assert.equal(extractUsage('anthropic', { unexpected: true }), undefined)
 	assert.equal(extractUsage('openai', null), undefined)
+	assert.equal(extractUsage('google', { unexpected: true }), undefined)
 })
 
 // --- row building ----------------------------------------------------------
 
 const SPEC: AiCallSpec = {
-	provider: 'anthropic',
-	model: 'claude-opus-5',
-	feature: 'offer_copy'
+	provider: 'google',
+	model: 'gemini-3.5-flash',
+	feature: 'key_concepts'
 }
 
 test('the model that served the call wins over the model that was asked for', () => {
 	const row = buildRow(
-		{ ...SPEC, model: 'claude-opus-5' },
-		{ model: 'claude-opus-5-20260723', usage: { input_tokens: 1, output_tokens: 1 } },
+		{ ...SPEC, model: 'gemini-3.5-flash' },
+		{
+			responseId: 'r1',
+			modelVersion: 'gemini-3.5-flash-001',
+			usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 1 }
+		},
 		{ status: 'ok', latencyMs: 12 }
 	)
-	assert.equal(row.model, 'claude-opus-5-20260723')
+	assert.equal(row.model, 'gemini-3.5-flash-001')
 })
 
 test('a failed call still produces a row, with the requested model and no tokens', () => {
 	const row = buildRow(SPEC, undefined, { status: 'error', latencyMs: 12 })
 	assert.equal(row.status, 'error')
-	assert.equal(row.model, 'claude-opus-5')
+	assert.equal(row.model, 'gemini-3.5-flash')
 	assert.deepEqual(
 		{
 			inputTokens: row.inputTokens,
@@ -222,9 +229,6 @@ test('a failed call still produces a row, with the requested model and no tokens
 })
 
 // --- failure isolation -----------------------------------------------------
-// The most important test in this file. Everything else is an accounting
-// detail; this is the one that decides whether a broken ledger takes a
-// user-facing feature down with it.
 
 test('a sink that throws never breaks the AI call', async () => {
 	const trackAiCall = createAiTracker(() => {

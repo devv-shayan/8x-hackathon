@@ -1,11 +1,11 @@
 {
 	"HomePage": {
 		"meta": {
-			"title": "Web template: a Next.js 16 starting point",
-			"description": "A Next.js 16 template with Tailwind v4, next-intl, Supabase Auth, PostHog and Sentry wired in, ready to replace page by page."
+			"title": "Playmakers Learn: teach it so it sticks",
+			"description": "Learn from YouTube by teaching AI students who remember you and surface gaps tied back to what the video actually said."
 		},
-		"title": "Web template",
-		"description": "This page renders — pnpm dev to confirm the App Router, Tailwind v4, and next-intl wiring all work before you start replacing it."
+		"title": "Playmakers Learn",
+		"description": "Watch a YouTube video, explain it in your own words, then teach AI students who ask about what you missed — every gap links back into the video."
 	},
 	"SiteFooter": {
 		"privacy": "Privacy",

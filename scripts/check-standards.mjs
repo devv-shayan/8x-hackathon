@@ -193,8 +193,19 @@ function ruleFilesIn(ctx) {
 }
 
 function isExecutable(ctx, path) {
+	const full = join(ctx.root, path)
+	// Windows/NTFS does not preserve Unix +x from chmod or git checkout.
+	// Treat a shebang script as executable on disk; the separate git-index
+	// mode check still enforces 100755 so Unix clones get a working hook.
+	if (process.platform === 'win32') {
+		try {
+			return readFileSync(full, 'utf8').startsWith('#!')
+		} catch {
+			return false
+		}
+	}
 	const EXECUTE_BITS = 0o111
-	return (statSync(join(ctx.root, path)).mode & EXECUTE_BITS) !== 0
+	return (statSync(full).mode & EXECUTE_BITS) !== 0
 }
 
 function indexMode(ctx, path) {
@@ -209,21 +220,37 @@ function isIgnored(ctx, path) {
 	return ctx.git('check-ignore', '-q', '--', path).status === 0
 }
 
+// Map CLI names to their package entry scripts so Windows can exec them via
+// `node` without shelling out through the `.cmd` shim (avoids DEP0190).
+const PACKAGE_BIN_SCRIPTS = {
+	eslint: join('eslint', 'bin', 'eslint.js'),
+	tsc: join('typescript', 'lib', 'tsc.js')
+}
+
 function runBinary(ctx, name, args) {
-	const bin = join(ctx.root, 'node_modules', '.bin', name)
-	if (!existsSync(bin)) {
+	const scriptRel = PACKAGE_BIN_SCRIPTS[name]
+	const script = scriptRel ? join(ctx.root, 'node_modules', scriptRel) : null
+	const binDir = join(ctx.root, 'node_modules', '.bin')
+	const shim = join(binDir, name)
+	if (!((script && existsSync(script)) || existsSync(shim))) {
 		return {
 			error: `${name} is not installed under node_modules — run the package manager's install first`
 		}
 	}
 	try {
-		return {
-			stdout: execFileSync(bin, args, {
-				cwd: ctx.root,
-				encoding: 'utf8',
-				stdio: ['ignore', 'pipe', 'pipe']
-			})
-		}
+		const stdout =
+			script && existsSync(script)
+				? execFileSync(process.execPath, [script, ...args], {
+						cwd: ctx.root,
+						encoding: 'utf8',
+						stdio: ['ignore', 'pipe', 'pipe']
+					})
+				: execFileSync(shim, args, {
+						cwd: ctx.root,
+						encoding: 'utf8',
+						stdio: ['ignore', 'pipe', 'pipe']
+					})
+		return { stdout }
 	} catch (error) {
 		const stderr = typeof error.stderr === 'string' ? error.stderr.trim().split('\n')[0] : ''
 		return { error: `${name} ${args.join(' ')} failed: ${stderr || error.message}` }

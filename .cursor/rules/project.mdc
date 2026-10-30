@@ -37,11 +37,11 @@ instead of routing around the Compiler.
 ## Session logs
 
 `.claude-logs/` is tracked, not gitignored — the transcript for the session
-that produced a change belongs on the branch that ships it. Cursor doesn't
-write one automatically, so there's usually nothing to stage from a Cursor
-session. If you do save a transcript or working log, put it there with the
-same `YYYY-MM-DD_HH-MM-SS_<id>.md` naming and stage it immediately before
-`git push`, separately from the code commit.
+that produced a change belongs on the branch that ships it. Cursor hooks in
+`.cursor/hooks.json` write prompt/response digests there automatically
+(`YYYY-MM-DD_HH-MM-SS_<conversation-id>.md`). Always commit `.claude-logs/`
+with your changes. Stage the log immediately before every `git push`,
+separately from the code commit.
 
 ## Workflows
 
