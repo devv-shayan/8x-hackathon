@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
+import { router } from 'expo-router'
 import { useMutation } from '@tanstack/react-query'
 import type { KeyConcept } from '@app/contract'
 import { FadeSlideIn } from '@/components/motion/FadeSlideIn'
@@ -87,6 +88,11 @@ export default function HomeScreen() {
 					{video.concepts.map((concept) => (
 						<ConceptCard key={concept.quote} concept={concept} />
 					))}
+					<Button
+						label="Teach this to the class"
+						fullWidth
+						onPress={() => router.push(`/class/${video.id}`)}
+					/>
 				</FadeSlideIn>
 			) : null}
 		</Screen>
