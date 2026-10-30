@@ -5,6 +5,7 @@ alwaysApply: true
 ---
 
 @AGENTS.md
+@docs/product/context.md
 
 The rules in `AGENTS.md` apply to any coding agent working in this repo
 (Claude, Codex, Cursor, Gemini, whatever). It is the single source of truth

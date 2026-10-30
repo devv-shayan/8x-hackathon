@@ -1,7 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ApiError } from '@/server/api/app-errors'
-import { parseTimestamp, parseTranscript, parseYouTubeVideoId } from './transcript'
+import {
+	assertTranscriptFinished,
+	assertVideoLength,
+	parseTimestamp,
+	parseTranscript,
+	parseYouTubeVideoId
+} from './transcript'
 
 const ID = 'sQK3Yr4Sc_k'
 
@@ -53,6 +59,22 @@ test('parseTimestamp handles minutes and hours, and refuses the rest', () => {
 	}
 })
 
+test('assertVideoLength allows longer videos when they have captions', () => {
+	assert.doesNotThrow(() => assertVideoLength(null, false))
+	assert.doesNotThrow(() => assertVideoLength(30 * 60, false))
+	assert.doesNotThrow(() => assertVideoLength(90 * 60, true))
+	assertUserError(() => assertVideoLength(30 * 60 + 1, false), /under 30 minutes/)
+	assertUserError(() => assertVideoLength(90 * 60 + 1, true), /under 90 minutes/)
+})
+
+test('assertTranscriptFinished accepts a normal stop and explains the others', () => {
+	assert.doesNotThrow(() => assertTranscriptFinished('STOP'))
+	assert.doesNotThrow(() => assertTranscriptFinished(undefined))
+	assertUserError(() => assertTranscriptFinished('MAX_TOKENS'), /too long/)
+	assertUserError(() => assertTranscriptFinished('RECITATION'), /couldn't read/)
+	assertUserError(() => assertTranscriptFinished('SAFETY'), /couldn't read/)
+})
+
 test('parseTranscript converts timestamps to seconds and drops blank segments', () => {
 	const raw = reply([
 		{ start: '00:00', text: ' Photosynthesis! ' },
@@ -69,7 +91,7 @@ test('parseTranscript tells the user when there is no speech or the video is too
 	assertUserError(() => parseTranscript(reply([])), /speech/)
 	assertUserError(() => parseTranscript(reply([{ start: '00:10', text: ' ' }])), /speech/)
 	assertUserError(
-		() => parseTranscript(reply([{ start: '1:00:01', text: 'Still talking.' }])),
+		() => parseTranscript(reply([{ start: '30:01', text: 'Still talking.' }])),
 		/too long/
 	)
 })

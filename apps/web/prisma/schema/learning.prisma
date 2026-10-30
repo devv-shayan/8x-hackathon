@@ -1,0 +1,116 @@
+// What the person is learning. A topic is one video they added: its transcript and key
+// concepts are read once and stored here, and every later step reads them from here, never
+// the video again. Deleted with their account.
+//
+// Not expressible here, and kept by the migrations: RLS.
+model Topic {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  youtubeId String   @map("youtube_id")
+  title     String
+  /// [{ startSeconds, text }]: see src/server/video/transcript.ts.
+  segments  Json
+  /// [{ title, quote, startSeconds }]: see src/server/video/key-concepts.ts.
+  concepts  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  classes   Class[]
+  gaps      Gap[]
+
+  @@unique([userId, youtubeId])
+  @@map("topics")
+}
+
+/// A student who remembers the person across classes.
+model Student {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  name      String
+  persona   String
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  turns     ClassTurn[]
+  warmUps   WarmUp[]
+
+  @@index([userId])
+  @@map("students")
+}
+
+/// One sitting: the person's explanation, how it scored, and the class that followed.
+model Class {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topicId        String      @map("topic_id") @db.Uuid
+  explanation    String
+  /// [{ concept, result: 'correct' | 'missed' | 'wrong' }]
+  conceptResults Json        @map("concept_results")
+  /// [{ studentId, text }], written when the class ends.
+  reactions      Json?
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  topic          Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  turns          ClassTurn[]
+
+  @@index([topicId])
+  @@map("classes")
+}
+
+/// A question a student asked in class, and how it went.
+model ClassTurn {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  classId   String       @map("class_id") @db.Uuid
+  studentId String       @map("student_id") @db.Uuid
+  question  String
+  answer    String?
+  outcome   TurnOutcome?
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  class     Class        @relation(fields: [classId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student   Student      @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([classId])
+  @@index([studentId])
+  @@map("class_turns")
+}
+
+/// A concept the person missed or got wrong. Closed after two right warm-ups in a row.
+model Gap {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  topicId     String    @map("topic_id") @db.Uuid
+  /// { title, quote, startSeconds }: one of the topic's key concepts.
+  concept     Json
+  rightStreak Int       @default(0) @map("right_streak")
+  nextDueAt   DateTime  @map("next_due_at") @db.Timestamptz(6)
+  closedAt    DateTime? @map("closed_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile     Profile   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  topic       Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  warmUps     WarmUp[]
+
+  @@index([userId, nextDueAt])
+  @@index([topicId])
+  @@map("gaps")
+}
+
+/// A student re-asking about a gap.
+model WarmUp {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gapId     String   @map("gap_id") @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  question  String
+  answer    String
+  isRight   Boolean  @map("is_right")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  gap       Gap      @relation(fields: [gapId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([gapId])
+  @@index([studentId])
+  @@map("warm_ups")
+}
+
+enum TurnOutcome {
+  answered
+  needed_help
+  skipped
+
+  @@map("turn_outcome")
+}

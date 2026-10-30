@@ -115,15 +115,15 @@ logs what each one used. Reading the video uses `gemini-3.5-flash-lite` in
 static mode, the best of the models we tested on speed and timestamp
 accuracy.
 
-| Step                 | Input                                                                    | Output                                                           |
-| -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| Read the video       | YouTube link                                                             | Full transcript with timestamps. Nothing else                    |
-| Find key concepts    | Transcript                                                               | Title, 5–10 key concepts, each with an exact quote and timestamp |
-| Score an explanation | Explanation, key concepts, transcript                                    | Each concept correct, missed or wrong                            |
-| Student turn         | Transcript, gaps, the class so far, the student's persona and past turns | Who raises a hand and what they ask, or "no more questions"      |
-| Help panel           | Transcript and the student's question                                    | A short explanation from the transcript                          |
-| Assessment           | The whole class and the transcript                                       | Per-concept and per-question results, student reactions          |
-| Warm-up              | A due gap and its transcript                                             | One in-character question, then right or wrong                   |
+| Step                 | Input                                                                    | Output                                                              |
+| -------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Read the video       | YouTube link                                                             | Captions through yt-dlp, or Gemini's transcript when there are none |
+| Find key concepts    | Transcript                                                               | Title, 5–10 key concepts, each with an exact quote and timestamp    |
+| Score an explanation | Explanation, key concepts, transcript                                    | Each concept correct, missed or wrong                               |
+| Student turn         | Transcript, gaps, the class so far, the student's persona and past turns | Who raises a hand and what they ask, or "no more questions"         |
+| Help panel           | Transcript and the student's question                                    | A short explanation from the transcript                             |
+| Assessment           | The whole class and the transcript                                       | Per-concept and per-question results, student reactions             |
+| Warm-up              | A due gap and its transcript                                             | One in-character question, then right or wrong                      |
 
 Every AI output the UI treats as data is structured and validated with Zod.
 The video is transcribed once per topic; every later step reads the stored
@@ -185,4 +185,5 @@ Shared: testing the whole loop with real videos, demos, the README.
 - **Name.** Shortlist: Recallio (Arif's pick in call 4), Nowly, Mentiq,
   Knowly, LearnLoop. None checked for availability yet.
 - **The split above** is a proposal.
-- **Longest video we accept**, to keep cost and wait time down.
+- **Longest video we accept:** 90 minutes with captions, 30 without. Gemini's
+  reads of a 40-minute lecture came back incomplete or with wrong timestamps.

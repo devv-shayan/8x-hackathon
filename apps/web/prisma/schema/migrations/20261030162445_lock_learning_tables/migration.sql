@@ -1,0 +1,10 @@
+ALTER TABLE "students" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "students" FROM anon, authenticated;
+ALTER TABLE "classes" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "classes" FROM anon, authenticated;
+ALTER TABLE "class_turns" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "class_turns" FROM anon, authenticated;
+ALTER TABLE "gaps" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "gaps" FROM anon, authenticated;
+ALTER TABLE "warm_ups" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "warm_ups" FROM anon, authenticated;
