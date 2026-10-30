@@ -538,9 +538,16 @@ function ruleFilesIn(ctx) {
 }
 
 function isExecutable(ctx, path) {
-	// Windows file systems carry no execute bit (Node reports one only for .exe-like
-	// names), so there the index mode is the only real answer.
-	if (process.platform === 'win32') return indexMode(ctx, path) === '100755'
+	// Windows checkouts do not keep the Unix execute bit. A shebang is the
+	// on-disk signal; the git index mode is checked separately so a hook can
+	// be executable locally and still 100644 for everyone else.
+	if (process.platform === 'win32') {
+		try {
+			return readFileSync(join(ctx.root, path), 'utf8').startsWith('#!')
+		} catch {
+			return false
+		}
+	}
 	const EXECUTE_BITS = 0o111
 	return (statSync(join(ctx.root, path)).mode & EXECUTE_BITS) !== 0
 }

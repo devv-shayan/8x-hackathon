@@ -216,7 +216,10 @@ console.log(`\n✓ check-events passed — ${counts}, every fired event register
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function read(p) {
-	return readFileSync(p, 'utf8')
+	// Checkouts on Windows are CRLF. The scanners match on `\n`, so a `\r`
+	// left in place makes a block run to EOF and treats later keys (`data`,
+	// `path`, `country`) as event names.
+	return readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 }
 
 function firstExisting(paths) {

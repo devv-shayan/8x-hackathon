@@ -2,7 +2,15 @@
 // fixtures from, and the helpers that edit one. Shared, so the two suites
 // judge the same app. Not a test file itself: node --test runs *.test.mjs.
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+	cpSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	statSync,
+	symlinkSync,
+	writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,10 +30,23 @@ export function write(root, path, content) {
 // A mutation that changes nothing tests nothing, so it fails the test instead
 // of letting it pass on the unmodified fixture.
 export function edit(root, path, transform) {
-	const before = readFileSync(join(root, path), 'utf8')
+	// Normalize CRLF so replacements written with `\n` still match a Windows checkout.
+	const before = readFileSync(join(root, path), 'utf8').replace(/\r\n/g, '\n')
 	const after = transform(before)
 	assert.notEqual(after, before, `the mutation of ${path} changed nothing`)
 	writeFileSync(join(root, path), after)
+}
+
+/** Link a node_modules entry into a fixture. Directory junctions need no
+ *  extra privilege on Windows; a file symlink often does, so copy instead. */
+export function linkNodeModule(src, dest) {
+	mkdirSync(dirname(dest), { recursive: true })
+	const type = statSync(src).isDirectory() ? 'junction' : 'file'
+	try {
+		symlinkSync(src, dest, type)
+	} catch {
+		cpSync(src, dest, { recursive: true })
+	}
 }
 
 export function editJson(root, path, mutate) {
@@ -404,12 +425,19 @@ export function createMonorepoFixture() {
 	}
 	// The real ESLint and tsc, so the checks read a config genuinely in effect.
 	for (const name of ['eslint', 'typescript']) {
-		symlinkSync(join(REPO_ROOT, 'node_modules', name), join(root, 'node_modules', name))
+		linkNodeModule(join(REPO_ROOT, 'node_modules', name), join(root, 'node_modules', name))
 	}
-	mkdirSync(join(root, 'node_modules/.bin'))
-	symlinkSync(
+	linkNodeModule(
 		join(REPO_ROOT, 'node_modules/typescript/bin/tsc'),
 		join(root, 'node_modules/.bin/tsc')
 	)
+	// `runBinary` looks for `tsc.cmd` on Windows. The shim's path is relative
+	// to `.bin`, and the typescript package above is linked beside it.
+	if (process.platform === 'win32') {
+		linkNodeModule(
+			join(REPO_ROOT, 'node_modules/.bin/tsc.cmd'),
+			join(root, 'node_modules/.bin/tsc.cmd')
+		)
+	}
 	return root
 }
