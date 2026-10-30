@@ -85,7 +85,7 @@ async function transcribe(watchUrl: string, videoId: string) {
 	}
 }
 
-function toVideoError(error: unknown): unknown {
+export function toVideoError(error: unknown): unknown {
 	const status = z.object({ status: z.number() }).safeParse(error).data?.status
 	if (status !== undefined && BUSY_STATUSES.includes(status)) {
 		return new AppError('Reading videos is busy right now. Please try again in a minute.', {
