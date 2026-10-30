@@ -49,6 +49,7 @@ model Profile {
   tasks              Task[]
   activity           Activity[]
   notifications      Notification[]
+  topics             Topic[]
   premiumGrants      PremiumGrant[]      @relation("grantee")
   premiumGranted     PremiumGrant[]      @relation("granter")
   analyticsEvents    AnalyticsEvent[]
