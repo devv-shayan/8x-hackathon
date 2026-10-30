@@ -1,5 +1,7 @@
 import 'server-only'
-import { GoogleGenAI, type ContentListUnion } from '@google/genai'
+import { setTimeout } from 'node:timers/promises'
+import { GoogleGenAI, type ContentListUnion, type GenerateContentParameters } from '@google/genai'
+import { z } from 'zod'
 import { ApiError } from '@/server/api/app-errors'
 import { log } from '@/server/lib/logger'
 
@@ -18,10 +20,12 @@ type GenerateParams = {
 	contents: ContentListUnion
 	systemInstruction?: string
 	temperature?: number
-	maxOutputTokens?: number
 	responseMimeType?: string
 	responseJsonSchema?: unknown
 }
+
+const BUSY_STATUSES = [429, 503]
+const BUSY_RETRY_DELAY_MS = 2000
 
 let client: GoogleGenAI | undefined
 
@@ -34,12 +38,31 @@ function getClient(): GoogleGenAI {
 	return client
 }
 
-/** A logged `models.generateContent`. Returns the SDK's response and rethrows its errors. */
+/** Whether Gemini turned a call away for load, which a later try can get past. */
+export function isGeminiBusy(error: unknown): boolean {
+	const status = z.object({ status: z.number() }).safeParse(error).data?.status
+	return status !== undefined && BUSY_STATUSES.includes(status)
+}
+
+async function generateWithOneRetry(request: GenerateContentParameters) {
+	try {
+		return await getClient().models.generateContent(request)
+	} catch (error) {
+		if (!isGeminiBusy(error)) throw error
+		await setTimeout(BUSY_RETRY_DELAY_MS)
+		return getClient().models.generateContent(request)
+	}
+}
+
+/**
+ * A logged `models.generateContent`, tried once more if Gemini is busy. Returns the SDK's
+ * response and rethrows its errors.
+ */
 export async function generateContent(context: AiContext, params: GenerateParams) {
 	const startedAt = Date.now()
 	const { model, feature, meta } = context
 	const { contents, ...config } = params
-	const response = await getClient().models.generateContent({ model, contents, config })
+	const response = await generateWithOneRetry({ model, contents, config })
 	log.info('ai call', {
 		source: 'ai/gemini',
 		feature,

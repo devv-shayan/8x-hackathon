@@ -4,7 +4,10 @@ Learn from a YouTube video by teaching it to AI students, who come back days lat
 still remember. See [docs/product/brief.md](docs/product/brief.md). The app name is still open.
 
 Built on 8x's monorepo template; the rest of this file is the template's guide. On top of the
-quickstart below, set `GEMINI_API_KEY` in `apps/web/.env.local` to read videos.
+quickstart below, set `GEMINI_API_KEY` in `apps/web/.env.local` to read videos, and install
+[yt-dlp](https://github.com/yt-dlp/yt-dlp) or [uv](https://docs.astral.sh/uv/) so the server can
+fetch captions. Without either, every video goes through Gemini, which is slower and limited to
+30 minutes.
 
 ---
 

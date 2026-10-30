@@ -1,21 +1,22 @@
 import 'server-only'
 import { z } from 'zod'
-import { generateContent } from '@/server/ai/gemini'
+import { generateContent, isGeminiBusy } from '@/server/ai/gemini'
 import { ApiError } from '@/server/api/app-errors'
 import {
+	assertTranscriptFinished,
+	assertVideoLength,
 	parseTranscript,
 	parseYouTubeVideoId,
 	TRANSCRIPT_RESPONSE_JSON_SCHEMA,
 	type TranscriptSegment
 } from './transcript'
+import { fetchYouTubeInfo, type YouTubeInfo } from './youtube-info'
 
 // Static mode, not agentic: it was the fastest in our comparison and its
 // timestamps were the more reliable, and a transcript needs the whole video
 // anyway, so agentic's skipping saves nothing we can use.
 const TRANSCRIPT_MODEL = 'gemini-3.5-flash-lite'
-const MAX_TRANSCRIPT_TOKENS = 65536
 const OEMBED_URL = 'https://www.youtube.com/oembed'
-const BUSY_STATUSES = [429, 503]
 
 const TRANSCRIPT_PROMPT = [
 	'Transcribe everything spoken in this video, word for word, from the very start to the very end.',
@@ -36,6 +37,11 @@ export type VideoTranscript = {
 /**
  * YouTube link in, title and timestamped transcript out. Call it once per
  * video and store the result: every later step reads the stored transcript.
+ *
+ * Captions come first: they arrive in seconds, cost no tokens, and their
+ * timestamps are YouTube's own. Gemini reads the video when there are none, or
+ * when yt-dlp is missing or rate-limited.
+ *
  * Throws an ApiError, with a message fit to show, for anything the user can
  * act on.
  */
@@ -45,20 +51,33 @@ export async function readVideo(url: string): Promise<VideoTranscript> {
 		throw new ApiError('invalid_request', "That doesn't look like a YouTube video link.")
 	}
 	const watchUrl = `https://www.youtube.com/watch?v=${videoId}`
-	const title = await fetchTitle(watchUrl)
-	const raw = await transcribe(watchUrl, videoId)
-	return { videoId, title, segments: parseTranscript(raw) }
+	const info = await fetchYouTubeInfo(videoId)
+	assertCanRead(info)
+	const title = info?.title ?? (await fetchTitle(watchUrl))
+	const segments = info?.segments ?? parseTranscript(await transcribe(watchUrl, videoId))
+	return { videoId, title, segments }
 }
 
-// Doubles as the availability check, so a private or removed video costs no
-// Gemini call.
+function assertCanRead(info: YouTubeInfo | null) {
+	try {
+		assertVideoLength(info?.durationSeconds ?? null, Boolean(info?.segments))
+	} catch (error) {
+		// Too long only without captions, and those may just be a retry away.
+		if (!info?.captionsRateLimited) throw error
+		throw new ApiError('unavailable', 'Reading videos is busy right now. Try again in a minute.')
+	}
+}
+
+// For when yt-dlp can't help. Doubles as the availability check, so a private or
+// removed video costs no Gemini call. YouTube answers it the same way for a video
+// that turns off embedding, so some public videos stop here too.
 async function fetchTitle(watchUrl: string): Promise<string> {
 	const params = new URLSearchParams({ url: watchUrl, format: 'json' })
 	const response = await fetch(`${OEMBED_URL}?${params}`)
 	if (!response.ok) {
 		throw new ApiError(
 			'video_unreadable',
-			"We can't open this video. It may be private or removed."
+			"We can't open this video. It may be private, removed or blocked from other apps."
 		)
 	}
 	return oembedSchema.parse(await response.json()).title
@@ -71,11 +90,11 @@ async function transcribe(watchUrl: string, videoId: string) {
 			{
 				contents: [{ fileData: { fileUri: watchUrl } }, { text: TRANSCRIPT_PROMPT }],
 				temperature: 0,
-				maxOutputTokens: MAX_TRANSCRIPT_TOKENS,
 				responseMimeType: 'application/json',
 				responseJsonSchema: TRANSCRIPT_RESPONSE_JSON_SCHEMA
 			}
 		)
+		assertTranscriptFinished(response.candidates?.[0]?.finishReason)
 		return response.text
 	} catch (error) {
 		throw toVideoError(error)
@@ -83,13 +102,14 @@ async function transcribe(watchUrl: string, videoId: string) {
 }
 
 export function toVideoError(error: unknown): unknown {
-	const status = z.object({ status: z.number() }).safeParse(error).data?.status
-	if (status !== undefined && BUSY_STATUSES.includes(status)) {
+	if (error instanceof ApiError) return error
+	if (isGeminiBusy(error)) {
 		return new ApiError('unavailable', 'Reading videos is busy right now. Try again in a minute.', {
 			cause: error
 		})
 	}
 	// An unlisted video passes the oEmbed check and only fails here.
+	const status = z.object({ status: z.number() }).safeParse(error).data?.status
 	if (status === 400 || status === 403) {
 		return new ApiError('video_unreadable', "We can't read this video. Public videos work best.", {
 			cause: error

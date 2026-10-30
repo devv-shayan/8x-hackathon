@@ -1,10 +1,12 @@
 import { z } from 'zod'
+import { uuid } from './common'
 
 // /api/app/v1/videos: reading a YouTube video.
 //
 // POST videos → the video's title, its transcript with timestamps, and the key
-//               concepts everything later is measured against. Takes up to a
-//               minute or so. A video the app can't use answers 422
+//               concepts everything later is measured against. The first read
+//               takes up to a minute or so; adding the same video again returns
+//               the stored one. A video the app can't use answers 422
 //               `video_unreadable`, with a message to show.
 
 export const transcriptSegmentSchema = z.object({
@@ -19,6 +21,8 @@ export const keyConceptSchema = z.object({
 })
 
 export const videoSchema = z.object({
+	/** The stored topic. Later steps refer to it by this id. */
+	id: uuid,
 	youtube_id: z.string(),
 	title: z.string(),
 	segments: z.array(transcriptSegmentSchema),

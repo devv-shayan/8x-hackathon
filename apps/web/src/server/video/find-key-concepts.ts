@@ -10,7 +10,6 @@ import type { TranscriptSegment } from './transcript'
 import { toVideoError } from './read-video'
 
 const KEY_CONCEPTS_MODEL = 'gemini-3.5-flash-lite'
-const MAX_KEY_CONCEPTS_TOKENS = 8192
 const MIN_REQUESTED_CONCEPTS = 5
 
 const KEY_CONCEPTS_INSTRUCTION = [
@@ -39,7 +38,6 @@ export async function findKeyConcepts(
 				contents: transcript,
 				systemInstruction: KEY_CONCEPTS_INSTRUCTION,
 				temperature: 0,
-				maxOutputTokens: MAX_KEY_CONCEPTS_TOKENS,
 				responseMimeType: 'application/json',
 				responseJsonSchema: KEY_CONCEPTS_RESPONSE_JSON_SCHEMA
 			}

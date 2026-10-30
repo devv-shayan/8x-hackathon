@@ -1,0 +1,20 @@
+// What the person is learning. A topic is one video they added: its transcript and key
+// concepts are read once and stored here, and every later step reads them from here, never
+// the video again. Deleted with their account.
+//
+// Not expressible here, and kept by the migrations: RLS.
+model Topic {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  youtubeId String   @map("youtube_id")
+  title     String
+  /// [{ startSeconds, text }]: see src/server/video/transcript.ts.
+  segments  Json
+  /// [{ title, quote, startSeconds }]: see src/server/video/key-concepts.ts.
+  concepts  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, youtubeId])
+  @@map("topics")
+}
