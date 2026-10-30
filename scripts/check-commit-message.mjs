@@ -3,6 +3,8 @@
 // job (every PR) — one implementation, so the rule can never drift between
 // the two enforcement points. Edit the rule here, not in either caller.
 
+import { pathToFileURL } from 'node:url'
+
 const TYPES = [
 	'feat',
 	'fix',
@@ -140,6 +142,9 @@ async function main() {
 	}
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// `file://${argv}` never matches `import.meta.url` on Windows (drive letter,
+// backslashes, and a missing slash), so the hook exited before it read the
+// message and a bad subject was committed locally.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
 	main()
 }
