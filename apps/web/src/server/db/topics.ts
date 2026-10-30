@@ -55,6 +55,12 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 			return row ? toRecord(row) : null
 		},
 
+		/** One of the person's topics by id, or null. */
+		async findById(userId: string, id: string): Promise<TopicRecord | null> {
+			const row = await client.topic.findFirst({ where: { id, userId }, select: TOPIC })
+			return row ? toRecord(row) : null
+		},
+
 		/** Saves a topic. If two reads of one video raced, the first one saved wins. */
 		async save(userId: string, topic: NewTopic): Promise<TopicRecord> {
 			const row = await client.topic.upsert({
