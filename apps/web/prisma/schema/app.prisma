@@ -1,0 +1,117 @@
+// The app's own domain: items, their tasks and activity, and notifications. Every row belongs
+// to one person (user_id, the profile's id) and is deleted with their account. Replace these
+// with your play's domain.
+//
+// The app reaches them only through /api/app/v1 (docs/rules/mobile-data.md). Like every
+// table, each has RLS on with no policies and nothing granted to the API roles.
+//
+// Not expressible here, and kept by the migrations: RLS, the 0-100 checks on completion and
+// health, and the updated_at triggers (so no @updatedAt).
+model Item {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  name        String
+  owner       String     @default("")
+  status      ItemStatus @default(active)
+  /// 0 to 100.
+  completion  Int        @default(0)
+  /// 0 to 100.
+  health      Int        @default(100)
+  activeUsers Int        @default(0) @map("active_users")
+  summary     String?
+  deletedAt   DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz(6)
+  profile     Profile    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tasks       Task[]
+  activity    Activity[]
+
+  @@map("items")
+}
+
+model Task {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId    String       @map("item_id") @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  title     String
+  state     TaskState    @default(todo)
+  priority  TaskPriority @default(medium)
+  dueDate   DateTime?    @map("due_date") @db.Date
+  deletedAt DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @default(now()) @map("updated_at") @db.Timestamptz(6)
+  item      Item         @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile   Profile      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("tasks")
+}
+
+model Activity {
+  id        String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId    String       @map("item_id") @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  kind      ActivityKind
+  title     String
+  detail    String?
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  item      Item         @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile   Profile      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("activity_feed")
+}
+
+model Notification {
+  id        String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String               @map("user_id") @db.Uuid
+  title     String
+  body      String?
+  category  NotificationCategory @default(system)
+  read      Boolean              @default(false)
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("notifications")
+}
+
+enum ItemStatus {
+  active
+  pending
+  archived
+
+  @@map("item_status")
+}
+
+enum TaskState {
+  todo
+  in_progress @map("in-progress")
+  review
+  done
+
+  @@map("task_state")
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+
+  @@map("task_priority")
+}
+
+enum ActivityKind {
+  milestone
+  comment
+  alert
+  review
+
+  @@map("activity_kind")
+}
+
+enum NotificationCategory {
+  billing
+  system
+  product
+  team
+
+  @@map("notification_category")
+}

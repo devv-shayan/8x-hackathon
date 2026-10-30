@@ -21,7 +21,27 @@ const TYPES = [
 // areas work well. An empty list here means "any lowercase-kebab scope is
 // accepted", which is easier to start with but weakens scope-searchability
 // of commit history as the project grows.
-const SCOPES = []
+//
+// This monorepo's list: the two apps, then the feature areas a play changes
+// most, then the repo itself. A commit that spans areas takes no scope.
+const SCOPES = [
+	'mobile',
+	'web',
+	'api',
+	'auth',
+	'db',
+	'events',
+	'paywall',
+	'onboarding',
+	'admin',
+	'ota',
+	'store',
+	'brand',
+	'i18n',
+	'ci',
+	'docs',
+	'deps'
+]
 
 const EXEMPT_PATTERN = /^(Merge |Revert |fixup!|squash!|amend!|Initial commit)/
 

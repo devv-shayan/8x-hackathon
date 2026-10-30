@@ -1,0 +1,1392 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-09-24T12:04:15.860Z",
+	"title": "Design System: Play Template",
+	"extensions": {
+		"colorMeta": {
+			"dusk-bg": {
+				"role": "neutral",
+				"displayName": "Midnight Ground",
+				"canonical": "oklch(17.1% 0.033 266.4)",
+				"tonalRamp": [
+					"#050a19",
+					"#1e2535",
+					"#3a4254",
+					"#596174",
+					"#798297",
+					"#9ba5ba",
+					"#bfc9df",
+					"#e7efff"
+				]
+			},
+			"dusk-well": {
+				"role": "neutral",
+				"displayName": "Midnight Well",
+				"canonical": "oklch(19.7% 0.035 263.3)",
+				"tonalRamp": [
+					"#050b1a",
+					"#1c2536",
+					"#384255",
+					"#576175",
+					"#788398",
+					"#9aa5bb",
+					"#becae0",
+					"#e6efff"
+				]
+			},
+			"dusk-surface": {
+				"role": "neutral",
+				"displayName": "Midnight Surface",
+				"canonical": "oklch(22.3% 0.038 263.4)",
+				"tonalRamp": [
+					"#040a1b",
+					"#1b2538",
+					"#384256",
+					"#566177",
+					"#77839a",
+					"#99a5bd",
+					"#bdcae3",
+					"#e6efff"
+				]
+			},
+			"dusk-surface2": {
+				"role": "neutral",
+				"displayName": "Midnight Surface, Raised",
+				"canonical": "oklch(25.6% 0.039 262.7)",
+				"tonalRamp": [
+					"#040a1b",
+					"#1b2538",
+					"#374257",
+					"#556278",
+					"#76839a",
+					"#98a6be",
+					"#bccae3",
+					"#e6efff"
+				]
+			},
+			"dusk-surface3": {
+				"role": "neutral",
+				"displayName": "Midnight Surface, Highest",
+				"canonical": "oklch(29.7% 0.041 262.8)",
+				"tonalRamp": [
+					"#030a1c",
+					"#1a2539",
+					"#364258",
+					"#556279",
+					"#75839c",
+					"#97a6c0",
+					"#bbcae5",
+					"#e6efff"
+				]
+			},
+			"dusk-text-primary": {
+				"role": "neutral",
+				"displayName": "Moonlit Ink",
+				"canonical": "oklch(96.1% 0.01 267.4)",
+				"tonalRamp": [
+					"#090b0f",
+					"#23252a",
+					"#404247",
+					"#5f6167",
+					"#808288",
+					"#a2a5ab",
+					"#c6c9d0",
+					"#ebeef5"
+				]
+			},
+			"dusk-text-body": {
+				"role": "neutral",
+				"displayName": "Moonlit Body",
+				"canonical": "oklch(88.1% 0.015 260.7)",
+				"tonalRamp": [
+					"#080b12",
+					"#21252d",
+					"#3d424a",
+					"#5c616a",
+					"#7d838c",
+					"#a0a5af",
+					"#c4c9d3",
+					"#e9eff9"
+				]
+			},
+			"dusk-text-secondary": {
+				"role": "neutral",
+				"displayName": "Moonlit Secondary",
+				"canonical": "oklch(79.1% 0.021 264.4)",
+				"tonalRamp": [
+					"#070b14",
+					"#202530",
+					"#3c424e",
+					"#5b616e",
+					"#7c8290",
+					"#9ea5b3",
+					"#c2c9d8",
+					"#e7effd"
+				]
+			},
+			"dusk-text-tertiary": {
+				"role": "neutral",
+				"displayName": "Moonlit Tertiary",
+				"canonical": "oklch(67.2% 0.024 263.1)",
+				"tonalRamp": [
+					"#060b15",
+					"#1f2531",
+					"#3b424f",
+					"#5a616f",
+					"#7b8391",
+					"#9da5b5",
+					"#c1c9d9",
+					"#e6efff"
+				]
+			},
+			"dusk-brand-fill": {
+				"role": "primary",
+				"displayName": "Luminous Sky",
+				"canonical": "oklch(79.9% 0.118 228.1)",
+				"tonalRamp": [
+					"#000d15",
+					"#002a39",
+					"#004961",
+					"#006b8c",
+					"#038fba",
+					"#43b3df",
+					"#7ad7ff",
+					"#daf3ff"
+				]
+			},
+			"dusk-brand-fill-hover": {
+				"role": "primary",
+				"displayName": "Luminous Sky, Hover",
+				"canonical": "oklch(84.4% 0.099 228.0)",
+				"tonalRamp": [
+					"#000d15",
+					"#002a39",
+					"#004961",
+					"#006b8c",
+					"#338eb1",
+					"#5ab1d6",
+					"#7fd6fc",
+					"#daf3ff"
+				]
+			},
+			"dusk-brand-ink": {
+				"role": "primary",
+				"displayName": "Luminous Sky Ink",
+				"canonical": "oklch(79.9% 0.118 228.1)",
+				"tonalRamp": [
+					"#000d15",
+					"#002a39",
+					"#004961",
+					"#006b8c",
+					"#038fba",
+					"#43b3df",
+					"#7ad7ff",
+					"#daf3ff"
+				]
+			},
+			"dusk-on-brand": {
+				"role": "primary",
+				"displayName": "Ink on Sky",
+				"canonical": "oklch(22.5% 0.039 266.0)",
+				"tonalRamp": [
+					"#050a1b",
+					"#1c2538",
+					"#384257",
+					"#576178",
+					"#77829b",
+					"#9aa5be",
+					"#bdc9e3",
+					"#e7efff"
+				]
+			},
+			"dusk-brand-dim": {
+				"role": "primary",
+				"displayName": "Sky Tint",
+				"canonical": "oklch(79.9% 0.118 228.1 / 0.16)",
+				"tonalRamp": [
+					"#000d15",
+					"#002a39",
+					"#004961",
+					"#006b8c",
+					"#038fba",
+					"#43b3df",
+					"#7ad7ff",
+					"#daf3ff"
+				]
+			},
+			"dusk-brand-glow": {
+				"role": "primary",
+				"displayName": "Sky Glow",
+				"canonical": "oklch(79.9% 0.118 228.1 / 0.3)",
+				"tonalRamp": [
+					"#000d15",
+					"#002a39",
+					"#004961",
+					"#006b8c",
+					"#038fba",
+					"#43b3df",
+					"#7ad7ff",
+					"#daf3ff"
+				]
+			},
+			"dusk-hero": {
+				"role": "neutral",
+				"displayName": "Deep Night Hero",
+				"canonical": "oklch(23.6% 0.05 266.2)",
+				"tonalRamp": [
+					"#030920",
+					"#19243e",
+					"#35415d",
+					"#54617e",
+					"#7482a1",
+					"#96a5c6",
+					"#bac9eb",
+					"#e7efff"
+				]
+			},
+			"dusk-shadow-tint": {
+				"role": "neutral",
+				"displayName": "Midnight Shadow",
+				"canonical": "oklch(11.0% 0.026 266.3)",
+				"tonalRamp": [
+					"#060b16",
+					"#1f2532",
+					"#3c4250",
+					"#5a6170",
+					"#7b8292",
+					"#9da5b6",
+					"#c1c9db",
+					"#e7efff"
+				]
+			},
+			"dusk-success-text": {
+				"role": "semantic",
+				"displayName": "Dusk Success Text",
+				"canonical": "oklch(79.9% 0.134 156.2)",
+				"tonalRamp": [
+					"#001005",
+					"#002e17",
+					"#00502d",
+					"#007443",
+					"#25995f",
+					"#51be81",
+					"#78e3a4",
+					"#c4ffd9"
+				]
+			},
+			"dusk-warning-text": {
+				"role": "semantic",
+				"displayName": "Dusk Warning Text",
+				"canonical": "oklch(85.0% 0.125 84.4)",
+				"tonalRamp": [
+					"#110a00",
+					"#312200",
+					"#553e00",
+					"#7c5b00",
+					"#a57b00",
+					"#c99e3b",
+					"#efc262",
+					"#ffecc8"
+				]
+			},
+			"dusk-error-text": {
+				"role": "semantic",
+				"displayName": "Dusk Error Text",
+				"canonical": "oklch(76.0% 0.124 22.2)",
+				"tonalRamp": [
+					"#1f0002",
+					"#4d000a",
+					"#761c22",
+					"#9b3f40",
+					"#c16160",
+					"#e98481",
+					"#ffb2ae",
+					"#ffe8e7"
+				]
+			},
+			"dawn-bg": {
+				"role": "neutral",
+				"displayName": "Dawn Paper",
+				"canonical": "oklch(96.6% 0.01 261.8)",
+				"tonalRamp": [
+					"#090b10",
+					"#22252a",
+					"#3f4248",
+					"#5e6167",
+					"#7f8289",
+					"#a1a5ac",
+					"#c5c9d0",
+					"#ebeff6"
+				]
+			},
+			"dawn-surface": {
+				"role": "neutral",
+				"displayName": "Dawn Card",
+				"canonical": "oklch(99.3% 0.003 247.9)",
+				"tonalRamp": [
+					"#0a0b0d",
+					"#242527",
+					"#414244",
+					"#606163",
+					"#818284",
+					"#a3a5a7",
+					"#c7c9cb",
+					"#edeff1"
+				]
+			},
+			"dawn-text-primary": {
+				"role": "neutral",
+				"displayName": "Dawn Navy Ink",
+				"canonical": "oklch(22.5% 0.039 266.0)",
+				"tonalRamp": [
+					"#050a1b",
+					"#1c2538",
+					"#384257",
+					"#576178",
+					"#77829b",
+					"#9aa5be",
+					"#bdc9e3",
+					"#e7efff"
+				]
+			},
+			"dawn-text-secondary": {
+				"role": "neutral",
+				"displayName": "Dawn Secondary",
+				"canonical": "oklch(40.5% 0.032 266.2)",
+				"tonalRamp": [
+					"#060a19",
+					"#1e2535",
+					"#3a4254",
+					"#596174",
+					"#798296",
+					"#9ca5ba",
+					"#bfc9df",
+					"#e7efff"
+				]
+			},
+			"dawn-brand-ink": {
+				"role": "primary",
+				"displayName": "Deep Sky Ink",
+				"canonical": "oklch(48.9% 0.095 227.5)",
+				"tonalRamp": [
+					"#000d15",
+					"#002a38",
+					"#004960",
+					"#036b8b",
+					"#388daf",
+					"#5eb1d4",
+					"#83d6fa",
+					"#daf3ff"
+				]
+			},
+			"daylight-bg": {
+				"role": "neutral",
+				"displayName": "Stone Paper",
+				"canonical": "oklch(95.6% 0.01 87.5)",
+				"tonalRamp": [
+					"#0d0b07",
+					"#272520",
+					"#44423c",
+					"#64615b",
+					"#85827c",
+					"#a8a59e",
+					"#ccc9c2",
+					"#f1eee7"
+				]
+			},
+			"daylight-well": {
+				"role": "neutral",
+				"displayName": "Stone Well",
+				"canonical": "oklch(93.3% 0.012 79.8)",
+				"tonalRamp": [
+					"#0e0b06",
+					"#28241f",
+					"#45413b",
+					"#65615a",
+					"#86827a",
+					"#a9a49d",
+					"#cdc8c1",
+					"#f3eee6"
+				]
+			},
+			"daylight-surface": {
+				"role": "neutral",
+				"displayName": "Paper Card",
+				"canonical": "oklch(99.4% 0.003 84.6)",
+				"tonalRamp": [
+					"#0c0b0a",
+					"#262523",
+					"#434240",
+					"#62615f",
+					"#838280",
+					"#a6a5a3",
+					"#cac9c7",
+					"#efeeec"
+				]
+			},
+			"daylight-surface2": {
+				"role": "neutral",
+				"displayName": "Paper Card, Raised",
+				"canonical": "oklch(96.5% 0.007 80.7)",
+				"tonalRamp": [
+					"#0d0b08",
+					"#272521",
+					"#44423e",
+					"#63615d",
+					"#85827d",
+					"#a7a5a0",
+					"#ccc9c4",
+					"#f1eee9"
+				]
+			},
+			"daylight-surface3": {
+				"role": "neutral",
+				"displayName": "Stone, Highest",
+				"canonical": "oklch(91.7% 0.013 82.4)",
+				"tonalRamp": [
+					"#0e0b05",
+					"#28251e",
+					"#45413a",
+					"#656159",
+					"#86827a",
+					"#a9a49c",
+					"#cdc8c0",
+					"#f3eee5"
+				]
+			},
+			"daylight-text-primary": {
+				"role": "neutral",
+				"displayName": "Graphite",
+				"canonical": "oklch(21.5% 0.009 75.1)",
+				"tonalRamp": [
+					"#0d0b07",
+					"#282420",
+					"#45413d",
+					"#64615c",
+					"#85827c",
+					"#a8a49f",
+					"#cdc8c3",
+					"#f2eee8"
+				]
+			},
+			"daylight-text-body": {
+				"role": "neutral",
+				"displayName": "Graphite Body",
+				"canonical": "oklch(30.0% 0.011 73.5)",
+				"tonalRamp": [
+					"#0e0b07",
+					"#28241f",
+					"#45413c",
+					"#65605b",
+					"#86817c",
+					"#a9a49e",
+					"#cdc8c2",
+					"#f3eee7"
+				]
+			},
+			"daylight-text-secondary": {
+				"role": "neutral",
+				"displayName": "Graphite Secondary",
+				"canonical": "oklch(40.1% 0.012 72.5)",
+				"tonalRamp": [
+					"#0e0a06",
+					"#29241f",
+					"#46413b",
+					"#66605a",
+					"#87817b",
+					"#aaa49d",
+					"#cec8c1",
+					"#f4ede6"
+				]
+			},
+			"daylight-text-tertiary": {
+				"role": "neutral",
+				"displayName": "Graphite Tertiary",
+				"canonical": "oklch(48.6% 0.012 67.5)",
+				"tonalRamp": [
+					"#0f0a06",
+					"#29241f",
+					"#47413b",
+					"#66605a",
+					"#87817b",
+					"#aaa49d",
+					"#cfc8c1",
+					"#f4ede6"
+				]
+			},
+			"daylight-brand-fill": {
+				"role": "primary",
+				"displayName": "Marigold",
+				"canonical": "oklch(80.0% 0.158 72.4)",
+				"tonalRamp": [
+					"#140800",
+					"#362000",
+					"#5c3a00",
+					"#855600",
+					"#b17300",
+					"#df9300",
+					"#ffba5c",
+					"#ffebd3"
+				]
+			},
+			"daylight-brand-fill-hover": {
+				"role": "primary",
+				"displayName": "Marigold, Hover",
+				"canonical": "oklch(84.5% 0.127 72.0)",
+				"tonalRamp": [
+					"#140800",
+					"#362000",
+					"#5c3a00",
+					"#855600",
+					"#b0740d",
+					"#d69740",
+					"#fcbb66",
+					"#ffebd3"
+				]
+			},
+			"daylight-brand-ink": {
+				"role": "primary",
+				"displayName": "Burnt Marigold Ink",
+				"canonical": "oklch(49.0% 0.105 72.4)",
+				"tonalRamp": [
+					"#140800",
+					"#362000",
+					"#5c3a00",
+					"#855602",
+					"#a87732",
+					"#cd9a57",
+					"#f3be7b",
+					"#ffebd3"
+				]
+			},
+			"daylight-on-brand": {
+				"role": "primary",
+				"displayName": "Graphite on Marigold",
+				"canonical": "oklch(21.5% 0.009 75.1)",
+				"tonalRamp": [
+					"#0d0b07",
+					"#282420",
+					"#45413d",
+					"#64615c",
+					"#85827c",
+					"#a8a49f",
+					"#cdc8c3",
+					"#f2eee8"
+				]
+			},
+			"daylight-brand-dim": {
+				"role": "primary",
+				"displayName": "Marigold Tint",
+				"canonical": "oklch(80.0% 0.158 72.4 / 0.18)",
+				"tonalRamp": [
+					"#140800",
+					"#362000",
+					"#5c3a00",
+					"#855600",
+					"#b17300",
+					"#df9300",
+					"#ffba5c",
+					"#ffebd3"
+				]
+			},
+			"daylight-brand-glow": {
+				"role": "primary",
+				"displayName": "Marigold Glow",
+				"canonical": "oklch(80.0% 0.158 72.4 / 0.3)",
+				"tonalRamp": [
+					"#140800",
+					"#362000",
+					"#5c3a00",
+					"#855600",
+					"#b17300",
+					"#df9300",
+					"#ffba5c",
+					"#ffebd3"
+				]
+			},
+			"daylight-hero": {
+				"role": "neutral",
+				"displayName": "Roast Hero",
+				"canonical": "oklch(24.5% 0.024 49.5)",
+				"tonalRamp": [
+					"#130803",
+					"#2f221b",
+					"#4d3e37",
+					"#6d5d55",
+					"#8f7e76",
+					"#b2a198",
+					"#d7c5bc",
+					"#fdeae0"
+				]
+			},
+			"daylight-hero-text": {
+				"role": "neutral",
+				"displayName": "Warm Paper Ink",
+				"canonical": "oklch(94.4% 0.009 84.6)",
+				"tonalRamp": [
+					"#0d0b07",
+					"#272520",
+					"#44423d",
+					"#63615c",
+					"#85827d",
+					"#a7a59f",
+					"#ccc9c3",
+					"#f1eee8"
+				]
+			},
+			"daylight-shadow-tint": {
+				"role": "neutral",
+				"displayName": "Warm Umber Shadow",
+				"canonical": "oklch(35.9% 0.05 56.9)",
+				"tonalRamp": [
+					"#170600",
+					"#371e0a",
+					"#563b27",
+					"#775a45",
+					"#9a7b65",
+					"#be9e87",
+					"#e3c2aa",
+					"#ffeadc"
+				]
+			},
+			"daylight-success-text": {
+				"role": "semantic",
+				"displayName": "Daylight Success Text",
+				"canonical": "oklch(44.9% 0.099 150.1)",
+				"tonalRamp": [
+					"#001003",
+					"#002e10",
+					"#085023",
+					"#317142",
+					"#539362",
+					"#76b784",
+					"#9adca7",
+					"#c7ffd1"
+				]
+			},
+			"daylight-warning-text": {
+				"role": "semantic",
+				"displayName": "Daylight Warning Text (burnt orange)",
+				"canonical": "oklch(49.5% 0.13 49.7)",
+				"tonalRamp": [
+					"#180500",
+					"#3f1800",
+					"#6b2e00",
+					"#994501",
+					"#bf6832",
+					"#e68b56",
+					"#ffb68e",
+					"#ffeade"
+				]
+			},
+			"daylight-error-text": {
+				"role": "semantic",
+				"displayName": "Daylight Error Text",
+				"canonical": "oklch(48.1% 0.17 27.1)",
+				"tonalRamp": [
+					"#1f0000",
+					"#4d0003",
+					"#810008",
+					"#ad2825",
+					"#d54f46",
+					"#fe7468",
+					"#ffb3a9",
+					"#ffe9e6"
+				]
+			},
+			"espresso-bg": {
+				"role": "neutral",
+				"displayName": "Espresso Ground",
+				"canonical": "oklch(20.6% 0.017 45.1)",
+				"tonalRamp": [
+					"#110906",
+					"#2c231e",
+					"#4a3f3b",
+					"#6a5e59",
+					"#8b7f7a",
+					"#afa29d",
+					"#d3c6c0",
+					"#f9ebe5"
+				]
+			},
+			"espresso-surface": {
+				"role": "neutral",
+				"displayName": "Espresso Surface",
+				"canonical": "oklch(25.1% 0.02 45.7)",
+				"tonalRamp": [
+					"#120905",
+					"#2d221d",
+					"#4b3f39",
+					"#6b5e58",
+					"#8d7f79",
+					"#b0a29b",
+					"#d5c6bf",
+					"#faebe4"
+				]
+			},
+			"espresso-text-primary": {
+				"role": "neutral",
+				"displayName": "Espresso Ink",
+				"canonical": "oklch(94.4% 0.009 84.6)",
+				"tonalRamp": [
+					"#0d0b07",
+					"#272520",
+					"#44423d",
+					"#63615c",
+					"#85827d",
+					"#a7a59f",
+					"#ccc9c3",
+					"#f1eee8"
+				]
+			},
+			"espresso-text-secondary": {
+				"role": "neutral",
+				"displayName": "Espresso Secondary",
+				"canonical": "oklch(78.6% 0.016 77.0)",
+				"tonalRamp": [
+					"#0f0a05",
+					"#2a241c",
+					"#474139",
+					"#666057",
+					"#888178",
+					"#aba49a",
+					"#cfc8be",
+					"#f5ede3"
+				]
+			},
+			"espresso-brand-ink": {
+				"role": "primary",
+				"displayName": "Marigold on Espresso",
+				"canonical": "oklch(80.0% 0.158 72.4)",
+				"tonalRamp": [
+					"#140800",
+					"#362000",
+					"#5c3a00",
+					"#855600",
+					"#b17300",
+					"#df9300",
+					"#ffba5c",
+					"#ffebd3"
+				]
+			}
+		},
+		"typographyMeta": {
+			"dusk-display-hero": {
+				"displayName": "Display Hero (dusk)",
+				"purpose": "The role behind the site's first headline; family, weight and tracking feed .t-hero."
+			},
+			"daylight-display-hero": {
+				"displayName": "Display Hero (daylight)",
+				"purpose": "The role behind the site's first headline; family, weight and tracking feed .t-hero."
+			},
+			"dusk-display": {
+				"displayName": "Display (dusk)",
+				"purpose": "App welcome and upgrade headlines; the site's section leads, story acts and closing line."
+			},
+			"daylight-display": {
+				"displayName": "Display (daylight)",
+				"purpose": "App welcome and upgrade headlines; the site's section leads, story acts and closing line."
+			},
+			"dusk-h1": {
+				"displayName": "H1 (dusk)",
+				"purpose": "Pushed-screen titles in the app; section headings and page titles on the site."
+			},
+			"daylight-h1": {
+				"displayName": "H1 (daylight)",
+				"purpose": "Pushed-screen titles in the app; section headings and page titles on the site."
+			},
+			"dusk-title": {
+				"displayName": "Title (dusk)",
+				"purpose": "The app's tab-screen masthead."
+			},
+			"daylight-title": {
+				"displayName": "Title (daylight)",
+				"purpose": "The app's tab-screen masthead."
+			},
+			"dusk-question": {
+				"displayName": "Question (dusk)",
+				"purpose": "Onboarding questions only; the serif at 400."
+			},
+			"daylight-question": {
+				"displayName": "Question (daylight)",
+				"purpose": "Onboarding questions only."
+			},
+			"dusk-h3": {
+				"displayName": "H3 (dusk)",
+				"purpose": "Card, section and sheet titles."
+			},
+			"daylight-h3": {
+				"displayName": "H3 (daylight)",
+				"purpose": "Card, section and sheet titles."
+			},
+			"lead": {
+				"displayName": "Lead",
+				"purpose": "The line under a headline."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Reading copy."
+			},
+			"body-sm": {
+				"displayName": "Body small",
+				"purpose": "Secondary reading copy, card summaries."
+			},
+			"dusk-label": {
+				"displayName": "Label (dusk)",
+				"purpose": "Buttons, row titles, anything tapped."
+			},
+			"daylight-label": {
+				"displayName": "Label (daylight)",
+				"purpose": "Buttons, row titles, anything tapped; a weight heavier than dusk."
+			},
+			"dusk-caption": {
+				"displayName": "Caption (dusk)",
+				"purpose": "Metadata, hints, tab labels at 11/14."
+			},
+			"daylight-caption": {
+				"displayName": "Caption (daylight)",
+				"purpose": "Metadata, hints, tab labels at 11/14."
+			},
+			"dusk-number": {
+				"displayName": "Number (dusk)",
+				"purpose": "Stats, prices, codes; tabular figures."
+			},
+			"daylight-number": {
+				"displayName": "Number (daylight)",
+				"purpose": "Stats, prices, codes; tabular figures."
+			},
+			"dusk-web-hero": {
+				"displayName": "Web Hero (dusk)",
+				"purpose": ".t-hero: the first headline, word by word, up to 6rem."
+			},
+			"daylight-web-hero": {
+				"displayName": "Web Hero (daylight)",
+				"purpose": ".t-hero: the first headline, word by word, up to 6rem."
+			},
+			"dusk-web-display": {
+				"displayName": "Web Display (dusk)",
+				"purpose": ".t-display: section leads, story act titles, the closing line."
+			},
+			"daylight-web-display": {
+				"displayName": "Web Display (daylight)",
+				"purpose": ".t-display: section leads, story act titles, the closing line."
+			},
+			"dusk-web-h1": {
+				"displayName": "Web H1 (dusk)",
+				"purpose": ".t-h1: section headings and page titles."
+			},
+			"daylight-web-h1": {
+				"displayName": "Web H1 (daylight)",
+				"purpose": ".t-h1: section headings and page titles."
+			},
+			"web-lead": {
+				"displayName": "Web Lead",
+				"purpose": ".t-lead: the line under a web headline, 36 to 44ch."
+			}
+		},
+		"shadows": [
+			{
+				"name": "dusk-soft",
+				"value": "0 2px 8px 0px rgba(2,4,13,0.3)",
+				"purpose": "dusk / dark (dusk). Small raised things: the segmented thumb, the logo mark, a scheme preview."
+			},
+			{
+				"name": "dusk-card",
+				"value": "0 6px 18px -4px rgba(2,4,13,0.42)",
+				"purpose": "dusk / dark (dusk). Panes and raised cards."
+			},
+			{
+				"name": "dusk-raised",
+				"value": "0 12px 28px -8px rgba(2,4,13,0.5)",
+				"purpose": "dusk / dark (dusk). The hero card, the tab bar, the contracted nav, the featured plan."
+			},
+			{
+				"name": "dusk-overlay",
+				"value": "0 18px 44px -12px rgba(2,4,13,0.6)",
+				"purpose": "dusk / dark (dusk). The phone, the mobile menu, sheets and popovers, daylight's ink chip."
+			},
+			{
+				"name": "dusk-cta",
+				"value": "0 8px 18px -6px rgba(2,4,13,0.45)",
+				"purpose": "dusk / dark (dusk). Primary buttons and the store pills (the tinted CTA elevation; there is no glow shadow)."
+			},
+			{
+				"name": "dawn-soft",
+				"value": "0 2px 8px 0px rgba(37,53,84,0.06)",
+				"purpose": "dusk / light (dawn). Small raised things: the segmented thumb, the logo mark, a scheme preview."
+			},
+			{
+				"name": "dawn-card",
+				"value": "0 6px 18px -4px rgba(37,53,84,0.08)",
+				"purpose": "dusk / light (dawn). Panes and raised cards."
+			},
+			{
+				"name": "dawn-raised",
+				"value": "0 12px 28px -8px rgba(37,53,84,0.12)",
+				"purpose": "dusk / light (dawn). The hero card, the tab bar, the contracted nav, the featured plan."
+			},
+			{
+				"name": "dawn-overlay",
+				"value": "0 18px 44px -12px rgba(37,53,84,0.18)",
+				"purpose": "dusk / light (dawn). The phone, the mobile menu, sheets and popovers, daylight's ink chip."
+			},
+			{
+				"name": "dawn-cta",
+				"value": "0 8px 18px -6px rgba(37,53,84,0.2)",
+				"purpose": "dusk / light (dawn). Primary buttons and the store pills (the tinted CTA elevation; there is no glow shadow)."
+			},
+			{
+				"name": "espresso-soft",
+				"value": "0 2px 8px 0px rgba(6,3,2,0.24)",
+				"purpose": "daylight / dark (espresso). Small raised things: the segmented thumb, the logo mark, a scheme preview."
+			},
+			{
+				"name": "espresso-card",
+				"value": "0 4px 16px -4px rgba(6,3,2,0.34)",
+				"purpose": "daylight / dark (espresso). Panes and raised cards."
+			},
+			{
+				"name": "espresso-raised",
+				"value": "0 10px 26px -8px rgba(6,3,2,0.42)",
+				"purpose": "daylight / dark (espresso). The hero card, the tab bar, the contracted nav, the featured plan."
+			},
+			{
+				"name": "espresso-overlay",
+				"value": "0 16px 40px -10px rgba(6,3,2,0.55)",
+				"purpose": "daylight / dark (espresso). The phone, the mobile menu, sheets and popovers, daylight's ink chip."
+			},
+			{
+				"name": "espresso-cta",
+				"value": "0 6px 18px -6px rgba(6,3,2,0.45)",
+				"purpose": "daylight / dark (espresso). Primary buttons and the store pills (the tinted CTA elevation; there is no glow shadow)."
+			},
+			{
+				"name": "daylight-soft",
+				"value": "0 2px 8px 0px rgba(81,54,34,0.07)",
+				"purpose": "daylight / light (daylight). Small raised things: the segmented thumb, the logo mark, a scheme preview."
+			},
+			{
+				"name": "daylight-card",
+				"value": "0 4px 16px -4px rgba(81,54,34,0.1)",
+				"purpose": "daylight / light (daylight). Panes and raised cards."
+			},
+			{
+				"name": "daylight-raised",
+				"value": "0 10px 26px -8px rgba(81,54,34,0.14)",
+				"purpose": "daylight / light (daylight). The hero card, the tab bar, the contracted nav, the featured plan."
+			},
+			{
+				"name": "daylight-overlay",
+				"value": "0 16px 40px -10px rgba(81,54,34,0.2)",
+				"purpose": "daylight / light (daylight). The phone, the mobile menu, sheets and popovers, daylight's ink chip."
+			},
+			{
+				"name": "daylight-cta",
+				"value": "0 6px 18px -6px rgba(81,54,34,0.24)",
+				"purpose": "daylight / light (daylight). Primary buttons and the store pills (the tinted CTA elevation; there is no glow shadow)."
+			},
+			{
+				"name": "pane-top-lit-edge",
+				"value": "inset 0 1px 0 rgba(255,255,255,0.12), var(--shadow-card)",
+				"purpose": "A pane on a dark scheme: the glass border as a 1px inset line over the card shadow."
+			},
+			{
+				"name": "device",
+				"value": "0 0 0 1px var(--border-active), inset 0 0 0 1px var(--border-glass), var(--shadow-overlay)",
+				"purpose": "The phone frame: an active-border outline, a glass inner edge, the overlay shadow."
+			}
+		],
+		"motion": [
+			{
+				"name": "dusk-spring-snappy",
+				"value": "damping 24, stiffness 280, mass 0.9 (damping ratio 0.76, overshoot 2.7%)",
+				"purpose": "Taps, toggles, the magnetic store pills, press-in."
+			},
+			{
+				"name": "dusk-spring-smooth",
+				"value": "damping 26, stiffness 170, mass 1 (damping ratio 1.00, overshoot 0.0%)",
+				"purpose": "Sheets, panels, the tab lens, the segmented thumb, progress fills, the story camera, the hero drift."
+			},
+			{
+				"name": "dusk-spring-gentle",
+				"value": "damping 28, stiffness 120, mass 1.1 (damping ratio 1.22, overshoot 0.0%)",
+				"purpose": "Large calm moves: the hero phone's cursor tilt, dealt welcome cards."
+			},
+			{
+				"name": "dusk-spring-settle",
+				"value": "damping 21, stiffness 220, mass 0.9 (damping ratio 0.75, overshoot 3.0%)",
+				"purpose": "Snap-backs after a drag or a press."
+			},
+			{
+				"name": "dusk-ease-out",
+				"value": "cubic-bezier(0.16, 1, 0.3, 1)",
+				"purpose": "Entrances and most transitions (--ease-out; Easings.out)."
+			},
+			{
+				"name": "dusk-ease-in-out",
+				"value": "cubic-bezier(0.65, 0, 0.35, 1)",
+				"purpose": "Moves between two resting states: the story light, slow timings, float loops."
+			},
+			{
+				"name": "dusk-ease-in",
+				"value": "cubic-bezier(0.55, 0, 0.9, 0.4)",
+				"purpose": "Exits (modalOut, exitFade)."
+			},
+			{
+				"name": "dusk-duration-fast",
+				"value": "200ms",
+				"purpose": "--dur-fast on the web; Durations.fast in the app."
+			},
+			{
+				"name": "dusk-duration-base",
+				"value": "380ms",
+				"purpose": "--dur-base on the web; Durations.base in the app."
+			},
+			{
+				"name": "dusk-duration-slow",
+				"value": "620ms",
+				"purpose": "--dur-slow on the web; Durations.slow in the app."
+			},
+			{
+				"name": "dusk-duration-enter",
+				"value": "420ms",
+				"purpose": "--dur-enter on the web; Durations.enter in the app."
+			},
+			{
+				"name": "dusk-duration-exit",
+				"value": "180ms",
+				"purpose": "--dur-exit on the web; Durations.exit in the app."
+			},
+			{
+				"name": "dusk-duration-modalIn",
+				"value": "260ms",
+				"purpose": "--dur-modal-in on the web; Durations.modalIn in the app."
+			},
+			{
+				"name": "dusk-duration-modalOut",
+				"value": "170ms",
+				"purpose": "--dur-modal-out on the web; Durations.modalOut in the app."
+			},
+			{
+				"name": "dusk-stagger",
+				"value": "80ms step, capped at index 6, rise 16px",
+				"purpose": "Staggered entrances down a screen or a list (--stagger-step, --rise; enter(i))."
+			},
+			{
+				"name": "dusk-press",
+				"value": "button 0.96, card 0.98",
+				"purpose": "Press-in scale targets for PressableScale and web :active."
+			},
+			{
+				"name": "dusk-web-dur-rise",
+				"value": "899ms (slow × 1.45)",
+				"purpose": "Web word-rise, .enter and scroll reveals."
+			},
+			{
+				"name": "dusk-web-dur-deal",
+				"value": "837ms (slow × 1.35)",
+				"purpose": "Web story: a screen dealt onto the phone; act copy moves; the light glides over 1.4 × this."
+			},
+			{
+				"name": "daylight-spring-snappy",
+				"value": "damping 22, stiffness 340, mass 0.8 (damping ratio 0.67, overshoot 6.0%)",
+				"purpose": "Taps, toggles, the magnetic store pills, press-in."
+			},
+			{
+				"name": "daylight-spring-smooth",
+				"value": "damping 24, stiffness 220, mass 1 (damping ratio 0.81, overshoot 1.3%)",
+				"purpose": "Sheets, panels, the tab lens, the segmented thumb, progress fills, the story camera, the hero drift."
+			},
+			{
+				"name": "daylight-spring-gentle",
+				"value": "damping 24, stiffness 150, mass 1 (damping ratio 0.98, overshoot 0.0%)",
+				"purpose": "Large calm moves: the hero phone's cursor tilt, dealt welcome cards."
+			},
+			{
+				"name": "daylight-spring-settle",
+				"value": "damping 20, stiffness 260, mass 0.9 (damping ratio 0.65, overshoot 6.6%)",
+				"purpose": "Snap-backs after a drag or a press."
+			},
+			{
+				"name": "daylight-ease-out",
+				"value": "cubic-bezier(0.2, 0.9, 0.25, 1)",
+				"purpose": "Entrances and most transitions (--ease-out; Easings.out)."
+			},
+			{
+				"name": "daylight-ease-in-out",
+				"value": "cubic-bezier(0.6, 0, 0.3, 1)",
+				"purpose": "Moves between two resting states: the story light, slow timings, float loops."
+			},
+			{
+				"name": "daylight-ease-in",
+				"value": "cubic-bezier(0.5, 0, 0.85, 0.45)",
+				"purpose": "Exits (modalOut, exitFade)."
+			},
+			{
+				"name": "daylight-duration-fast",
+				"value": "160ms",
+				"purpose": "--dur-fast on the web; Durations.fast in the app."
+			},
+			{
+				"name": "daylight-duration-base",
+				"value": "300ms",
+				"purpose": "--dur-base on the web; Durations.base in the app."
+			},
+			{
+				"name": "daylight-duration-slow",
+				"value": "460ms",
+				"purpose": "--dur-slow on the web; Durations.slow in the app."
+			},
+			{
+				"name": "daylight-duration-enter",
+				"value": "380ms",
+				"purpose": "--dur-enter on the web; Durations.enter in the app."
+			},
+			{
+				"name": "daylight-duration-exit",
+				"value": "160ms",
+				"purpose": "--dur-exit on the web; Durations.exit in the app."
+			},
+			{
+				"name": "daylight-duration-modalIn",
+				"value": "240ms",
+				"purpose": "--dur-modal-in on the web; Durations.modalIn in the app."
+			},
+			{
+				"name": "daylight-duration-modalOut",
+				"value": "160ms",
+				"purpose": "--dur-modal-out on the web; Durations.modalOut in the app."
+			},
+			{
+				"name": "daylight-stagger",
+				"value": "60ms step, capped at index 6, rise 14px",
+				"purpose": "Staggered entrances down a screen or a list (--stagger-step, --rise; enter(i))."
+			},
+			{
+				"name": "daylight-press",
+				"value": "button 0.96, card 0.98",
+				"purpose": "Press-in scale targets for PressableScale and web :active."
+			},
+			{
+				"name": "daylight-web-dur-rise",
+				"value": "667ms (slow × 1.45)",
+				"purpose": "Web word-rise, .enter and scroll reveals."
+			},
+			{
+				"name": "daylight-web-dur-deal",
+				"value": "621ms (slow × 1.35)",
+				"purpose": "Web story: a screen dealt onto the phone; act copy moves; the light glides over 1.4 × this."
+			},
+			{
+				"name": "reduced-motion",
+				"value": "prefers-reduced-motion: reduce (web) · ReduceMotion.System (app)",
+				"purpose": "Nothing travels, scales, blurs or wipes; the web story keeps an opacity crossfade and its light change; the app turns movement into an instant change and loops hold still."
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "sm",
+				"value": "640px"
+			},
+			{
+				"name": "md",
+				"value": "768px"
+			},
+			{
+				"name": "lg",
+				"value": "1024px"
+			},
+			{
+				"name": "xl",
+				"value": "1280px"
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Store Pill (dusk)",
+			"kind": "button",
+			"refersTo": "store-pill",
+			"description": "The site's primary action in both presets: an ink pill, the inverse of the ground, that presses to 0.96.",
+			"html": "<a class=\"ds-store-pill\" href=\"#\"><svg viewBox=\"0 0 17 20\" width=\"19\" height=\"22\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.5 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4ZM11.5 3c.7-.9 1.2-2 1-3.2-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.1.1 2.3-.6 3.1-1.5Z\"/></svg><span class=\"ds-store-pill-text\"><span class=\"ds-store-pill-small\">Download on the</span><span class=\"ds-store-pill-name\">App Store</span></span></a>",
+			"css": ".ds-store-pill{display:inline-flex;align-items:center;gap:12px;height:56px;padding:0 24px 0 20px;border-radius:999px;background:#eff2f9;color:#090f1e;text-decoration:none;font-family:Inter,system-ui,sans-serif;box-shadow:0 8px 18px -6px rgba(2,4,13,0.45);transition:transform 200ms cubic-bezier(0.16,1,0.3,1),background-color 200ms cubic-bezier(0.16,1,0.3,1)}.ds-store-pill:hover{background:rgba(239,242,249,0.9)}.ds-store-pill:active{transform:scale(0.96)}.ds-store-pill:focus-visible{outline:2px solid #5fccf9;outline-offset:3px}.ds-store-pill-text{display:flex;flex-direction:column;line-height:1;text-align:left}.ds-store-pill-small{font-size:11px;font-weight:500;opacity:0.75}.ds-store-pill-name{margin-top:4px;font-size:17px;font-weight:600;letter-spacing:-0.01em}"
+		},
+		{
+			"name": "Store Pill (daylight)",
+			"kind": "button",
+			"refersTo": "store-pill-daylight",
+			"description": "The same action on stone paper: a graphite pill with warm-paper text and the umber CTA shadow.",
+			"html": "<a class=\"ds-store-pill-d\" href=\"#\"><svg viewBox=\"0 0 18 20\" width=\"19\" height=\"21\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M.6.4C.4.6.3 1 .3 1.4v17.2c0 .4.1.8.3 1l9.6-9.6L.6.4Zm10.6 10.6 2.9 2.9-11 6.3c-.4.2-.8.3-1.1.2l9.2-9.4Zm0-2L2 .1c.4-.1.7 0 1.1.2l11 6.3-2.9 2.4Zm4.2-.1 2.7 1.5c.8.5.8 1.2 0 1.7l-2.8 1.6-3-3 3.1-1.8Z\"/></svg><span class=\"ds-store-pill-d-text\"><span class=\"ds-store-pill-d-small\">Get it on</span><span class=\"ds-store-pill-d-name\">Google Play</span></span></a>",
+			"css": ".ds-store-pill-d{display:inline-flex;align-items:center;gap:12px;height:56px;padding:0 24px 0 20px;border-radius:999px;background:#1c1915;color:#fefdfb;text-decoration:none;font-family:Inter,system-ui,sans-serif;box-shadow:0 6px 18px -6px rgba(81,54,34,0.24);transition:transform 160ms cubic-bezier(0.2,0.9,0.25,1),background-color 160ms cubic-bezier(0.2,0.9,0.25,1)}.ds-store-pill-d:hover{background:rgba(28,25,21,0.9)}.ds-store-pill-d:active{transform:scale(0.96)}.ds-store-pill-d:focus-visible{outline:2px solid #845500;outline-offset:3px}.ds-store-pill-d-text{display:flex;flex-direction:column;line-height:1;text-align:left}.ds-store-pill-d-small{font-size:11px;font-weight:500;opacity:0.75}.ds-store-pill-d-name{margin-top:4px;font-size:17px;font-weight:600;letter-spacing:-0.01em}"
+		},
+		{
+			"name": "Capsule Nav (dusk, contracted)",
+			"kind": "nav",
+			"refersTo": "nav-capsule",
+			"description": "The site header after 24px of scroll: a floating glass capsule with the wordmark, centred links and an ink call to action.",
+			"html": "<nav class=\"ds-nav\" aria-label=\"Main\"><a class=\"ds-nav-brand\" href=\"#\"><span class=\"ds-nav-mark\">M</span><span class=\"ds-nav-name\">MyApp</span></a><ul class=\"ds-nav-links\"><li><a href=\"#\">How it works</a></li><li><a href=\"#\" aria-current=\"page\">Features</a></li><li><a href=\"#\">Pricing</a></li><li><a href=\"#\">Support</a></li></ul><a class=\"ds-nav-cta\" href=\"#\">Get the app</a></nav>",
+			"css": ".ds-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;max-width:880px;padding:0 8px 0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(9,15,30,0.75);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);box-shadow:0 12px 28px -8px rgba(2,4,13,0.5);font-family:Inter,system-ui,sans-serif}.ds-nav-brand{display:flex;align-items:center;gap:10px;color:#eff2f9;text-decoration:none;border-radius:8px}.ds-nav-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#5fccf9;color:#131b2e;font-family:'Source Serif 4',Georgia,serif;font-weight:700;font-size:17px}.ds-nav-name{font-family:'Source Serif 4',Georgia,serif;font-size:18px;font-weight:600}.ds-nav-links{display:flex;gap:4px;list-style:none;margin:0;padding:0}.ds-nav-links a{display:block;padding:8px 14px;border-radius:999px;font-size:14px;font-weight:500;color:#b4bbc9;text-decoration:none;transition:background-color 200ms cubic-bezier(0.16,1,0.3,1),color 200ms cubic-bezier(0.16,1,0.3,1)}.ds-nav-links a:hover{background:rgba(25,35,54,0.7);color:#eff2f9}.ds-nav-links a[aria-current=page]{color:#eff2f9}.ds-nav-links a:focus-visible,.ds-nav-cta:focus-visible,.ds-nav-brand:focus-visible{outline:2px solid #5fccf9;outline-offset:3px}.ds-nav-cta{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:999px;background:#eff2f9;color:#090f1e;font-size:14px;font-weight:600;text-decoration:none;transition:transform 200ms cubic-bezier(0.16,1,0.3,1),background-color 200ms cubic-bezier(0.16,1,0.3,1)}.ds-nav-cta:hover{background:rgba(239,242,249,0.9)}.ds-nav-cta:active{transform:scale(0.96)}"
+		},
+		{
+			"name": "App Primary Button with Arrow (dusk)",
+			"kind": "button",
+			"refersTo": "app-button-primary",
+			"description": "The app's hero call to action (Button primary, lg, withArrow) and its web twin: the brand gradient, onBrand text and a trailing arrow disc.",
+			"html": "<button class=\"ds-app-btn\" type=\"button\">Get started<span class=\"ds-app-btn-arrow\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></button>",
+			"css": ".ds-app-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:12px;width:320px;height:56px;padding:0 8px 0 28px;border:0;border-radius:28px;background:linear-gradient(135deg,#7dd8ff,#51bfec);color:#131b2e;font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:20px;font-weight:600;letter-spacing:-0.006em;box-shadow:0 8px 18px -6px rgba(2,4,13,0.45);cursor:pointer;transition:transform 200ms cubic-bezier(0.16,1,0.3,1)}.ds-app-btn:hover{background:linear-gradient(135deg,#82d9ff,#5fccf9)}.ds-app-btn:active{transform:scale(0.96)}.ds-app-btn:focus-visible{outline:2px solid #5fccf9;outline-offset:3px}.ds-app-btn-arrow{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#131b2e;color:#5fccf9}"
+		},
+		{
+			"name": "Pane (dusk)",
+			"kind": "card",
+			"refersTo": "pane",
+			"description": "The site's raised pane: surface, soft border, card shadow, and on dark schemes a top-lit glass edge.",
+			"html": "<article class=\"ds-pane\"><h3 class=\"ds-pane-title\">No password to remember.</h3><p class=\"ds-pane-body\">Sign in with your email and a six-digit code. That is the whole ceremony.</p></article>",
+			"css": ".ds-pane{max-width:420px;padding:36px;border-radius:20px;border:1px solid rgba(239,242,249,0.11);background:#121b2d linear-gradient(180deg,rgba(255,255,255,0.06),transparent 42%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 6px 18px -4px rgba(2,4,13,0.42);color:#eff2f9}.ds-pane-title{margin:0;font-family:'Source Serif 4',Georgia,serif;font-weight:600;font-size:1.45rem;line-height:1.2;letter-spacing:-0.008em}.ds-pane-body{margin:12px 0 0;max-width:40ch;font-family:Inter,system-ui,sans-serif;font-size:16px;line-height:1.625;color:#b4bbc9}"
+		},
+		{
+			"name": "Waitlist Field (dusk)",
+			"kind": "input",
+			"refersTo": "text-field",
+			"description": "The pre-launch action: one email field and one ink button in a single surface pill, ringed in the focus colour while focused.",
+			"html": "<form class=\"ds-waitlist\" onsubmit=\"return false\"><input class=\"ds-waitlist-input\" type=\"email\" placeholder=\"you@email.com\" aria-label=\"Email address\"><button class=\"ds-waitlist-btn\" type=\"submit\">Tell me at launch<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></button></form>",
+			"css": ".ds-waitlist{display:flex;gap:6px;max-width:448px;padding:6px;border-radius:999px;border:1px solid rgba(239,242,249,0.11);background:#121b2d;box-shadow:0 2px 8px 0 rgba(2,4,13,0.3);font-family:Inter,system-ui,sans-serif}.ds-waitlist:focus-within{box-shadow:0 0 0 2px #5fccf9}.ds-waitlist-input{flex:1;min-width:0;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:transparent;color:#eff2f9;font:inherit;font-size:16px;outline:none}.ds-waitlist-input::placeholder{color:#8e96a5}.ds-waitlist-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border:0;border-radius:999px;background:#eff2f9;color:#090f1e;font:inherit;font-weight:600;cursor:pointer;transition:transform 200ms cubic-bezier(0.16,1,0.3,1),background-color 200ms cubic-bezier(0.16,1,0.3,1)}.ds-waitlist-btn:hover{background:rgba(239,242,249,0.9)}.ds-waitlist-btn:active{transform:scale(0.96)}.ds-waitlist-btn:focus-visible{outline:2px solid #5fccf9;outline-offset:3px}"
+		},
+		{
+			"name": "Status Badge (dusk)",
+			"kind": "chip",
+			"refersTo": "status-badge",
+			"description": "A state as a semantic soft-tint pill with its AA text colour and a dot, so state never rides on colour alone.",
+			"html": "<span class=\"ds-badge ds-badge-active\"><span class=\"ds-badge-dot\"></span>Active</span> <span class=\"ds-badge ds-badge-pending\"><span class=\"ds-badge-dot\"></span>Pending</span> <span class=\"ds-badge ds-badge-archived\"><span class=\"ds-badge-dot\"></span>Archived</span>",
+			"css": ".ds-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:18px;font-weight:600}.ds-badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor}.ds-badge-active{background:rgba(0,121,67,0.16);color:#6cd799}.ds-badge-pending{background:rgba(242,181,65,0.16);color:#f4c767}.ds-badge-archived{background:#222d42;color:#b4bbc9}"
+		},
+		{
+			"name": "Featured Plan (daylight field)",
+			"kind": "card",
+			"refersTo": "plan-card-featured-daylight",
+			"description": "The featured plan marked by material, not a badge: on daylight it is the marigold field with graphite ink; a placeholder price wears a dashed pill.",
+			"html": "<div class=\"ds-plan\"><h3 class=\"ds-plan-name\">Pro</h3><p class=\"ds-plan-tag\">For people who use it every day.</p><p class=\"ds-plan-price\"><span class=\"ds-plan-amount\">$X.XX</span><span class=\"ds-plan-cadence\">/ per month</span></p><p class=\"ds-plan-placeholder\">Placeholder price</p><ul class=\"ds-plan-features\"><li><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>Everything in Free</li><li><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>Cancel any time in the store</li></ul></div>",
+			"css": ".ds-plan{max-width:340px;padding:32px;border-radius:24px;background:#fbab2f;color:#1c1915;box-shadow:0 10px 26px -8px rgba(81,54,34,0.14);font-family:Inter,system-ui,sans-serif}.ds-plan-name{margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;font-size:1.45rem;line-height:1.2;letter-spacing:-0.012em}.ds-plan-tag{margin:6px 0 0;font-size:14px;color:rgba(28,25,21,0.8)}.ds-plan-price{display:flex;align-items:baseline;gap:8px;margin:32px 0 0}.ds-plan-amount{font-size:3rem;line-height:1;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums}.ds-plan-cadence{font-size:14px;color:rgba(28,25,21,0.8)}.ds-plan-placeholder{display:inline-block;margin:12px 0 0;padding:2px 10px;border:1px dashed rgba(28,25,21,0.4);border-radius:999px;font-size:12px;font-weight:500;color:rgba(28,25,21,0.8)}.ds-plan-features{display:grid;gap:12px;margin:32px 0 0;padding:24px 0 0;border-top:1px solid rgba(28,25,21,0.2);list-style:none;font-size:15px;color:rgba(28,25,21,0.8)}.ds-plan-features li{display:flex;gap:12px;align-items:flex-start}.ds-plan-features svg{flex:none;margin-top:2px;color:#1c1915}"
+		},
+		{
+			"name": "Selection Row (dusk)",
+			"kind": "custom",
+			"refersTo": "selection-row",
+			"description": "One option in a single-choice list: a 72pt row whose ring fills with the accent ink when chosen, the row turning to the accent tint.",
+			"html": "<div role=\"radiogroup\" class=\"ds-select-group\"><div class=\"ds-select\" role=\"radio\" aria-checked=\"true\" tabindex=\"0\"><span class=\"ds-select-text\"><span class=\"ds-select-title\">Match my phone</span><span class=\"ds-select-sub\">Follows your system setting</span></span><span class=\"ds-select-ring\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 12.5 10 17.5 19 7\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></span></div><div class=\"ds-select\" role=\"radio\" aria-checked=\"false\" tabindex=\"-1\"><span class=\"ds-select-text\"><span class=\"ds-select-title\">Dark</span><span class=\"ds-select-sub\">Easy on the eyes at night</span></span><span class=\"ds-select-ring\"></span></div></div>",
+			"css": ".ds-select-group{display:grid;gap:10px;max-width:353px}.ds-select{display:flex;align-items:center;gap:14px;min-height:72px;box-sizing:border-box;padding:12px 16px;border-radius:20px;border:1.5px solid rgba(239,242,249,0.11);background:#121b2d;color:#eff2f9;font-family:Inter,system-ui,sans-serif;cursor:pointer;transition:transform 200ms cubic-bezier(0.16,1,0.3,1)}.ds-select[aria-checked=true]{border-color:#5fccf9;background:rgba(95,204,249,0.16)}.ds-select:active{transform:scale(0.98)}.ds-select:focus-visible{outline:2px solid #5fccf9;outline-offset:3px}.ds-select-text{flex:1;display:flex;flex-direction:column;gap:2px}.ds-select-title{font-size:15px;line-height:20px;font-weight:600;letter-spacing:-0.006em}.ds-select-sub{font-size:13px;line-height:18px;color:#b4bbc9}.ds-select-ring{display:grid;place-items:center;width:24px;height:24px;box-sizing:border-box;border-radius:50%;border:1.5px solid rgba(239,242,249,0.2);color:#090f1e}.ds-select[aria-checked=true] .ds-select-ring{border-color:#5fccf9;background:#5fccf9}"
+		},
+		{
+			"name": "Tab Bar (dusk)",
+			"kind": "nav",
+			"refersTo": "tab-bar",
+			"description": "The app's floating glass pill (and its web twin): 64pt, the active tab held in an accent-tinted lens.",
+			"html": "<div class=\"ds-tabbar\" role=\"tablist\"><span class=\"ds-tab ds-tab-active\" role=\"tab\" aria-selected=\"true\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg>Home</span><span class=\"ds-tab\" role=\"tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z\"/></svg>Explore</span><span class=\"ds-tab\" role=\"tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.268 21a2 2 0 0 0 3.464 0\"/><path d=\"M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326\"/></svg>Activity</span><span class=\"ds-tab\" role=\"tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/><path d=\"M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662\"/></svg>Profile</span></div>",
+			"css": ".ds-tabbar{display:flex;align-items:center;width:353px;height:64px;box-sizing:border-box;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(13,21,37,0.55);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 12px 28px -8px rgba(2,4,13,0.5);font-family:Inter,system-ui,sans-serif}.ds-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;align-self:stretch;margin:6px;border-radius:999px;font-size:11px;line-height:14px;color:#8e96a5;cursor:pointer;transition:transform 200ms cubic-bezier(0.16,1,0.3,1),background-color 380ms cubic-bezier(0.16,1,0.3,1)}.ds-tab:hover{color:#b4bbc9}.ds-tab:active{transform:scale(0.9)}.ds-tab-active{color:#5fccf9;font-weight:600;background:rgba(95,204,249,0.16)}.ds-tab-active:hover{color:#5fccf9}"
+		}
+	],
+	"narrative": {
+		"northStar": "One Stage, Two Lights",
+		"overview": "The template is one structure lit two ways. The structure is shared: the same screens, components, layout, spacing, radius roles and motion grammar on both surfaces and in both presets. The preset in `packages/brand/brand.config.ts` changes only the lighting. **Dusk** is a cool midnight room built as a lightness ladder, headed in Source Serif 4 at 600, where the accent (a luminous sky blue) lights the room as a wide wash falling across the scene under film grain, and is otherwise ink for links and counters, with things dissolving into place out of a blur. **Daylight** is warm stone paper under graphite ink, headed in Bricolage Grotesque at 800 and tracked tight, where the accent (a marigold) is a solid field that the product stands on, with things rising crisply into place. In both, the accent is the only light in the room, and it has two jobs: glow (dusk) or field (daylight) for atmosphere, once per view as its bright moment; and accent ink for interactive text (links, counters, progress, checks) and the one primary fill (the brand mark, the featured plan's button).\n\nThe product is the picture. The site does not describe the app with icons and screenshot slots; it renders the app's own screens in HTML from the same tokens, on a real-proportion phone, and lets them do the showing. The app, in turn, is a calm, dense, one-hand interface: tab screens on a 20pt gutter, cards on a ground ladder, a floating glass tab bar, and one physical feel for every touch (a spring and a meaning-named haptic).\n\nA play rebrands the whole system with three edits in one file: the preset, one accent hex, and the names. Everything accent-coloured is derived from that hex with WCAG AA contrast proven by test. Anything a play must change is marked `🎨 BRAND` (a brand decision) or `🎨 REPLACE` (sample content, copy or imagery), so it can be found by searching.",
+		"keyCharacteristics": [
+			"Two presets over one structure; a preset changes the world, never the layout.",
+			"Colour by role only (`bg`, `surface2`, `brandInk`, `onBrand`), never by value; no hex outside `packages/brand`.",
+			"One accent hex; every accent role derived from it and AA tested across four palettes.",
+			"Depth from a lightness ladder first, tinted shadow second, never black shadow.",
+			"The accent is glow for atmosphere (dusk) or a field (daylight marigold), once per view, never a halo; elsewhere it is accent ink for interactive text and the one primary fill.",
+			"The website's phone is the app, rendered from the app's primitives at 393 × 852 pt.",
+			"Motion from the preset: dusk calm and blurred, daylight crisp; no bounce; reduced motion honoured on both surfaces."
+		],
+		"rules": [
+			{
+				"name": "The No Bounce Rule",
+				"body": "Springs settle, they never bounce: no spring below a damping ratio of 0.65, and large travelling moves (the story camera, the hero tilt and drift, the tab lens, dealt cards) use smooth or gentle, which sit at or near critical. Sheets open and close on timings, not springs. A spring added for a new component picks one of the four named springs; it never tunes its own.",
+				"section": "overview"
+			},
+			{
+				"name": "The Stillness Rule",
+				"body": "Reduced motion is honoured on both surfaces. Nothing travels, scales, blurs or wipes; what carries meaning stays as an instant change or a short crossfade (on the web, the story still crossfades between acts and its light still changes, because both say which act you are on). The app's every spring and timing carries `ReduceMotion.System`; loops check `useReducedMotion()` and hold still.",
+				"section": "overview"
+			},
+			{
+				"name": "The One Hex Rule",
+				"body": "The accent is one hex in `brand.config.ts`. Every accent role is derived from it, and `packages/brand/__tests__/contrast.test.ts` proves every text pair clears AA in all four palettes across a spread of accents. Never hand-pick a tint, a hover or a text shade.",
+				"section": "colors"
+			},
+			{
+				"name": "The Roles Not Values Rule",
+				"body": "Colour is reached only by role: `--c-<role>` channel variables and the Tailwind role utilities on the web (`bg-surface2`, `text-ink-secondary`, `bg-brand text-on-brand`, `text-brand-ink`), the palette from `useTheme()` / `makeStyles` in the app. No hex or `rgb()` literal outside `packages/brand`; the app's test fails on one.",
+				"section": "colors"
+			},
+			{
+				"name": "The Ink Not Fill Rule",
+				"body": "Accent text and icons on a ground use `brandInk`, never `brandFill`; text on an accent fill uses `onBrand`. On dusk the two coincide by luck of the default hue, and code must not rely on it.",
+				"section": "colors"
+			},
+			{
+				"name": "The Role Scale Rule",
+				"body": "Type is set by role (`<Text variant=\"h3\">`, `.t-h1`, `type('label')`), never by a size typed at the call site. A role caps OS font scaling at its `maxScale` (display 1.2 to body 2.0), so display type survives Dynamic Type without clipping and body text keeps scaling.",
+				"section": "typography"
+			},
+			{
+				"name": "The Set Breaks Rule",
+				"body": "Web headlines are passed as line arrays (`WordRise lines`, `Lines`) and break at their clauses. The display face is not preloaded, so it swaps in after first paint; set breaks keep the swap from re-wrapping the headline and shifting the layout.",
+				"section": "typography"
+			},
+			{
+				"name": "The Tabular Rule",
+				"body": "Every number that can change (prices, counters, codes, timers, percentages) uses tabular figures.",
+				"section": "typography"
+			},
+			{
+				"name": "The Same Structure Rule",
+				"body": "`dusk:` and `daylight:` variants restyle material (glow or field, grain strength, weight) and may swap decorative, `aria-hidden` scenery (dusk's receding second phone, daylight's ink chip). They never change readable content, its order, or the layout.",
+				"section": "layout"
+			},
+			{
+				"name": "The Ladder First Rule",
+				"body": "A surface gets its depth from its ladder step before any shadow. Shadow alone never makes a tier.",
+				"section": "elevation"
+			},
+			{
+				"name": "The Paint the Ground Rule",
+				"body": "A grained section paints its own ground (`bg-bg`, `bg-hero`, `bg-brand`). Grain blended over transparency lifts the midnight toward slate instead of texturing it.",
+				"section": "elevation"
+			},
+			{
+				"name": "The Light Not Halo Rule",
+				"body": "The accent's glow is atmosphere in a room, placed off-centre and wide, and never a ring or halo hugging an element. The old `shadow-glow` utility now resolves to the tinted CTA shadow.",
+				"section": "elevation"
+			},
+			{
+				"name": "The Twin Rule",
+				"body": "When an app primitive or one of those four screens changes shape, its twin changes in the same pull request. The phone on the site is the app, not a drawing of it.",
+				"section": "components"
+			}
+		],
+		"dos": [
+			"Do rebrand in `packages/brand/brand.config.ts` only: the preset, one accent hex, the names. After a preset change, set the native splash and adaptive-icon background in `apps/mobile/app.json` to the new ground.",
+			"Do reach every colour by role: `bg-surface2`, `text-ink-secondary`, `bg-brand text-on-brand`, `text-brand-ink` on the web; `c.surface`, `c.brandInk` from `useTheme()` in the app.",
+			"Do use `brandInk` for accent text, icons, links and focus, and `onBrand` for anything on an accent fill or the brand gradient.",
+			"Do give each view one bright accent moment: the hero field or wash, the featured plan, the closing band. Elsewhere the accent is ink.",
+			"Do paint the ground (`bg-bg`, `bg-hero` or `bg-brand`) on any section that carries grain.",
+			"Do set type by role (`variant`, `.t-*`, `type()`), and tabular figures on every number that changes.",
+			"Do pick one of the four named springs and the preset's easings and durations for new motion, and give it a reduced-motion state that keeps only what carries meaning.",
+			"Do change a web twin in `device/parts.tsx` or `device/screens/*` in the same pull request as the app primitive or screen it mirrors.",
+			"Do mark anything a play must change with `🎨 BRAND` or `🎨 REPLACE`, and keep placeholders looking like placeholders: prices from `src/lib/pricing.ts` with their dashed pill, demo data labelled as demo data.",
+			"Do let `src/lib/stores.ts` decide live or pre-launch: store pills and \"Get the app\" once a store URL is set, the waitlist and \"Be first in line\" while both are empty."
+		],
+		"donts": [
+			"Don't write a hex or `rgb()` value outside `packages/brand`, and don't hand-pick an accent tint, hover or text shade; derive it.",
+			"Don't put `brandFill` on text over a ground; on paper it fails AA.",
+			"Don't draw a glow as a halo or ring around a button, card or phone; the wash is off-centre atmosphere that fades to nothing inside its box.",
+			"Don't cast a shadow in plain black, or make a tier with shadow alone.",
+			"Don't use `dusk:` or `daylight:` to change readable content, its order or the layout; they restyle material and swap decorative scenery only.",
+			"Don't crossfade two headings; the outgoing copy leaves before the incoming arrives.",
+			"Don't tune a one-off spring, use a linear ease, or add bounce.",
+			"Don't set gradient text; emphasis comes from colour and weight (`.text-gradient` survives only as a compatibility alias for `brandInk`).",
+			"Don't mark the featured plan with a badge; mark it with material.",
+			"Don't animate a pushed screen's title in the app, or gate the web's first viewport on hydration.",
+			"Don't invent prices, ratings, testimonials or metrics; the template has none."
+		]
+	}
+}

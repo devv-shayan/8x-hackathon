@@ -1,0 +1,44 @@
+// The first-party event log (src/lib/analytics/record.ts): the play's own history, the only
+// source of retention cohorts for the Play Stats API, and the numbers that survive an ad
+// blocker.
+//
+// user_id is NULLABLE on purpose, in both tables. Guests are most of the top of the funnel;
+// an anonymous row is identified by metadata->>'session_id' (events) or session_id
+// (pageviews). Never inner-join these tables to profiles: that silently drops every guest.
+// The `profile` relation exists for the foreign key (a user_id names a real account, and is
+// cleared, row kept, when the account is deleted). Never filter events through it
+// (`where: { profile: { … } }`): that is the inner join, in Prisma's words.
+//
+// Not expressible here, and kept by the migrations: RLS, the partial and expression indexes
+// the dedupe lookup and the retention scan use (analytics_events_user_idx,
+// analytics_events_session_idx, analytics_events_user_created_idx), and the dwell_ms > 0
+// check.
+model AnalyticsEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  name      String
+  path      String?
+  /// The event's discriminators, plus session_id and country.
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile? @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([name, createdAt(sort: Desc)], map: "analytics_events_name_created_idx")
+  @@map("analytics_events")
+}
+
+// Raw dwell deltas, appended without dedupe and summed later for time-on-screen.
+model AnalyticsPageview {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  sessionId String   @map("session_id")
+  path      String
+  /// Greater than zero.
+  dwellMs   Int      @map("dwell_ms")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile? @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([path, createdAt(sort: Desc)], map: "analytics_pageviews_path_created_idx")
+  @@index([sessionId, createdAt(sort: Desc)], map: "analytics_pageviews_session_idx")
+  @@map("analytics_pageviews")
+}

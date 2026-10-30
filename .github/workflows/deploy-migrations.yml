@@ -1,88 +1,161 @@
 name: Deploy migrations
 
+# Applies apps/web/prisma/schema/migrations to the production database on every push to
+# main, then the run-once SQL, then checks drift and RLS on the live database. Off until
+# the repository variable PRISMA_BASELINE_RESOLVED is 'true', which a play sets once its
+# database is on Prisma (docs/rules/migrations.md, "Adopting Prisma on a live database"):
+#
+#   - a new, empty database: set it before the first deploy; the baseline then runs like
+#     any other migration;
+#   - a database supabase/migrations/ already built: run this workflow by hand with task
+#     `resolve-baseline` first, then set it.
+#
+# The template repository itself has no production database and leaves it unset.
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      task:
+        description: 'deploy: apply pending migrations. resolve-baseline: the one-time switch to Prisma for a database supabase/migrations built.'
+        type: choice
+        options: [deploy, resolve-baseline]
+        default: deploy
 
 concurrency:
   group: production-migrations
   cancel-in-progress: false
 
+env:
+  BASELINE: 20260924000000_supabase_baseline
+
 jobs:
-  deploy:
+  # One time, by hand, for a database that supabase/migrations/ built. The baseline must be
+  # recorded as applied there, never run. This proves the baseline really is that database
+  # first: it replays the baseline alone onto an empty Postgres and compares a catalog
+  # fingerprint of the two (every table, column, constraint, index, function, policy,
+  # trigger and grant; no row data). Identical, or nothing is marked. From plays-dashboard.
+  resolve-baseline:
+    if: github.event_name == 'workflow_dispatch' && inputs.task == 'resolve-baseline'
     runs-on: ubuntu-latest
-    # Skip the push that CREATES main, which is the template generation itself.
-    # At that moment the production database usually does not exist yet, so
-    # there is nothing to deploy to, and failing here would give every new
-    # project a red X on main.
-    #
-    # Skipping is safe because `prisma migrate deploy` is cumulative: the first
-    # real push to main applies this migration and every later one.
-    #
-    # Deliberately keyed on `created`, which means "this push made the branch",
-    # and NOT on whether the secret is empty. Those are different facts, and
-    # conflating them is the trap: skipping on an empty secret would turn a
-    # genuinely misconfigured project green forever. A missing secret on any
-    # later push is real, and stays loud. See the guard step below.
-    if: github.event_name == 'workflow_dispatch' || !github.event.created
     environment: production-database
     env:
-      # Session-pooler URL (port 5432), not the transaction pooler (6543)
-      # — migrate deploy holds an advisory lock across statements that
-      # transaction-mode pgbouncer can't sustain. DIRECT_URL is set to the
-      # same value: the schema declares directUrl = env("DIRECT_URL")
-      # unconditionally, so Prisma's schema validation fails without it
-      # regardless of whether this specific command reads it (see ci.yml's
-      # migrations job for the same note) — and since PRODUCTION_DATABASE_URL
-      # is already the session-pooler connection, there's no second URL to
-      # provide.
+      # Supabase's session pooler (port 5432), no query parameters. DIRECT_URL gets the same
+      # value because the schema declares directUrl = env("DIRECT_URL") and every migrate
+      # command validates it.
       DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       DIRECT_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-    steps:
-      # No database yet is normal for a new project or a prototype, so an empty
-      # secret is a notice, not a failure, and the steps below are skipped. Set
-      # the repository variable REQUIRE_PRODUCTION_DATABASE to "true" once the
-      # project has a production database: from then on an empty secret fails
-      # loudly instead of passing green forever. Prisma's own error for the
-      # empty case (`P1012 ... DIRECT_URL resolved to an empty string`) names
-      # neither the secret nor where it goes, hence this step.
-      - name: Check for a database URL
-        id: db
+      REPLAY_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      PGOPTIONS: '-c client_min_messages=warning'
+    services:
+      postgres:
+        # Match production's major version if it is not 17.
+        image: postgres:17
         env:
-          REQUIRE_DATABASE: ${{ vars.REQUIRE_PRODUCTION_DATABASE }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Require a database URL
         run: |
-          if [ -n "$DATABASE_URL" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          elif [ "$REQUIRE_DATABASE" = "true" ]; then
-            echo "::error::PRODUCTION_DATABASE_URL is empty in the production-database environment. See docs/CI_CD_SETUP.md."
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PRODUCTION_DATABASE_URL is empty in the production-database environment."
             exit 1
-          else
-            echo "::notice::No PRODUCTION_DATABASE_URL in the production-database environment, so no migrations were deployed. See docs/CI_CD_SETUP.md."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/checkout@v4
-        if: steps.db.outputs.ready == 'true'
-      - uses: pnpm/action-setup@v4
-        if: steps.db.outputs.ready == 'true'
       - uses: actions/setup-node@v4
-        if: steps.db.outputs.ready == 'true'
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile # postinstall runs `prisma generate`
-        if: steps.db.outputs.ready == 'true'
+          cache: npm
+      - run: npm ci # apps/web's postinstall runs `prisma generate`
+      - name: Replay the baseline alone
+        run: |
+          psql "$REPLAY_URL" -v ON_ERROR_STOP=1 -q -f apps/web/prisma/ci/supabase-shim.sql
+          psql "$REPLAY_URL" -v ON_ERROR_STOP=1 -q -f "apps/web/prisma/schema/migrations/$BASELINE/migration.sql"
+      - name: Compare the replay with production
+        run: |
+          psql "$REPLAY_URL" -XAt -v ON_ERROR_STOP=1 -f apps/web/prisma/ci/catalog-fingerprint.sql | LC_ALL=C sort > replay.txt
+          psql "$DATABASE_URL" -XAt -v ON_ERROR_STOP=1 -f apps/web/prisma/ci/catalog-fingerprint.sql | LC_ALL=C sort > production.txt
+          echo "replay: $(wc -l < replay.txt) objects, production: $(wc -l < production.txt) objects"
+          if ! diff replay.txt production.txt; then
+            echo "::error::Production does not match the baseline (lines above: < replay, > production). Nothing was marked applied."
+            exit 1
+          fi
+      - name: Mark the baseline applied
+        run: |
+          if psql "$DATABASE_URL" -XAt -c "select 1 from public._prisma_migrations where migration_name = '$BASELINE'" 2>/dev/null | grep -q 1; then
+            echo "Already marked applied; nothing to do."
+          else
+            npx prisma migrate resolve --applied "$BASELINE" --schema apps/web/prisma/schema
+          fi
+      - name: What the next deploy will apply
+        run: npx prisma migrate status --schema apps/web/prisma/schema || true
+
+  deploy:
+    # Off until the database is on Prisma (the header above). Skipping the push that creates
+    # main keeps a freshly cloned play green before its database exists; a missing URL on any
+    # later run fails loudly below.
+    if: >-
+      vars.PRISMA_BASELINE_RESOLVED == 'true' &&
+      ((github.event_name == 'push' && !github.event.created) ||
+       (github.event_name == 'workflow_dispatch' && inputs.task == 'deploy'))
+    runs-on: ubuntu-latest
+    environment: production-database
+    env:
+      # The session pooler (port 5432), not the transaction pooler (6543): migrate deploy
+      # holds an advisory lock across statements, which transaction mode cannot keep.
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      PGOPTIONS: '-c client_min_messages=warning'
+    steps:
+      # Prisma's own error for the empty case (P1012, "DIRECT_URL resolved to an empty
+      # string") names neither the secret nor where it belongs.
+      - name: Require a database URL
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::PRODUCTION_DATABASE_URL is empty in the production-database environment."
+            exit 1
+          fi
+      # A database supabase/migrations/ built already has every table in the baseline.
+      # Deploying to it before resolve-baseline would run the baseline there and fail on its
+      # first CREATE TABLE, leaving a failed migration to clear by hand. Refuse instead.
+      - name: Refuse a database whose baseline is not resolved
+        run: |
+          built=$(psql "$DATABASE_URL" -XAt -v ON_ERROR_STOP=1 -c "select to_regclass('public.profiles') is not null")
+          tracked=$(psql "$DATABASE_URL" -XAt -v ON_ERROR_STOP=1 -c "select to_regclass('public._prisma_migrations') is not null")
+          if [ "$built" = "t" ]; then
+            resolved=f
+            if [ "$tracked" = "t" ]; then
+              resolved=$(psql "$DATABASE_URL" -XAt -v ON_ERROR_STOP=1 -c "select exists (select 1 from public._prisma_migrations where migration_name = '$BASELINE' and finished_at is not null)")
+            fi
+            if [ "$resolved" != "t" ]; then
+              echo "::error::This database already has the schema but no applied $BASELINE: run this workflow with task resolve-baseline first (docs/rules/migrations.md)."
+              exit 1
+            fi
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci # apps/web's postinstall runs `prisma generate`
       - name: Apply migrations to production
-        if: steps.db.outputs.ready == 'true'
-        run: pnpm exec prisma migrate deploy
-      # prisma/run-once.sql: the current one-off, applied once per database and
-      # recorded in _run_once_sql so it never repeats (docs/rules/migrations.md).
-      # After the migrations so it can use what they just created, before the
-      # drift check so it cannot smuggle in schema the Prisma files don't
-      # declare. Picks up DIRECT_URL/DATABASE_URL from the job env above.
+        run: npx prisma migrate deploy --schema apps/web/prisma/schema
+      # apps/web/prisma/run-once.sql: the current one-off, applied once per database and
+      # recorded in _run_once_sql so it never repeats. After the migrations so it can use
+      # what they created, before the drift check so it cannot smuggle in untracked schema.
       - name: Apply run-once SQL to production
-        if: steps.db.outputs.ready == 'true'
         run: node scripts/run-once-sql.mjs
       - name: Verify zero drift against the live database
-        if: steps.db.outputs.ready == 'true'
-        run: pnpm exec prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema --exit-code
+        run: npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel apps/web/prisma/schema --exit-code
+      # Read-only. The same catalog check CI runs on the replay, now on the real thing.
+      - name: Verify RLS and grants on the live database
+        run: npm run check:rls

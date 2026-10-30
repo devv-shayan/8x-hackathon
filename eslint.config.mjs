@@ -1,56 +1,47 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { FlatCompat } from '@eslint/eslintrc'
 import { defineConfig, globalIgnores } from 'eslint/config'
-import nextVitals from 'eslint-config-next/core-web-vitals'
-import nextTypescript from 'eslint-config-next/typescript'
+import expo from 'eslint-config-expo/flat.js'
 
-// `**`, not `*` — a single star doesn't cross a `/`, so '@phosphor-icons/*'
-// would miss the very path this template itself imports
-// ('@phosphor-icons/react/ssr').
-const ICON_PROVIDER_IMPORTS = {
-	group: [
-		'@phosphor-icons/**',
-		'lucide-react',
-		'@heroicons/**',
-		'@radix-ui/react-icons',
-		'@tabler/icons-react',
-		'react-icons',
-		'react-icons/**'
-	],
+// One config for the monorepo, one block per workspace. Each workspace's base
+// config (Next.js for web, Expo for mobile) brings its own copy of plugins such
+// as react and @typescript-eslint, and ESLint refuses two definitions of one
+// plugin for the same file — so every base config is scoped to its workspace
+// before it is added.
+
+const WEB = 'apps/web'
+const MOBILE = 'apps/mobile'
+const CONTRACT = 'packages/contract'
+
+// Absolute, so the plugins that resolve paths themselves (Next's pages-dir
+// lookup, the TypeScript import resolver) work from any cwd — `npm run lint`
+// at the root and `eslint .` inside a workspace alike.
+const ROOT = path.dirname(fileURLToPath(import.meta.url))
+const abs = (p) => path.join(ROOT, p)
+
+// Application code, where console output is banned.
+const WEB_CODE = [`${WEB}/src/**/*.{ts,tsx}`]
+const MOBILE_CODE = [`${MOBILE}/{app,components,contexts,hooks,lib}/**/*.{ts,tsx}`]
+
+// Web: one file owns each of these dependencies and the rest of src/ imports
+// its wrapper (template-web's shape). Every group goes in WEB_RESTRICTED_IMPORTS:
+// flat config resolves a rule last-match-wins, so a second
+// `no-restricted-imports` over src/** would replace the first, not add to it.
+const WEB_LOGGER_IMPORTS = {
+	group: ['pino', 'pino/**'],
 	message:
-		"Import icons from '@/components/ui/icons' instead — that file is the only place an icon provider is imported. Add the icon there if it's missing. See docs/rules/icons.md."
+		"Import log from '@/server/lib/logger' instead — the shared Pino wrapper owns correlation and redaction. See docs/rules/logging.md."
 }
-
-// Every provider SDK, plus the wrappers that would route around one. An
-// import here is an AI call that no ai_usage row will ever account for, which
-// is the failure this whole subsystem exists to make impossible rather than
-// merely discouraged.
-const AI_SDK_IMPORTS = {
-	group: [
-		'@anthropic-ai/sdk',
-		'@anthropic-ai/sdk/**',
-		'openai',
-		'openai/**',
-		'@google/genai',
-		'@google/genai/**',
-		'@google/generative-ai',
-		'/ai',
-		'@ai-sdk/**'
-	],
-	message:
-		"Call the provider through 'src/server/ai/<provider>' instead — that file is the only place an AI SDK is imported, and the only place trackAiCall is called. Add the method there if it's missing. See docs/rules/ai-usage.md."
-}
-
 // Prisma is the only data path (docs/rules/database.md). The client is
-// constructed once, in src/server/db/client.ts, and everything else imports
-// `db` from there. Type imports stay allowed — typing a parameter as
-// `AdminRole` is not a second connection. The raw drivers and other ORMs have
-// no legitimate importer anywhere in src/.
-const DATA_ACCESS_IMPORTS = {
+// constructed once, in src/server/db/client.ts, and the stores beside it are
+// what everything else imports. Type imports stay allowed: typing a parameter
+// as PrismaClient is not a second connection. The raw drivers and other ORMs
+// have no legitimate importer anywhere in src/.
+const WEB_DATA_ACCESS_IMPORTS = {
 	group: [
 		'@prisma/client',
 		'@prisma/client/**',
-		'@/generated/prisma',
-		'@/generated/prisma/**',
-		'**/generated/prisma/**',
 		'pg',
 		'pg/**',
 		'postgres',
@@ -65,139 +56,264 @@ const DATA_ACCESS_IMPORTS = {
 	],
 	allowTypeImports: true,
 	message:
-		"Import `db` from '@/server/db/client' instead — that file is the only place the Prisma client is constructed, and raw database drivers have no place in src/. See docs/rules/database.md."
+		"Use a store from '@/server/db/*' instead — src/server/db/client.ts is the only place the Prisma client is constructed, and raw database drivers have no place in src/. See docs/rules/database.md."
 }
-
 // Supabase is auth only (docs/rules/auth.md). The wrappers in src/lib/supabase/
 // hand out a client typed to its auth surface, so `.from()` and `.rpc()` are
-// type errors; importing the SDK directly would be the way around that type,
-// which is why it is banned everywhere else. proxy.ts is the one other holder:
+// type errors; importing the SDK directly is the way around that type, which is
+// why it is banned everywhere else. src/middleware.ts is the one other holder:
 // it refreshes the session cookie before any wrapper could run.
-const SUPABASE_IMPORTS = {
+const WEB_SUPABASE_IMPORTS = {
 	group: ['@supabase/supabase-js', '@supabase/ssr', '@supabase/**'],
 	allowTypeImports: true,
 	message:
-		"Use createServerSupabaseClient / createSecretKeyClient from '@/lib/supabase/*' instead — Supabase is auth only here; application data goes through Prisma. See docs/rules/auth.md."
+		"Use createServerSupabaseClient / createSecretKeyClient / createBrowserSupabaseClient from '@/lib/supabase/*' instead — Supabase is auth only here; application data goes through Prisma. See docs/rules/auth.md."
 }
-
-const LOGGER_IMPORTS = {
-	group: ['pino', 'pino/**'],
+// The Prisma client itself stays inside src/server/db/: everything else imports a store,
+// where each query is written and scoped. Only `db` is refused, so `Prisma` (the namespace,
+// for input types and Prisma.DbNull) and type imports still come from the client module.
+const WEB_DB_CLIENT_IMPORTS = {
+	group: ['@/server/db/client', '**/server/db/client', '**/db/client'],
+	importNames: ['db'],
 	message:
-		"Import log from '@/server/lib/logger' instead — the shared Pino wrapper owns correlation and redaction. See docs/rules/logging.md."
+		"Import a store from '@/server/db/*' instead — the Prisma client is used only inside src/server/db/, where each query lives. See docs/rules/database.md."
+}
+const WEB_RESTRICTED_IMPORTS = [
+	WEB_LOGGER_IMPORTS,
+	WEB_DATA_ACCESS_IMPORTS,
+	WEB_SUPABASE_IMPORTS,
+	WEB_DB_CLIENT_IMPORTS
+]
+// For a file that owns a dependency: every other group still applies to it.
+const webRestrictedImportsExcept = (...owned) =>
+	WEB_RESTRICTED_IMPORTS.filter((group) => !owned.includes(group))
+
+// A files/ignores pattern, re-rooted at a workspace. FlatCompat turns eslintrc
+// `overrides` into function patterns (called with an absolute path); those
+// are wrapped so they only ever match inside the workspace.
+function within(dir, pattern) {
+	if (typeof pattern === 'function') {
+		const root = `${abs(dir)}/`
+		return (filePath) => filePath.startsWith(root) && pattern(filePath)
+	}
+	return pattern.startsWith('!') ? `!${dir}/${pattern.slice(1)}` : `${dir}/${pattern}`
 }
 
-const eslintConfig = defineConfig([
-	...nextVitals,
-	...nextTypescript,
-	globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'src/generated/**']),
+function scopeTo(dir, configs) {
+	return configs.map((config) => {
+		// An object holding only `ignores` is a global ignore; keep it global,
+		// but relative to the workspace.
+		const keys = Object.keys(config).filter((key) => key !== 'name')
+		if (keys.length === 1 && keys[0] === 'ignores') {
+			return { ...config, ignores: config.ignores.map((p) => within(dir, p)) }
+		}
+		return {
+			...config,
+			files: config.files
+				? config.files.map((p) =>
+						Array.isArray(p) ? p.map((q) => within(dir, q)) : within(dir, p)
+					)
+				: [`${dir}/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}`],
+			...(config.ignores && { ignores: config.ignores.map((p) => within(dir, p)) })
+		}
+	})
+}
+
+const compat = new FlatCompat({ baseDirectory: ROOT })
+
+export default defineConfig([
+	globalIgnores([
+		'**/.next/**',
+		'**/.expo/**',
+		'**/dist/**',
+		'**/build/**',
+		'**/out/**',
+		'**/coverage/**',
+		`${WEB}/next-env.d.ts`,
+		'.claude-logs/**'
+	]),
+
+	// ── Web: template-web's rules ────────────────────────────────────────────
+	...scopeTo(WEB, compat.extends('next/core-web-vitals', 'next/typescript')),
 	{
-		// See docs/rules/code-quality.md for the rationale behind both rules.
-		rules: {
-			'@typescript-eslint/no-explicit-any': 'error'
+		files: [`${WEB}/**/*.{js,jsx,mjs,ts,tsx,mts}`],
+		settings: {
+			next: { rootDir: `${abs(WEB)}/` },
+			'import/resolver': { typescript: { project: abs(`${WEB}/tsconfig.json`) } }
+		}
+	},
+
+	// ── Mobile: Expo's React Native rules ────────────────────────────────────
+	...scopeTo(MOBILE, expo),
+	{
+		files: [`${MOBILE}/**/*.{js,jsx,ts,tsx}`],
+		settings: {
+			'import/resolver': {
+				typescript: { project: abs(`${MOBILE}/tsconfig.json`) },
+				node: { extensions: ['.js', '.jsx', '.ts', '.tsx', '.d.ts'] }
+			}
 		}
 	},
 	{
-		// no-console scoped to application code only — scripts/ is
-		// operational tooling that legitimately prints to stdout.
-		files: ['src/**/*.{ts,tsx}'],
+		// Jest globals for the mobile test suite.
+		files: [`${MOBILE}/__tests__/**/*.{ts,tsx}`, `${MOBILE}/**/*.test.{ts,tsx}`],
+		languageOptions: {
+			globals: {
+				describe: 'readonly',
+				it: 'readonly',
+				test: 'readonly',
+				expect: 'readonly',
+				jest: 'readonly',
+				beforeAll: 'readonly',
+				beforeEach: 'readonly',
+				afterAll: 'readonly',
+				afterEach: 'readonly'
+			}
+		}
+	},
+
+	// ── The v1 API contract: TypeScript shared by both apps ─────────────────
+	...scopeTo(CONTRACT, compat.extends('next/typescript')),
+	{
+		files: [`${CONTRACT}/**/*.{ts,mts}`],
+		rules: { '@typescript-eslint/no-explicit-any': 'error', 'no-console': 'error' }
+	},
+
+	// ── Both apps: the standard's two rules (docs/rules/code-quality.md) ─────
+	{
+		files: [`${WEB}/**/*.{ts,tsx}`, `${MOBILE}/**/*.{ts,tsx}`],
+		rules: { '@typescript-eslint/no-explicit-any': 'error' }
+	},
+	{
+		// Application code only: scripts/ and config files are tooling that
+		// legitimately prints to stdout.
+		files: [...WEB_CODE, ...MOBILE_CODE],
 		rules: { 'no-console': 'error' }
 	},
 	{
 		// env.ts is shared with client code and must report invalid boot config
 		// before a server-only logger can be imported.
-		files: ['src/lib/env.ts', '**/instrumentation*.ts', 'sentry.*.config.ts'],
-		rules: {
-			'no-console': ['error', { allow: ['warn', 'error'] }]
-		}
+		files: [`${WEB}/src/lib/env.ts`, `${WEB}/**/instrumentation*.ts`, `${WEB}/sentry.*.config.ts`],
+		rules: { 'no-console': ['error', { allow: ['warn', 'error'] }] }
 	},
+
+	// ── Mobile: environment variables and the logger ─────────────────────────
 	{
-		// Icons come from '@/components/ui/icons', AI SDKs from 'src/server/ai/*',
-		// the Prisma client from 'src/server/db/client.ts' and Supabase from
-		// 'src/lib/supabase/*' — never from the package directly. See
-		// docs/rules/icons.md, ai-usage.md, database.md and auth.md. Same
-		// enforcement shape as the logger rule below: one file owns the
-		// dependency, the rest of the codebase imports the wrapper.
-		//
-		// All pattern groups live in ONE rule entry on purpose. ESLint flat
-		// config resolves a rule by last-match-wins, so a second block
-		// re-declaring `no-restricted-imports` over `src/**` would silently
-		// replace this one rather than add to it — which is why each exemption
-		// block below re-states every group that still applies instead of only
-		// subtracting its own.
-		files: ['src/**/*.{ts,tsx}'],
+		// Every variable is read in lib/env.ts. Expo inlines EXPO_PUBLIC_* into
+		// a release build only for a static `process.env.EXPO_PUBLIC_X`, so one
+		// place that spells each out beats a rule to remember in every file.
+		files: MOBILE_CODE,
+		ignores: [`${MOBILE}/lib/env.ts`],
 		rules: {
-			'no-restricted-imports': [
+			'no-restricted-syntax': [
 				'error',
 				{
-					patterns: [
-						ICON_PROVIDER_IMPORTS,
-						AI_SDK_IMPORTS,
-						DATA_ACCESS_IMPORTS,
-						SUPABASE_IMPORTS,
-						LOGGER_IMPORTS
-					]
+					selector: "MemberExpression[object.name='process'][property.name='env']",
+					message: 'Read environment variables from lib/env.ts (`env.EXPO_PUBLIC_…`).'
 				}
 			]
 		}
 	},
 	{
-		files: ['src/components/ui/icons.tsx'],
+		// In lib/env.ts itself, eslint-config-expo already rejects a computed
+		// `process.env[name]` and a destructured `process.env` (both undefined
+		// in a release build). This adds the third rule: public names only.
+		files: [`${MOBILE}/lib/env.ts`],
 		rules: {
-			'no-restricted-imports': [
+			'no-restricted-syntax': [
 				'error',
-				{ patterns: [AI_SDK_IMPORTS, DATA_ACCESS_IMPORTS, SUPABASE_IMPORTS, LOGGER_IMPORTS] }
+				{
+					selector:
+						"MemberExpression[computed=false][object.object.name='process'][object.property.name='env'][property.name!=/^EXPO_PUBLIC_/]",
+					message: 'Only EXPO_PUBLIC_ variables exist in the app bundle.'
+				}
 			]
 		}
 	},
 	{
-		// src/server/ai/* is where the AI SDKs are allowed to be imported, and
-		// the only place trackAiCall is called. Every other ban still applies.
-		files: ['src/server/ai/**/*.ts'],
+		// The logger's development sink is the one place in the app that prints.
+		files: [`${MOBILE}/lib/logger/index.ts`],
+		rules: { 'no-console': 'off' }
+	},
+
+	// ── Mobile: Supabase is auth only (docs/rules/mobile-data.md) ────────────
+	{
+		// lib/supabase.ts hands out a client typed to its auth surface, so
+		// `.from()` and `.rpc()` are type errors; importing the SDK anywhere else
+		// is the way around that type. Data goes through lib/api.ts.
+		files: [`${MOBILE}/**/*.{js,jsx,ts,tsx}`],
+		ignores: [`${MOBILE}/lib/supabase.ts`],
 		rules: {
 			'no-restricted-imports': [
 				'error',
-				{ patterns: [ICON_PROVIDER_IMPORTS, DATA_ACCESS_IMPORTS, SUPABASE_IMPORTS, LOGGER_IMPORTS] }
+				{
+					patterns: [
+						{
+							group: ['@supabase/supabase-js', '@supabase/**'],
+							message:
+								"Import { supabase } from '@/lib/supabase' for sign-in, and call the API through '@/lib/api' for data: the app never reads a table. See docs/rules/mobile-data.md."
+						}
+					]
+				}
+			]
+		}
+	},
+
+	// ── Web: the shared wrappers (logging.md, database.md, auth.md) ───────────
+	// All groups in ONE rule entry: flat config resolves a rule last-match-wins,
+	// so each exemption below restates every group that still applies rather
+	// than only subtracting its own.
+	{
+		files: [`${WEB}/src/**/*.{ts,tsx}`],
+		rules: { 'no-restricted-imports': ['error', { patterns: WEB_RESTRICTED_IMPORTS }] }
+	},
+	{
+		// The one file that constructs the Pino logger.
+		files: [`${WEB}/src/server/lib/logger/logger.ts`],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{ patterns: webRestrictedImportsExcept(WEB_LOGGER_IMPORTS) }
+			]
+		}
+	},
+	{
+		// The stores: the only code that queries through the Prisma client.
+		files: [`${WEB}/src/server/db/**/*.ts`],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{ patterns: webRestrictedImportsExcept(WEB_DB_CLIENT_IMPORTS) }
 			]
 		}
 	},
 	{
 		// The one file that constructs the Prisma client.
-		files: ['src/server/db/client.ts'],
+		files: [`${WEB}/src/server/db/client.ts`],
 		rules: {
 			'no-restricted-imports': [
 				'error',
-				{ patterns: [ICON_PROVIDER_IMPORTS, AI_SDK_IMPORTS, SUPABASE_IMPORTS, LOGGER_IMPORTS] }
+				{ patterns: webRestrictedImportsExcept(WEB_DATA_ACCESS_IMPORTS, WEB_DB_CLIENT_IMPORTS) }
 			]
 		}
 	},
 	{
-		// The Supabase wrappers, and the proxy that refreshes the session before
-		// any of them could run.
-		files: ['src/lib/supabase/**/*.ts', 'src/proxy.ts'],
+		// The Supabase wrappers, and the middleware that refreshes the session
+		// before any of them could run.
+		files: [`${WEB}/src/lib/supabase/**/*.ts`, `${WEB}/src/middleware.ts`],
 		rules: {
 			'no-restricted-imports': [
 				'error',
-				{ patterns: [ICON_PROVIDER_IMPORTS, AI_SDK_IMPORTS, DATA_ACCESS_IMPORTS, LOGGER_IMPORTS] }
+				{ patterns: webRestrictedImportsExcept(WEB_SUPABASE_IMPORTS) }
 			]
 		}
 	},
 	{
-		files: ['src/server/lib/logger/logger.ts'],
-		rules: {
-			'no-restricted-imports': [
-				'error',
-				{ patterns: [ICON_PROVIDER_IMPORTS, AI_SDK_IMPORTS, DATA_ACCESS_IMPORTS, SUPABASE_IMPORTS] }
-			]
-		}
-	},
-	{
-		// The logger uses node:async_hooks and process.stdout — it can't run in
+		// The logger uses node:async_hooks and process.stdout, so it can't run in
 		// a browser bundle. It doesn't import `server-only` (that would throw in
-		// the node:test suites that exercise it), so the boundary in
-		// docs/rules/logging.md is enforced here instead: a `'use client'` file
-		// reports errors through Sentry (instrumentation-client.ts), never the
-		// logger.
-		files: ['src/**/*.{ts,tsx}'],
+		// the node:test suites that exercise it), so the boundary is enforced
+		// here instead: a `'use client'` file never imports the logger.
+		files: [`${WEB}/src/**/*.{ts,tsx}`],
 		rules: {
 			'no-restricted-syntax': [
 				'error',
@@ -205,11 +321,9 @@ const eslintConfig = defineConfig([
 					selector:
 						"Program:has(> ExpressionStatement[directive='use client']) ImportDeclaration[source.value=/^@\\/server\\/lib\\/logger(\\/|$)/]",
 					message:
-						'The logger is server-only; a Client Component reports errors through Sentry (instrumentation-client.ts). See docs/rules/logging.md.'
+						'The logger is server-only; a Client Component cannot import it. See docs/rules/logging.md.'
 				}
 			]
 		}
 	}
 ])
-
-export default eslintConfig

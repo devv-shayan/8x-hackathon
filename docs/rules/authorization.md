@@ -1,112 +1,69 @@
-# Authorization (Admin RBAC)
+# Authorization
 
-Authentication answers _who are you_ (`docs/rules/auth.md`, Supabase). This
-file answers _what may you do_ — for the **admin console**, the internal
-staff who log in to operate the product.
+Authentication answers _who are you_ ([auth](auth.md)). This file answers _what may you do_.
+The answer is always decided **in server code, before the query**, never by the client and
+never by what the client sends. Both apps reach their data only through server routes, so the
+route is the one authorization path to review, rather than RLS policies and route code both.
 
-RBAC here governs **admin** access only. It does **not** model
-`creator` / `brand` / end-user — those are separate products with their own
-apps, auth surfaces, and ownership guards (`docs/rules/auth.md`). "Which
-product am I in" is a routing concern, never an RBAC role. Most users hold
-**no admin seat at all**: `getAdminContext()` returns `null` for them and the
-console is closed.
+## Who calls, and the guard that decides
 
-## The model: ordered role tier + additive per-user grants
+| Caller                               | Guard                                                                                                                                                              | Where                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| A signed-in person (web or app)      | `requireUser()` (the app's bearer token) or the session (the website), then scope every query to that user id                                                      | Every route that touches a person's data                            |
+| An operator in the admin panel       | Pages: the `admin/(protected)/layout.tsx` guard (session, then `profileStore.isAdmin`). Routes and actions: `requireAdmin()` (`apps/web/src/lib/require-admin.ts`) | Every page under `admin/(protected)/`; every admin route and action |
+| The stats dashboard (Play Stats API) | `requireDashboardKey()` (`apps/web/src/lib/dashboard-api-auth.ts`): `DASHBOARD_API_KEY` bearer, constant-time compare, 503 when unset                              | `apps/web/src/app/api/dashboard/v1/*`                               |
+| A cron                               | The `CRON_SECRET` bearer, constant-time (`apps/web/src/server/api/cron-auth.ts`), 503 when unset                                                                   | `apps/web/src/app/api/cron/*`                                       |
+| A webhook (RevenueCat)               | The webhook's shared secret (`REVENUECAT_WEBHOOK_SECRET` bearer), constant-time, 503 when unset, before the body is read                                           | `apps/web/src/app/api/webhooks/*`                                   |
 
-Staff-ness is a **separate table** (`AdminMember`), not a column on `User` —
-the presence of an **active** row is what makes someone staff.
+Rules that hold for all of them:
 
-- `role` is an `AdminRole` **enum** — the tier of record. Roles are ordered,
-  nested supersets: `read_only ⊂ support ⊂ admin ⊂ super_admin`.
-  - `super_admin` — **wildcard**: holds every permission, present and future.
-    A newly-added catalog key is auto-held, so extending the catalog never
-    locks out the top tier.
-  - `admin` — all non-dangerous permissions (every read + every write, never
-    seats/money/destructive).
-  - `support` — all reads (incl. sensitive) + an explicit support-write slice.
-  - `read_only` — the **default seat**: non-sensitive reads only, no writes.
-- `permissionGrants` is a `String[]` of **additive-only** overrides. It only
-  _adds_ keys on top of the role; it can never contradict or shrink the tier.
-  `effectivePermissions(member) = permissionsForRole(role) ∪ sanitize(grants)`
-  is the one place expansion happens; every gate resolves through it.
+1. Resolve the caller first; reject when absent (401).
+2. Check the caller may touch the _specific_ rows before the query, not after it (403).
+3. Never scope a query by a client-supplied id alone. The user id comes from the verified
+   session or token.
+4. A server action is a public endpoint. The admin layout's guard does not protect an action;
+   each action re-checks `requireAdmin()` itself.
+5. Unset secret means closed, not open: a guard whose key is not configured answers 503, never
+   "allow" ([secrets](secrets.md)). The RevenueCat webhook is the money path, so a Vercel
+   production build also fails without a valid `REVENUECAT_WEBHOOK_SECRET` (`docs/ENV_SETUP.md`).
+   The legacy edge function `supabase/functions/revenuecat-webhook`, which skipped its check
+   when its own secret was unset, is deleted; a play that deployed it deletes it from the
+   project too ([migrations](migrations.md), "Supabase-specific").
 
-Adding a capability = add a key to the catalog (`src/lib/rbac/permissions.ts`)
-and gate on it. **No migration** — `permissionGrants` is a `text[]`, not an
-enum column; `role` stays a small fixed enum.
+## Admins today
 
-## The library (`src/lib/rbac/`)
+Admin access is `profiles.is_admin`, a server-controlled column: nobody can promote themselves.
+No API role holds any privilege on `profiles` (`check:rls` fails if one could write it). Grant
+it in SQL, as `docs/ENV_SETUP.md` shows.
 
-- `permissions.ts` — the grouped, illustrative capability catalog. Each entry
-  is `{ key, label, kind: 'read' | 'write' | 'dangerous', sensitive? }`.
-  Derives `ALL_PERMISSIONS`, `READ_PERMISSIONS`, `NON_SENSITIVE_READS`,
-  `NON_DANGEROUS_PERMISSIONS`, `DANGEROUS_PERMISSIONS`, plus `permissionSchema`
-  (Zod), `isPermission`, `sanitizePermissions`.
-- `roles.ts` — `ROLE_RANK`, `LOWEST_ROLE`, `permissionsForRole`,
-  `effectivePermissions`, `memberHasPermission`, `roleAtLeast`.
-- `context.ts` — the enforcement surface, `cache()`'d once per request:
-  - `getAdminContext()` — resolves the session, loads the **active**
-    `AdminMember`, returns `{ user, member, permissions, has } | null`.
-  - `requireAdmin()` — any active seat (the coarse gate the admin layout uses).
-  - `requirePermission(perm)` / `requireAtLeastRole(role)` — per-capability.
-  - `requirePermissionOrRedirect(perm)` — page twin (sign-in vs admin home).
-  - `requireAuthorize(...)` — used by the factories (below).
-- `staff-bootstrap.ts` — `seatRoleForEmail(email)`: an email on a domain in
-  `ADMIN_EMAIL_DOMAINS` auto-gets the **lowest** seat, everyone else gets
-  `null` (no seat). Unset means every seat is granted by hand.
-- `provision-user.ts` — `provisionUser({ id, email })`: upsert the `User` at
-  the Supabase auth uuid, and if `seatRoleForEmail` is non-null, create an
-  `AdminMember` at that role. Logs through `src/server/lib/logger`.
+Two guards check the same two things, a valid session and `is_admin = true`:
 
-## Gate at the edge with the factories
+- **Admin pages:** `admin/(protected)/layout.tsx` resolves the session with `getUser()`, checks
+  `profileStore.isAdmin`, and redirects anyone else to `/admin/login`. Every page under that
+  group is guarded by it. It can't use `requireAdmin()`, which answers with a `NextResponse`
+  that a layout has no way to return.
+- **Admin API routes and server actions:** `requireAdmin()` returns `{ user }`, or a 401/403
+  `response` the route returns as it is; an action refuses on it.
 
-`createApiRoute` and `validatedAction` (`src/server/{api,actions}`) take an
-optional `authorize?: Permission | ((ctx) => boolean | Promise<boolean>)`.
-When present the factory runs `requireAuthorize` **before** the handler, so a
-route/action can't forget its gate. Handlers that need the context call
-`getAdminContext()` themselves (`cache()` dedupes the resolution).
+The `admin` skill (`.claude/skills/admin/SKILL.md`) is how a screen is added.
 
-A guard **throws**; it never builds a `Response`. Two codes only:
+## Where this is going: template-web's admin RBAC
 
-- `new AppError('You must sign in.', { status: 401, code: 'unauthorized' })`
-  — no session.
-- `new AppError('You do not have access to this.', { status: 403, code: 'forbidden' })`
-  — signed in, but no active seat / lacks the permission.
+The standard is template-web's `src/lib/rbac/`: staff-ness as its own table (`AdminMember`)
+rather than a column on the person, an ordered role tier (`read_only ⊂ support ⊂ admin ⊂
+super_admin`) plus additive per-person permission grants, a permission catalog, and
+`requirePermission(permission)` as the real per-capability gate. The route and action factories
+take an `authorize` option so a route can't forget its gate. A guard throws a 401/403 error; it
+never builds a response by hand.
 
-`AppError.status` defaults to 400, so 401/403 **must** be passed explicitly.
-The factories already translate a thrown `AppError` to `{ status, userMessage }`
-via `captureError` (`docs/rules/error-handling.md`).
+This repo hasn't adopted it: `is_admin` is the model. A play that needs more than one admin tier
+adopts template-web's `src/lib/rbac/` whole rather than inventing roles on `profiles`.
 
-## Client surface (small boundary, server-resolved)
+RBAC governs **staff** only. End users are not a role: what a user may see is decided by
+ownership (their own rows), not by an RBAC tier.
 
-`src/lib/rbac/authz-provider.tsx` mounts `<AuthzProvider permissions={…}>` in
-the **admin route-group layout**, seeded from the layout's server context as a
-serializable `string[]` — no client fetch, no waterfall. `useHasPermission`
-and `<Can permission="…">` hide admin controls a seat can't use. This never
-wraps creator/brand/end-user UI.
+## RLS is the backstop, not the boundary
 
-## RLS — the deny-by-default backstop
-
-The **real** authorization boundary is the app layer (the `requirePermission`
-gate above). RLS is a _second, locked door_: Prisma connects as the table
-owner over a direct connection and is exempt, so RLS never gates a Prisma
-query. Enabling it with **no policies** default-denies the `anon` /
-`authenticated` roles the Data API would use — so even if the Data API is
-switched on later, those roles get nothing (`docs/rules/auth.md`).
-
-On **every user-scoped table**, in the same CI-generated create migration that
-creates the table, add `ENABLE ROW LEVEL SECURITY` — **no policy, no `FORCE`**
-(forcing it would subject the owner, breaking every Prisma query). Do NOT
-hand-write a file under `prisma/schema/migrations/` — these statements go into
-the CI-generated create migration (`docs/rules/migrations.md`).
-
-The user-scoped tables this feature adds, and their exact statements:
-
-```sql
-ALTER TABLE "users" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "admin_members" ENABLE ROW LEVEL SECURITY;
-```
-
-`feature_flag_overrides` is also user-scoped and carries the same statement —
-see `docs/rules/feature-flags.md`. `feature_flags` is **global config, not
-user-scoped**, so it gets **no** RLS statement; it is gated by the
-`flags.manage` admin action instead.
+RLS on every table with no policies denies the `anon` and `authenticated` roles everything
+([database](database.md)). It protects against the Data API being switched on by accident. It
+does not authorize anything the app does; the guards above do.

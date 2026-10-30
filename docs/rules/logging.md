@@ -1,84 +1,91 @@
 # Logging
 
-Two tools, two jobs — don't blend them (this is the same split as
-`docs/rules/error-handling.md`, from the other side):
+> **Status.** Both loggers exist: the web server's (Pino, in `apps/web/src/server/lib/logger/`,
+> with its three contract tests) and the app's (`apps/mobile/lib/logger/`). `no-console` is a
+> lint error in all application code, with two exceptions `eslint.config.mjs` names: the mobile
+> logger itself, whose development sink is the console, and `console.warn`/`console.error` in
+> `apps/web/src/lib/env.ts` and `instrumentation*.ts`, which report invalid boot config before
+> the server-only logger can load. `env.ts`'s `console.error` is the one such call today.
 
-- **The Pino logger** (`src/server/lib/logger`) is the _record of what happened_:
-  a cron run started, an external call took 900ms, a batch settled 42 of 50
-  items. Structured JSON, one object per line, to stdout — Vercel's log drain
-  is the transport.
-- **Sentry** (via `captureError`, `docs/rules/error-handling.md`) is for
-  _what broke and someone should be paged about_: an unexpected exception. It
-  is not a log of routine activity, and the logger is not an error reporter.
+Two jobs. Don't blend them:
 
-A handled, expected failure (`AppError`) is neither — it's normal control
-flow; count it in PostHog, don't Sentry it and don't log-spam it.
+- **Logging** is the _record of what happened_: a cron run started, an external call took
+  900 ms, a batch settled 42 of 50 items, the app fell back to cached data.
+- **Error reporting** is for _what broke_: an unexpected exception someone should look at
+  ([error handling](error-handling.md)). Report it with `log.error`, whichever app it is in:
+  - **Web:** there is no Sentry. The Pino logger is not an error reporter: `log.error` writes an
+    error-level line to Vercel's logs, and that line is the report.
+  - **Mobile:** in a release build `log.error` is the one call that reports to Sentry
+    ([below](#mobile-the-apps-logger-on-the-device)); `info` and `warn` are breadcrumbs that
+    ride along with the next report, and `debug` is dropped. Sentry is not a log of routine
+    activity.
 
-## Using it
+An expected, handled failure (a declined payment, a taken username) is neither. It is normal
+control flow: count it in PostHog, don't Sentry it and don't log-spam it.
 
-Pino is the logging engine. Application code imports the shared wrapper,
-never `pino` directly; ESLint permits that import only in
-`src/server/lib/logger/logger.ts`. The wrapper preserves our message-first
-API, async context, safe value serialization and credential scrubbing.
-Pino handles levels, timestamps and JSON output. No worker transport or
-file output is needed: the deployment platform collects stdout.
+## Web: Pino on the server
+
+Application code imports the shared wrapper, never `pino` directly; ESLint permits that import
+only inside the logger module.
 
 ```ts
 import { log } from '@/server/lib/logger'
 
-log.info('sync started', { source: 'stripe', batchSize: 50 })
+log.info('sync started', { source: 'revenuecat', batchSize: 50 })
 log.warn('rate limited, backing off', { retryInMs: 2000 })
-log.error('sync finished with skips', { skipped: 8 }) // still handled — not a page
+log.error('lifecycle cron finished with skips', { skipped: 8 }) // handled, not a page
 ```
 
-- `log.debug | info | warn | error(message, fields?)` — `message` is a short
-  human string; everything structured goes in `fields`.
-- `log.child(fields)` returns a logger that stamps those fields on every line
-  — bind `{ source }` once at the top of a job instead of repeating it.
-- **Correlation without prop-drilling**: `withLogContext({ runId }, fn)` puts
-  fields in `AsyncLocalStorage` so every line emitted anywhere inside `fn`
-  carries them, even code that knows nothing about logging. `logContext()`
-  reads the current scope.
-- An `Error` passed in `fields` is serialised in full (name, message, stack,
-  own properties, `cause` chain) instead of logging an empty `{}`.
+- `log.debug | info | warn | error(message, fields?)`: `message` is a short human string;
+  everything structured goes in `fields`.
+- `log.child(fields)` stamps fields on every line; bind `{ source }` once at the top of a job.
+- `withLogContext({ runId }, fn)` carries fields through everything `fn` calls, without
+  passing them down.
+- An `Error` in `fields` is serialised in full (name, message, stack, `cause` chain).
+- Structured JSON, one object per line, to stdout. Vercel's log drain is the transport.
+- `LOG_LEVEL` sets the floor (`debug | info | warn | error | silent`); `info` by default,
+  `silent` under `NODE_ENV=test`.
+- **Server-only.** It uses `node:async_hooks` and `process.stdout`; ESLint blocks a
+  `'use client'` file from importing it.
 
-## Levels
+`npm test` runs the logger, redaction and context contract tests; the `structured-logger`
+standard checks they are wired, in the `apps/web` workspace.
 
-`LOG_LEVEL` (`.env.example`) sets the floor: `debug | info | warn | error |
-silent`. Defaults to `info`, and to `silent` under `NODE_ENV=test` so suites
-stay quiet. The logger reads `process.env.LOG_LEVEL` directly (not through
-`src/lib/env.ts`) so it can report a bad boot before the env schema has even
-run — a logger that can't describe a broken startup is useless exactly when
-it's needed most.
+## Mobile: the app's logger, on the device
 
-## Two hard rules
+There is no Node server on a phone, so there is no Pino, no stdout and no log drain there.
+`apps/mobile` must never depend on `pino` (the checker fails an Expo workspace that does).
 
-1. **No `console.*` in `src/`.** ESLint's `no-console` enforces it (it allows
-   `warn`/`error` only in `instrumentation*.ts`, `sentry.*.config.ts`, and
-   the shared `src/lib/env.ts` boot validator, which cannot import a
-   server-only logger). A `console.log` vanishes
-   into an ephemeral serverless log nobody searches; a structured line lands
-   in the drain queryable by field.
-2. **The logger is server-only.** It uses `node:async_hooks` and
-   `process.stdout`, so it can't run in a browser bundle — ESLint blocks a
-   `'use client'` file from importing it. A Client Component reports errors
-   through `captureClientError` (Sentry), never the logger.
+The mobile logger (`import { log } from '@/lib/logger'`) has the same message-first API
+(`log.info(message, fields)`, `log.child(fields)`), and:
+
+- in development, writes to the console, so Metro shows it;
+- in a release build, records **Sentry breadcrumbs**, so the lines leading up to a crash
+  arrive with the crash report instead of vanishing on the device;
+- in a release build, also sends `log.error` to Sentry as an event: an exception when an
+  `Error` is passed as `{ error }`, a message otherwise. A phone has no log drain, so this is
+  the one reporting place [error handling](error-handling.md) names. Use `error` only for
+  what broke; a handled failure is `warn`;
+- runs every line through the same redaction list as the web logger before it goes anywhere
+  (`lib/logger/redact.ts` is template-web's `redact.ts`, copied verbatim).
+
+ESLint bans `console.*` in `apps/mobile/{app,components,contexts,hooks,lib}/`. The logger module
+itself is the one place allowed to call the console.
 
 ## Redaction is a backstop, not a licence
 
-Every line is run through `redact()` (`src/server/lib/logger/redact.ts`),
-which strips values under sensitive key names (`*token*`, `*secret*`,
-`*password*`, `authorization`, `cookie`, …) and scrubs credentials out of
-string values (connection-string passwords, `?api_key=` query params, `Bearer`
-headers, email addresses). This exists so a field someone _forgot_ was
-sensitive — a whole request object, a connection string inside an error
-message — doesn't leak. It is not permission to log a secret on purpose:
-don't put credentials, tokens, or PII in `fields` and lean on the scrubber to
-catch them.
+Every line is run through `redact()`, which strips values under sensitive key names
+(`*token*`, `*secret*`, `*password*`, `authorization`, `cookie`, …) and scrubs credentials out
+of strings (connection-string passwords, `?api_key=` parameters, `Bearer` headers, email
+addresses). It exists so a field someone _forgot_ was sensitive (a whole request object, an
+error message quoting a connection string) doesn't leak. It is not permission to log a secret
+or personal data on purpose. Don't put tokens, email addresses or user-typed text in `fields`
+and rely on the scrubber.
 
-Serialization failures emit a fixed message without the original payload.
-Synchronous sink failures are swallowed so logging cannot fail the request.
+On mobile this matters twice: a breadcrumb leaves the device with the crash report.
 
-`pnpm test` runs the logger, redaction and async-context contract tests.
-The `structured-logger` standard checks the dependency, shared implementation,
-import restriction and test wiring; the tests prove the behavior.
+## What never goes in a log line
+
+- Credentials of any kind ([secrets](secrets.md)).
+- Personal data: email addresses, names, what a user typed. Log the user's id, not who they are.
+- Whole request or response bodies. Log the fields you need.

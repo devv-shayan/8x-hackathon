@@ -1,65 +1,53 @@
-# Components
+# Components and icons
 
-`src/components/ui/` is a small foundation, not a full suite — `Button`,
-`Input`, `Label`, `Textarea`, `Card`, `Badge`, and the toast system
-(`Toast`/`Toaster`/`toast()`). Add to it as the project needs more (Dialog,
-Select, Tabs, ...); don't pre-build a component nobody's using yet.
+Both apps have a small set of primitives. Add to them deliberately; don't pre-build a component
+nobody uses yet, and don't reach for a new UI dependency when a primitive would do.
 
-## The convention every one of these follows
+## Where they live
 
-- **Design tokens only** — `bg-accent`, `text-text-muted`, `border-border`,
-  `rounded-lg`, never a hardcoded hex/pixel value. See `DESIGN.md`.
-- **`cva` for anything with more than two visual states** (`Button`'s
-  `variant`/`size`, `Badge`'s `variant`) — see `docs/rules/code-style.md`.
-  A component with only one visual shape (`Input`, `Textarea`) skips `cva`
-  entirely; don't add a variant system nobody's asked for yet.
-- **`cn()`** (`src/lib/cn.ts`) merges the base classes with a caller-supplied
-  `className` on every component — a consumer can always override/extend,
-  Tailwind's cascade never fights itself.
-- **Radix primitives for anything genuinely interactive** — focus trapping,
-  portal rendering, live-region ARIA announcements, and keyboard handling
-  are easy to get subtly wrong by hand. `Label` and the toast system are
-  built on `@radix-ui/react-label`/`@radix-ui/react-toast`; `Button`'s
-  `asChild` prop uses `@radix-ui/react-slot`. This is the same
-  convention shadcn/ui builds on, not a template-specific choice.
-- **No `forwardRef`** — React 19 accepts `ref` as a plain prop on function
-  components, and `React.ComponentProps<'button'>` (etc.) already includes
-  it. If you're writing a new primitive and reach for `forwardRef`, stop —
-  that's the pre-React-19 pattern your training data defaults to.
-- **Server Components by default** — `Button`, `Input`, `Textarea`, `Card`,
-  `Badge` have no `'use client'` directive and don't need one; only
-  `Label` and the toast system do, because Radix's own implementation for
-  those specific primitives requires client-side interactivity. Don't add
-  `'use client'` to a new primitive unless it actually uses a hook, an
-  event handler that needs to run client-side, or a Radix primitive that
-  itself requires it.
+| App                     | Primitives                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Everything else                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `apps/mobile`           | `components/ui/`: `Text`, `Button`, `Card`, `ListRow` / `ListGroup` / `Section`, `PageHeader` / `ScreenTitle`, `Screen`, `SegmentedControl`, `Toggle`, `SelectionRow`, `Sheet`, `AppModal` (alert, action sheet), `EmptyState`, `Skeleton`, `CodeInput`, `TextInputField`, `StatusBadge`, `IconButton`, `Eyebrow`, `LogoMark` / `Avatar` / `ProgressBar` / `Glow` (`Marks.tsx`); `components/motion/`: `PressableScale`, `FadeSlideIn` / `StaggerList`, `NumberTicker` | `components/` (tab bar, onboarding shell, item card, offline banner and overlay) |
+| `apps/web`              | No separate primitives: `src/components/` holds the site's sections and forms, `src/components/motion/` its motion helpers                                                                                                                                                                                                                                                                                                                                             | `src/components/`                                                                |
+| Both (`packages/brand`) | Design tokens: colours, fonts, radii, and the web Tailwind preset                                                                                                                                                                                                                                                                                                                                                                                                      |                                                                                  |
+
+## The conventions
+
+- **Tokens only.** A colour, radius, font, shadow or spring comes from `packages/brand`: the
+  web through its CSS variables, the app through `useTheme()` / `useColors()` / `makeStyles`.
+  Never a hardcoded colour ([code style](code-style.md)).
+- **Every tappable feels the same.** It is `PressableScale` or a primitive built on it (spring
+  to .96, cards .98, with a meaning-named haptic from `lib/haptics.ts`); entrances use
+  `lib/motion.ts`'s `enter(i)`, never on a pushed screen's title. Reduce Motion is honoured by
+  the springs and timings themselves.
+- **Use the primitive.** On mobile, text is `components/ui/Text` (it applies the app's
+  typography), not a bare React Native `Text`; a button is `components/ui/Button`. A screen that
+  restyles a raw primitive is how two screens drift apart.
+- **Web: Server Components by default.** A component gets `'use client'` only when it uses a
+  hook, a browser-only API, or an event handler that must run in the browser. Keep the client
+  boundary as small as the interactivity.
+- **No `forwardRef`.** React 19 (both apps) takes `ref` as a plain prop.
+- **Accessibility is part of done.** On the web, an icon-only button has an `aria-label`; on
+  mobile, a touchable without visible text has an `accessibilityLabel` and an
+  `accessibilityRole`. A tap target is at least 44 × 44 points (48 dp on Android).
 
 ## Icons
 
-Icons are not in `ui/` as individual components — they come from
-`src/components/ui/icons.tsx`, a single wrapper around whichever provider
-this project picked (Phosphor by default). Import from
-`@/components/ui/icons`, never from the provider package; ESLint enforces
-it. See `docs/rules/icons.md`.
+Web uses `lucide-react`; the app uses `lucide-react-native` and `@expo/vector-icons`. Icons are
+decorative: label the control, not the glyph. On the web an icon inherits `currentColor` from
+its parent, so set colour on the parent; React Native has no such inheritance, so pass a colour
+from the palette (`useColors()`), never a literal colour.
 
-## Toasts — how they connect to the error-handling system
+template-web routes every icon through one wrapper file (`@/components/ui/icons`) so a provider
+swap is a one-file change, and bans direct provider imports with ESLint. This repo has no such
+wrapper. If a play adds one, it follows that shape (one file per app imports the provider;
+everything else imports the wrapper) and adds the ESLint ban with it.
 
-`toast()` (`src/lib/toast.ts`) is a plain function, callable from anywhere
-(not just inside a component) — the deliberate reason is `captureError`/
-`captureClientError` (`docs/rules/error-handling.md`) hand back a
-`userMessage` from a `catch` block or a mutation's `onError`, neither of
-which is itself a component:
+## Mobile screens
 
-```ts
-const mutation = useMutation({
-	mutationFn: createThing,
-	onError: (error) => {
-		toast({ title: "Couldn't save", description: error.message, variant: 'destructive' })
-	}
-})
-```
-
-`<Toaster />` is mounted once in the root layout (`src/app/[locale]/layout.tsx`)
-— nothing else to wire up per call site. `useToast()` (also in
-`src/lib/toast.ts`) is what `<Toaster />` itself uses to subscribe to the
-current queue; application code should call `toast()`, not `useToast()`.
+- A screen is a route file under `apps/mobile/app/` (expo-router). It renders; data comes from
+  a hook, logic from `lib/` ([code quality](code-quality.md)).
+- Every screen handles loading, empty, failed and offline, each with its own UI
+  ([error handling](error-handling.md)).
+- New screens register their events first ([analytics](analytics.md)); `screen_viewed` is
+  already emitted on every route change by the root layout.

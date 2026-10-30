@@ -1,76 +1,71 @@
 @AGENTS.md
 
-Everything above applies to any coding agent working in this repo (Claude,
-Codex, Cursor, whatever) — it lives in `AGENTS.md`, not here, on purpose,
-since `AGENTS.md` is the file every tool reads and `CLAUDE.md` is
-Claude-Code-only. Don't duplicate rules back into this file; add them to
-`AGENTS.md` so they reach every tool, not just this one.
+Everything above applies to any coding agent working in this repo. It lives in `AGENTS.md`,
+not here, because `AGENTS.md` is the file every tool reads and this one is Claude Code's alone.
+Don't put rules back into this file; add them to `AGENTS.md` so they reach every agent.
 
-This file holds the two things that genuinely are Claude-Code-specific.
+This file holds only what is specific to Claude Code.
+
+## Skills in this repo
+
+Committed under `.claude/skills/`, so every clone gets them:
+
+| Skill          | Use it for                                                          |
+| -------------- | ------------------------------------------------------------------- |
+| `events`       | Registering and wiring analytics for a feature, before the feature  |
+| `play-api`     | Implementing, extending or debugging the Play Stats API             |
+| `admin`        | Adding or changing a screen in the admin panel                      |
+| `spec`         | Research → `docs/*-requirements.md` + `docs/*-plan.md`, before code |
+| `ship`         | Gates, a Conventional commit, the branch pushed, a PR, green CI     |
+| `local-review` | Before every push: CI's exact gates, then a pass against the rules  |
+| `store-review` | Before an OTA to production, a store build or a submission          |
+
+`ship` never pushes to `main` and never merges on its own: it ends at a pull request with green
+CI. An agent merges a pull request only when the person explicitly tells it to merge that pull
+request. `ship` runs `local-review` for the gates and `store-review` when the app changed.
+
+## MCP servers
+
+None ship with the template. If your stats dashboard or email platform has an MCP server, add
+it to a `.mcp.json` at the root. Have each read its token from your shell environment as
+`${VAR}`: tokens are never in the repo, and never pasted into a conversation. A dashboard MCP
+that can audit this app's live Play Stats API (non-negotiable 2) is the best source for its
+contract.
+
+## Hooks
+
+`.claude/settings.json` configures two hooks and one permission rule:
+
+- **`SessionStart`** runs `.claude/session-brief.py`, which puts this play's standing rules
+  (the three non-negotiables: events first, the Play Stats API, money and entitlement on the
+  server) and its two event registries into context at the top of every session.
+- **`SessionEnd`** runs `.claude/log-session.py`, which writes the session's log to
+  `.claude-logs/`: every prompt and every text reply, verbatim. In the template repository
+  itself (root package named `app-template`) it writes nothing and prints why.
+- **Reading the real env files is denied** (`.env`, `.env.local`, `.env.*.local` and the
+  per-environment names; `.env.example` stays readable), so secrets never reach the
+  conversation. The deny list binds Claude Code's file-reading tools only: it does not stop a
+  shell `cat`, `grep`, `head` or `source`. Never read a real env file by any means, and
+  respect the same rule when staging files ([docs/rules/secrets.md](docs/rules/secrets.md)).
 
 ## Session logs
 
-`.claude-logs/` is tracked, not gitignored — the transcript for the session
-that produced a change belongs on the branch that ships it. Always commit
-`.claude-logs/` with your changes. Stage it immediately before every
-`git push`, separately from the code commit.
+In a play, `.claude-logs/` is tracked, not gitignored: the transcript of the session that
+produced a change ships on the branch with it. Stage it immediately before `git push`,
+separately from the code commit, and end each session with the logs pushed.
+`npm run logs:backfill` writes older sessions. The pre-commit hook scans transcripts for secrets like any other file; if a real value
+scrolled past, redact it in the transcript rather than allowlisting it
+([docs/rules/secrets.md](docs/rules/secrets.md)).
 
-## Skills
+The template repository keeps no logs of its own: nothing is written in the template's own repo
+(package `app-template` and origin `8xsocial/template-monorepo`), and `npm run check:template`
+fails its CI if a log is committed there anyway. Every copy logs from its first session.
 
-See `.claude/skills/*/SKILL.md` for full detail. In short:
+## Memory
 
-**Setup, once**
-
-- `template-setup` — run once, right after creating a new repo from this
-  template.
-- `dev-onboarding` — run once per developer, getting a local environment
-  running on an already-customized project (not for creating a new one —
-  that's `template-setup`).
-- `ai-usage-setup` — wire up (or strip out) AI spend tracking for this
-  project, and pick which providers and models it may call.
-  `template-setup` asks the question that leads here.
-
-**The ship path**
-
-- `local-review` — before every push. This is what makes the
-  don't-over-commit rule in `docs/rules/commits.md` work — run it before
-  committing, not after CI fails.
-- `typesafe` — audits the type assertions this branch introduced; the
-  enforcement arm of the no-`any` rule in `docs/rules/code-quality.md`.
-- `ai-usage-check` — proves AI calls still work and still get costed, end to
-  end. Run it on any branch that touches an AI call, a model, or
-  `src/server/lib/ai-usage/`. `local-review` and `e2e-review` both defer to
-  it rather than duplicating its checks.
-- `e2e-review` — before opening a PR for a UI/flow change.
-- `preview-acceptance-testing` — the pre-merge gate against the PR's live
-  Vercel preview, once a PR is open.
-- `e2e-build` — orchestrates all of the above plus Codex, driving an
-  already-approved plan to a merge-ready PR. Requires Codex installed.
-
-**Day-to-day helpers**
-
-- `staging-migration`, `sql-preview`, `seed-for-pr`, `local-feature-testing`
-- `create-issue` — file work as a GitHub issue an autonomous agent can pick
-  up, instead of implementing it now.
-- `dogfood` — exploratory QA of a running app, with full repro evidence.
-  Complements `e2e-review`: that one runs the specs you wrote, this one hunts
-  for what nobody wrote a spec for.
-
-**Product and ops**
-
-- `posthog-funnel-builder` — build a PostHog funnel from a described journey,
-  grounded in the events the code actually fires.
-- `sentry-digest` — weekly blameless production error review, attributed and
-  prioritized.
-
-**Meta**
-
-- `skill-creator` — write, edit, and eval skills. Use it when this project
-  needs a skill this template doesn't ship.
-
-## Commands
-
-`/cicd` (`.claude/commands/cicd.md`) reviews the diff, fixes what matters,
-opens or updates the PR, watches CI to green, and works the review comments.
-`.codex/commands/cicd.md` is its Codex-facing mirror — same checklist, Codex
-tool conventions. Keep the two in sync when either changes.
+Claude Code also keeps its own memory outside the repo. Anything a future session or a
+teammate's agent needs to know about this play goes in `docs/memory/` instead, in the format
+`AGENTS.md` gives ("Project memory"), with its line in `docs/memory/MEMORY.md`. The
+frontmatter's `metadata.type` values are Claude Code's memory types: `user` (who the people
+are), `feedback` (how they want the work done), `project` (facts about this play), `reference`
+(where to look things up).

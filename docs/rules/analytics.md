@@ -1,145 +1,84 @@
-# Analytics & instrumentation
+# Analytics and instrumentation
 
-Product analytics is PostHog. Every event this app sends goes through the
-typed taxonomy in `src/lib/analytics/` — never call `posthog.capture`
-directly from feature code. The taxonomy is one source of truth
-(`src/lib/analytics/events.ts`) shared by client and server, so a name or a
-property shape is defined in exactly one place and can't drift.
+**Every user-visible change registers its events first** (AGENTS.md, non-negotiable 1). A
+screen, route, button, paywall, onboarding step, checkout, settings toggle, share sheet, or a
+cron that changes a user's state: its events are decided and registered _before_ the feature
+code is written, with the `events` skill (`.claude/skills/events/`), which asks what the code
+cannot tell you. A feature with no events can't be judged, and the week-5 kill-or-scale
+decision reads from what this repo reports.
 
-## The six rules
+`docs/EVENTS.md` is the full guide: the canonical catalog, dedupe, discriminators, consent.
+This file is the rules.
 
-Every event obeys these — the types in `events.ts` enforce them, this
-section is the _why_:
+## A registry per app, three sinks
 
-1. **`object_action`** — a noun plus a past-tense verb: `element_clicked`,
-   `flow_started`, `payment_succeeded`. Not `click_element`, not `clicking`.
-2. **`snake_case`** — event names and every property key, always.
-3. **Past tense** — the action already happened when we record it
-   (`page_viewed`, not `page_view`).
-4. **No variables in the name** — names are fixed string literals, never
-   interpolated from runtime values (`track('page_' + name + '_view')` is
-   banned — it makes an unbounded, un-queryable event set). The only
-   assembled names are the process and notification ones, and those are
-   built from **closed enums** (`payment_succeeded`, `notification_sent`),
-   so the full set stays finite and typed.
-5. **No PII, no free text** — property values are ids, enums, or booleans,
-   linked to an entity id. A human-typed value (a name, an email, a search
-   string, an error message) never becomes a property. There is
-   deliberately no free-text `string` field in the event contracts; record
-   _that_ a field changed, not _what_ was typed.
-6. **Common attributes are defined once** — session/page attributes and
-   entity ids in `events.ts`, common user attributes in `attribution.ts` /
-   `identify.ts`. Don't re-declare them per event.
+Each app has its own registry, the single source of truth for its event names:
+`apps/web/src/lib/analytics/events.ts` on the web, and the `EventName` union in
+`apps/mobile/lib/analytics.ts` on the app. They are separate lists, not mirrors: `check:events`
+checks each app's call sites against its own. A moment both apps record keeps one name in both
+(`onboarding_completed`, `account_deleted`).
 
-## Where each piece lives
+| Sink                       | Where                                                                                                   | Answers                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| PostHog (+ GA4 on the web) | `apps/web/src/lib/analytics/client.ts` (PostHog and GA4), `apps/mobile/lib/analytics.ts` (PostHog only) | Funnels, replay, the dashboard's PostHog connection                   |
+| First-party                | `apps/web/src/lib/analytics/record.ts` → `analytics_events`                                             | Retention cohorts, admin segments, numbers that survive an ad blocker |
+| Play Events API            | `apps/web/src/lib/plays/events.ts`                                                                      | The platform's email automation (welcome, win-back, trial expiry)     |
 
-| File                                       | Job                                                                                                                                                                                      |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/analytics/events.ts`              | The catalog: event names, per-event prop contracts, the enums (element/field/permission types), entity ids, and the process/notification name builders. Edit this first to add an event. |
-| `src/lib/analytics/track.ts`               | Client `track(event, props)` (strict, typed) + convenience wrappers + `capture()` escape hatch. Auto-attaches `session_id`, `page_name`, `timestamp_utc`.                                |
-| `src/lib/analytics/server.ts`              | Server `trackServer(event, ctx, props)` + `trackRequestFailed` / `trackJob` / `trackProcess` / `trackNotification`. posthog-node, `server-only`.                                         |
-| `src/lib/analytics/attribution.ts`         | First-touch UTM capture, `user_source`, `app_version`. Run once on load.                                                                                                                 |
-| `src/lib/analytics/identify.ts`            | `identifyUser` (post-login) / `resetAnalytics` (logout).                                                                                                                                 |
-| `src/lib/analytics/analytics-provider.tsx` | Mounted in the root layout. Fires `app_opened` once/session, runs attribution, emits `$pageview` + `page_viewed` on route change.                                                        |
-| `src/lib/analytics/permissions.ts`         | `permission_prompted/approved/denied` wrappers + a `requestNotificationPermission` example.                                                                                              |
-| `src/lib/analytics/use-tracked-field.ts`   | `useTrackedField` — spreads onto an input, emits `field_changed` once per edit.                                                                                                          |
-| `src/components/track-impression.tsx`      | `<TrackImpression>` — `element_viewed` via IntersectionObserver.                                                                                                                         |
+Every event goes to PostHog (and GA4 on web). Anything judged over time or per person also goes
+first-party. Lifecycle and money events also go to the Play Events API, server-side only. The
+app's `track()` reaches PostHog alone; its first-party and Play Events moments are emitted by
+the web routes it calls (first-party under the web registry's names, Play Events under the
+canonical ones). Choosing is a real decision; `docs/EVENTS.md` says how.
 
-## Common attributes
+## The rules
 
-**Page/event** (attached by `track()` automatically): `session_id`,
-`page_name`, `timestamp_utc`, plus any entity ids you pass —
-`creator_id`, `brand_id`, `campaign_id`, `payment_id` (ids, never names).
+1. **Register before you fire.** A web event fired but not in the registry is rejected by
+   `/api/track` with a 400 and vanishes; nothing anywhere says so. Plays have lost their main
+   funnel step for months this way. On the app, an unregistered name doesn't typecheck.
+2. **`npm run check:events` is the gate.** It fails on a name fired but not in its app's
+   registry, a discriminator for an event that doesn't exist, or a non-canonical Play Events
+   name. A name registered but never fired is only a warning. It runs in CI. Run it before you
+   commit.
+3. **Use the canonical names.** The Play Events catalog (`user_signed_up`, `trial_started`,
+   `subscription_started`, … in `docs/EVENTS.md`) is shared by every play; the platform only
+   runs flows for names it knows. A local synonym means no flow ever fires. Reuse an existing
+   name when it is the same moment: two names for one action make every funnel on either wrong.
+4. **Naming:** `snake_case`, object then action (`checkout_started`, not `start_checkout`), past
+   tense for things that happened, present for states. No variables in a name; a name is a
+   fixed string literal.
+5. **Properties are ids, enums and booleans.** No free text, and no personal data (a name, an
+   email, what someone typed) in event properties or first-party `metadata`. Record _that_ a
+   field changed, not _what_ was typed. The Play Events API is the one sink that carries a
+   person's email, by contract, and only from the server.
+6. **Per-item events carry a discriminator.** An event that fires once per _thing_ (per plan,
+   per item) carries that thing's id in `metadata` and declares it in `EVENT_DISCRIMINATORS`
+   in `apps/web/src/app/api/track/route.ts`. Without it, the first one each day is recorded and
+   the rest are silently deduped away.
+7. **Keys stay server-side.** `PLAY_INGEST_KEY` never reaches a browser or the app. If the app
+   needs to trigger a Play Event, it calls its own backend and the backend emits (signup does
+   this through `/api/lifecycle/session`).
+8. **Web and mobile report to the same PostHog project.** Keep `NEXT_PUBLIC_POSTHOG_HOST` and
+   `EXPO_PUBLIC_POSTHOG_HOST` in step, or the two apps' events split across projects.
 
-**User** — set by attribution/identify, then attached by PostHog to every
-event without you passing them:
+## Person properties are a privacy decision
 
-- `os`, `device`, `country` — PostHog autocapture already provides these as
-  `$os`, `$device_type`, `$geoip_country_code`. Don't re-implement them.
-- `user_source` — `internal` (direct/in-app nav) vs `external` (arrived
-  with UTM params or from another origin).
-- `user_utm_source`, `user_utm_campaign`, … — **first-touch**, set-once, so
-  the original acquisition source is never overwritten by a later visit.
-- `app_version` — from `NEXT_PUBLIC_APP_VERSION`; wire it to your build's
-  commit/version in CI.
-- `user_id` — set via `identifyUser`. `person_profiles: 'identified_only'`
-  is on, so events stay anonymous until you identify. Use the **same**
-  stable id on client (`identifyUser`) and server (`trackServer` distinctId)
-  so both land on one person.
+The app calls PostHog `identify` with the Supabase user id after sign-in, and today also sets
+the account's `email` as a person property. That makes email "linked to the user" in PostHog,
+which the App Store privacy label and the Play Data safety form must then declare
+([permissions and privacy](permissions-and-privacy.md)). Declare it, or stop sending it; don't
+leave it undeclared.
 
-## Adding an event
+## The Play Stats API is this play's own reporting
 
-1. Add the name to `ANALYTICS_EVENTS` and its prop contract to `EventProps`
-   in `events.ts` (or extend `ANALYTICS_PROCESSES` for a new backend flow).
-   Keep every property an id, enum, or boolean — widen an enum rather than
-   accepting an off-list string.
-2. Call it: `track('the_event', { … })` on the client, or
-   `trackServer('the_event', { distinctId }, { … })` on the server. TypeScript
-   rejects an unknown name or a wrong property shape.
-3. Only reach for `capture()` (client) for a genuinely throwaway experiment.
-   Anything that outlives the experiment graduates into the catalog — a
-   string-literal event with no type is exactly what this system exists to
-   prevent.
+`apps/web/src/app/api/dashboard/v1/` is what the stats dashboard reads (AGENTS.md,
+non-negotiable 2). Its contract comes from your stats dashboard (its docs or MCP), **never from memory**, including
+from `docs/PLAY_API.md` or this file. The `play-api` skill walks through it. Counts it shares
+with the admin panel come from `apps/web/src/lib/dashboard-stats.ts` ([database](database.md)).
 
-## The event catalog
+## Where this differs from template-web
 
-**Client / UX flow**
-
-- `app_opened` — start of a session, once, regardless of entry page.
-- `page_viewed` — every route change (alongside PostHog's native `$pageview`).
-- `element_viewed` — impression on a section/CTA (`<TrackImpression>`).
-- `element_clicked` — click on an element (`trackElementClicked`).
-- `field_changed` — a field was edited (`useTrackedField`); records the
-  field, its type, and a state — never the value.
-- `flow_started` / `flow_step_started` — any sequential funnel (onboarding,
-  KYC, campaign apply): start once, then one step event per step.
-- `filter_applied` / `filter_removed` — list/search filters.
-- `toggle_changed` — a boolean toggle.
-
-**Backend / server-side**
-
-- `request_failed` — a backend service failed (DB, cache, third party);
-  `service_name` + a `failure_reason` **code**. Call it at the failing
-  boundary — `captureError` can't know which service it was.
-- `error_shown` — an error actually reached the user. Emitted
-  **automatically** by `captureClientError` (always) and by `captureError`
-  when you pass a `distinctId`/`userId` in its context. `error_type` is a
-  category (an `AppError.code` or the error class name), never the message.
-  Don't fire it by hand.
-- `permission_prompted` / `permission_approved` / `permission_denied` —
-  device/browser permission funnel.
-- `<process>_initiated` / `_succeeded` / `_failed` — a backend process or
-  third-party dependency, one enumerated `process` per real flow
-  (`ANALYTICS_PROCESSES`). Fixed enums for status; `failure_reason` code on
-  the failed phase.
-- `job_started` / `job_completed` / `job_failed` — async jobs (platform data
-  refresh, account link); `job_id`, optional `platform`, `failure_reason`.
-- `notification_sent` / `_delivered` / `_clicked` / `_bounced` — comms /
-  push lifecycle; `comms_id` + `comms_name`.
-
-## Traffic: Vercel Web Analytics
-
-Visitors and page views, per page, referrer, country and device, come from
-Vercel Web Analytics, not PostHog. `<Analytics />` from
-`@vercel/analytics/next` is mounted once in the root layout
-(`src/app/[locale]/layout.tsx`); nothing else in the app calls it.
-
-- **It needs a switch as well as the code.** The component sends visits to
-  routes Vercel only adds once Web Analytics is turned on for the project.
-  Until then it collects nothing. Turn it on from the project's **Analytics**
-  page in Vercel; it takes effect at the next
-  production deployment.
-- **No custom events through it.** Product events stay in the PostHog
-  taxonomy above. Vercel's `track()` would be a second, untyped event stream
-  that the six rules don't reach.
-- **It bills per page view** to the team's Vercel plan, a fraction of a cent
-  per thousand. Nothing to configure.
-
-## Relationship to error handling
-
-`error_shown` is the analytics half of the error system in
-`docs/rules/error-handling.md`; the same `captureError`/`captureClientError`
-call reports the error to Sentry (if unexpected) and emits `error_shown` to
-PostHog (always). That mirrors the split already documented there —
-`AppError` is counted in PostHog, not sent to Sentry — and keeps one
-`error_type` category describing a failure the same way in both tools.
+template-web's analytics rule is a typed `track()`/`trackServer()` taxonomy over PostHog alone,
+with generic events (`element_clicked`, `flow_started`). This repo's taxonomy is the plays
+platform's canonical catalog across three sinks, because the platform's email automation and
+the stats dashboard both read it. The shared ground is the same: one registry, typed call
+sites, `snake_case`, no personal data in properties.

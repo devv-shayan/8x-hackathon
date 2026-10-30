@@ -1,0 +1,77 @@
+// The per-person table, and the audit trail for premium an admin gives away.
+//
+// Profile.id IS the Supabase auth user's uuid (docs/rules/auth.md), never generated here:
+// the on_auth_user_created trigger inserts the row when Supabase Auth creates the user, and
+// on_auth_user_deleted removes it when the user is deleted
+// (migrations/20260924000100_user_references_through_profiles). Neither is a foreign key,
+// because Prisma does not manage the `auth` schema. Every other per-person row references
+// the profile, and goes with it: deleted, or (for history that outlives the account) kept
+// with its user id cleared.
+//
+// is_admin, plan_type, premium_*, region, last_seen_at are server-controlled: only server
+// code writes them (the RevenueCat webhook, the lifecycle route), never the browser and never
+// the app. AGENTS.md, non-negotiable 3. What "paid" means is decided from these columns in
+// one place, src/lib/dashboard-stats.ts.
+//
+// Not expressible here, and kept by the migrations: RLS on both tables, the partial indexes
+// on premium_status and premium_expires_at, the column comments, and the updated_at trigger
+// (so no @updatedAt: the database stamps it).
+model Profile {
+  id                 String    @id @db.Uuid
+  displayName        String?   @map("display_name")
+  avatarUrl          String?   @map("avatar_url")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+  planType           String    @default("free") @map("plan_type")
+  isAdmin            Boolean   @default(false) @map("is_admin")
+  /// ISO 3166-1 alpha-2: the market the account belongs to, written once.
+  region             String?
+  /// 'purchase' | 'promo' | 'grant'. Only 'purchase' is a sale.
+  premiumSource      String?   @map("premium_source")
+  /// 'production' | 'sandbox'.
+  premiumEnvironment String?   @map("premium_environment")
+  lastSeenAt         DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  /// BCP-47; the person's own setting.
+  locale             String?
+  /// The person's own setting.
+  marketingConsent   Boolean   @default(false) @map("marketing_consent")
+  /// The BILLING status, which outranks the period type:
+  /// 'trialing' | 'active' | 'past_due' | 'paused' | 'canceled' | 'expired'.
+  premiumStatus      String?   @map("premium_status")
+  premiumStartedAt   DateTime? @map("premium_started_at") @db.Timestamptz(6)
+  premiumExpiresAt   DateTime? @map("premium_expires_at") @db.Timestamptz(6)
+  premiumWillRenew   Boolean?  @map("premium_will_renew")
+  /// 'app_store' | 'play_store' | 'stripe' | 'promotional' | …
+  premiumStore       String?   @map("premium_store")
+  premiumProduct     String?   @map("premium_product")
+
+  items              Item[]
+  tasks              Task[]
+  activity           Activity[]
+  notifications      Notification[]
+  premiumGrants      PremiumGrant[]      @relation("grantee")
+  premiumGranted     PremiumGrant[]      @relation("granter")
+  analyticsEvents    AnalyticsEvent[]
+  analyticsPageviews AnalyticsPageview[]
+
+  @@index([createdAt])
+  @@index([lastSeenAt], map: "profiles_last_seen_idx")
+  @@index([planType])
+  @@index([region])
+  @@map("profiles")
+}
+
+// One row per comp: who granted premium to whom, and why. Kept apart from real sales.
+model PremiumGrant {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  /// Null once the granting admin's account is deleted.
+  grantedBy String?  @map("granted_by") @db.Uuid
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile  @relation("grantee", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  granter   Profile? @relation("granter", fields: [grantedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([userId], map: "premium_grants_user_idx")
+  @@map("premium_grants")
+}

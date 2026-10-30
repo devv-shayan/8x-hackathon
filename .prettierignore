@@ -5,7 +5,10 @@
 .claude-logs/
 .codex-logs/
 
-# Lockfiles are machine-generated — Prettier churn here is pure merge-conflict fuel.
-pnpm-lock.yaml
+# Written by tools that don't run Prettier. Formatting them only means the next
+# npm install or Claude Code permission prompt rewrites them back, and
+# format:check fails on a change nobody made.
 package-lock.json
-yarn.lock
+.claude/settings.json
+.claude/settings.local.json
+.mcp.json

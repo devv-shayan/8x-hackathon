@@ -83,17 +83,17 @@ loop.
 - Explain, class, help panel, assessment, all text-based
 - Students and gaps saved, warm-ups on the gap schedule
 - Home and a topic page
-- One local user, no sign-in
+- A phone-first Expo app, also run in the browser for the demo
+- Email-code sign-in, from the template
 
 **Next (if the MVP is solid before Nov 5)**
 
 - Voice: explain and answer out loud
-- Sign in, so more than one person can use it
 - Email reminder when a warm-up is due
 - More student personas, avatars, hand-raise animation and other playful
   touches (Arif's idea from call 3)
 
-**Not now:** mobile app, inputs other than YouTube, deploying (8x said
+**Not now:** inputs other than YouTube, store releases, deploying (8x said
 localhost is fine), and XP or streaks, which competitors already have and
 which wouldn't set us apart.
 
@@ -103,17 +103,17 @@ which wouldn't set us apart.
    topics.
 2. **Explain.** Video title, a text box, "I'm done".
 3. **Class.** Left: students, raised hands, the conversation, an answer box.
-   Right: the private help panel. "End class".
+   The private help panel slides up from the bottom. "End class".
 4. **Assessment.** The results from step 6, with links into the video.
 5. **Topic.** One video's gaps and how each warm-up went.
 
 ## How the AI works
 
-All calls go through the template's tracked provider layer
-(`docs/rules/ai-usage.md`): a `src/server/ai/gemini.ts` module shaped like
-`src/server/ai/anthropic.ts`. Reading the video uses
-`gemini-3.5-flash-lite` in static mode, the best of the models we tested on
-speed and timestamp accuracy.
+The Expo app never calls AI directly. It calls `/api/app/v1` on the Next.js
+server, and all AI calls go through `apps/web/src/server/ai/gemini.ts`, which
+logs what each one used. Reading the video uses `gemini-3.5-flash-lite` in
+static mode, the best of the models we tested on speed and timestamp
+accuracy.
 
 | Step                 | Input                                                                    | Output                                                           |
 | -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |

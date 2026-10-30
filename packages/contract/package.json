@@ -1,0 +1,19 @@
+{
+	"name": "@app/contract",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "The Zod schemas for every /api/app/v1 route: the web validates with them, the app parses every response with them.",
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"exports": {
+		".": "./index.ts"
+	},
+	"scripts": {
+		"test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs --test \"src/**/*.test.mts\"",
+		"typecheck": "tsc --noEmit -p ."
+	},
+	"dependencies": {
+		"zod": "^4.6.5"
+	}
+}

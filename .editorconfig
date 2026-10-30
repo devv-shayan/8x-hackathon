@@ -1,0 +1,25 @@
+root = true
+
+# Matches .prettierrc.json (tabs, rendered two wide) so an editor and
+# `npm run format` never disagree about a file.
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = tab
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+# YAML forbids tabs; Prettier indents it with spaces regardless of useTabs.
+[*.{yml,yaml}]
+indent_style = space
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[Makefile]
+indent_style = tab

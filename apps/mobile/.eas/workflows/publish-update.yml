@@ -1,0 +1,61 @@
+# Publish an OTA update on EAS's servers, from a git ref, with its Sentry source maps.
+#
+#   cd apps/mobile
+#   eas workflow:run .eas/workflows/publish-update.yml --ref main \
+#     -F target=preview -F message="fix(paywall): show the yearly price per month"
+#
+# Why a workflow and not `eas update` on your machine: the update job runs where the EAS
+# environment's `secret` variables exist, so SENTRY_AUTH_TOKEN never has to be in anyone's
+# shell, and `--ref main` publishes exactly what main holds, not a working tree.
+# docs/rules/ota.md → "Shipping an update" says when and how.
+name: Publish an update
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        options: [preview, production-rollout, production]
+        required: true
+        description: >-
+          preview (always first); production-rollout (10% of users, widen it with
+          eas update:edit); production (everyone at once, for a copy fix)
+      message:
+        type: string
+        required: true
+        description: What the update changes, as a Conventional Commit subject.
+
+# upload_sentry_sourcemaps: true fails the job when the maps don't upload. The update is
+# already published by then, but a red run is the signal: a release whose maps didn't upload
+# is not finished (docs/rules/mobile-releases.md).
+jobs:
+  preview:
+    name: Publish to preview
+    if: ${{ inputs.target == 'preview' }}
+    type: update
+    environment: preview
+    params:
+      channel: preview
+      message: ${{ inputs.message }}
+      upload_sentry_sourcemaps: true
+
+  production_rollout:
+    name: Publish to production, 10% of users
+    if: ${{ inputs.target == 'production-rollout' }}
+    type: update
+    environment: production
+    params:
+      channel: production
+      message: ${{ inputs.message }}
+      rollout_percentage: 10
+      upload_sentry_sourcemaps: true
+
+  production:
+    name: Publish to production, everyone
+    if: ${{ inputs.target == 'production' }}
+    type: update
+    environment: production
+    params:
+      channel: production
+      message: ${{ inputs.message }}
+      upload_sentry_sourcemaps: true

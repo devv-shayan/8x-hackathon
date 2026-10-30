@@ -1,0 +1,13 @@
+// Prisma reads every *.prisma file in this folder as one schema: this one holds the
+// generator and the datasource, the others one domain each. The tables were created by
+// supabase/migrations/ (frozen history); prisma/schema/migrations/ owns them from the
+// baseline on. See docs/rules/migrations.md.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}

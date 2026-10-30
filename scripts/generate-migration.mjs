@@ -2,24 +2,25 @@
 // Generates the missing Prisma migration by diffing the schema against a
 // database that has every already-committed migration replayed onto it —
 // the diff between "replayed history" and "current schema" IS the missing
-// migration. See
-// docs/rules/migrations.md for the full policy this script enforces (never
-// hand-write a migration, one sanctioned exception below). The Supabase-CLI migration
-// workflow does NOT apply here; docs/rules/migrations.md is the policy.
+// migration. Ported from template-web;
+// see docs/rules/migrations.md for the full policy this script enforces
+// (never hand-write a migration, two sanctioned exceptions). Run from the
+// repository root: the schema is the web workspace's.
 //
 // Usage:
 //   node scripts/generate-migration.mjs --name <branch-derived-name> --db-url <url>
-//   node scripts/generate-migration.mjs --check --db-url <url>   (dry run, CI guard on main)
+//   node scripts/generate-migration.mjs --check --db-url <url>   (dry run, nothing written)
 //
 // Requires DATABASE_URL (or --db-url) to already have every migration in
-// prisma/schema/migrations/ replayed onto it (`prisma migrate deploy`) —
-// this script only diffs from there, it does not replay history itself.
+// apps/web/prisma/schema/migrations/ replayed onto it (`prisma migrate
+// deploy`) — this script only diffs from there, it does not replay history
+// itself.
 
-import { execSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const SCHEMA_DIR = 'prisma/schema'
+const SCHEMA_DIR = 'apps/web/prisma/schema'
 const MIGRATIONS_DIR = join(SCHEMA_DIR, 'migrations')
 
 // Patterns that indicate `prisma migrate diff` chose a destructive rewrite
@@ -74,8 +75,19 @@ function main() {
 		process.exit(1)
 	}
 
-	const diff = execSync(
-		`pnpm prisma migrate diff --from-url "${dbUrl}" --to-schema-datamodel ${SCHEMA_DIR} --script`,
+	// execFile, not a shell: the URL is passed as one argument, never interpreted.
+	const diff = execFileSync(
+		'npx',
+		[
+			'prisma',
+			'migrate',
+			'diff',
+			'--from-url',
+			dbUrl,
+			'--to-schema-datamodel',
+			SCHEMA_DIR,
+			'--script'
+		],
 		{ encoding: 'utf-8' }
 	).trim()
 
@@ -92,7 +104,7 @@ function main() {
 			`Refusing to auto-generate this migration — it contains a destructive pattern (${destructive}):\n\n${diff}\n\n` +
 				'This usually means prisma migrate diff cannot tell a rename from a drop+add, or a NOT NULL/type change ' +
 				'would fail against existing rows. Hand-write data-preserving SQL (and a backfill if needed) in a new ' +
-				'migration created with `prisma migrate dev --create-only`, per .claude/rules/migrations.md.'
+				'migration created with `prisma migrate dev --create-only`, per docs/rules/migrations.md.'
 		)
 		process.exit(2)
 	}
@@ -111,7 +123,7 @@ function main() {
 
 	// Replay the migration we just wrote, proving it applies — not just
 	// that it was syntactically generated.
-	execSync(`pnpm prisma migrate deploy`, {
+	execFileSync('npx', ['prisma', 'migrate', 'deploy', '--schema', SCHEMA_DIR], {
 		stdio: 'inherit',
 		env: { ...process.env, DATABASE_URL: dbUrl }
 	})

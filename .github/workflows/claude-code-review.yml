@@ -59,6 +59,11 @@ jobs:
             Review this PR for correctness bugs, security issues, regressions,
             and performance problems. Follow the repository's AGENTS.md and
             CLAUDE.md instructions, and the rules in docs/rules/ they link to.
+            Hold the three non-negotiables in AGENTS.md to the letter: events
+            registered before the feature, the Play Stats API contract, and
+            money or entitlement writes on the server only. For changes under
+            apps/mobile, say whether the change ships as an OTA update or needs
+            a store build, and check it against docs/rules/store-review.md.
             Prioritize actionable defects introduced by this PR; do not leave
             praise-only comments. Review directly without subagents or
             parallel/background tasks.

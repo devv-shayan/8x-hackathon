@@ -1,0 +1,18 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "web",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run", "web:dev"],
+			"port": 3000
+		},
+		{
+			"name": "app-in-browser",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": ["expo", "start", "--web", "--port", "8081"],
+			"cwd": "apps/mobile",
+			"port": 8081
+		}
+	]
+}
