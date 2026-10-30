@@ -32,7 +32,7 @@ const AI_SDK_IMPORTS = {
 		'@google/genai',
 		'@google/genai/**',
 		'@google/generative-ai',
-		'ai',
+		'/ai',
 		'@ai-sdk/**'
 	],
 	message:
