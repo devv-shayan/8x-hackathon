@@ -4,3 +4,8 @@
 # Codex (see docs/rules/secrets.md).
 .claude-logs/
 .codex-logs/
+
+# Lockfiles are machine-generated — Prettier churn here is pure merge-conflict fuel.
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

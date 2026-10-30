@@ -8,11 +8,14 @@
 // `./src/*`), so a unit test can import a module by the same alias the app
 // uses — e.g. `import { redact } from '@/server/lib/logger'` — without booting
 // Next.
-import { pathToFileURL } from 'node:url'
+import { dirname, join, sep } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const CANDIDATE_SUFFIXES = ['.ts', '.tsx', '/index.ts']
 const ALIAS_PREFIX = '@/'
-const SRC_URL = pathToFileURL(new URL('../src/', import.meta.url).pathname).href
+// fileURLToPath + join, not URL.pathname: on Windows pathname is "/D:/…",
+// and pathToFileURL of that produces a broken file URL.
+const SRC_URL = pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), '../src') + sep).href
 
 function withSuffixes(specifier) {
 	return [specifier, ...CANDIDATE_SUFFIXES.map((suffix) => `${specifier}${suffix}`)]

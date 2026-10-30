@@ -20,12 +20,22 @@ const envSchema = z.object({
 	NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional().or(z.literal('')),
 	SUPABASE_SECRET_KEY: z.string().optional(),
 
+	// Google AI Studio / Gemini API key. Used by src/server/ai/gemini.ts.
+	// Optional so the app still boots before the key is provisioned; AI
+	// routes fail at call time if it's missing.
+	GEMINI_API_KEY: z.string().optional(),
+	GOOGLE_API_KEY: z.string().optional(),
+
 	// Minimum severity the server logger emits (docs/rules/logging.md).
 	// Validated here so a typo fails the boot loudly, but the logger reads
 	// `process.env.LOG_LEVEL` directly (not `env.LOG_LEVEL`) so it can report a
 	// bad boot before this schema has run. Defaults to `info`, or `silent`
-	// under NODE_ENV=test.
-	LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'silent']).optional(),
+	// under NODE_ENV=test. Empty string is treated as unset so a copied
+	// `.env.example` (`LOG_LEVEL=""`) still boots.
+	LOG_LEVEL: z.preprocess(
+		(value) => (value === '' ? undefined : value),
+		z.enum(['debug', 'info', 'warn', 'error', 'silent']).optional()
+	),
 
 	NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional().or(z.literal('')),
 	SENTRY_ORG: z.string().optional(),

@@ -12,6 +12,9 @@
 // row is one `where cost_micro_usd is null` away from being counted on the
 // dashboard.
 
+// Providers the tracking layer knows how to extract usage from. This project
+// only *calls* Google today (see OPENROUTER_SLUGS); anthropic/openai stay so
+// src/server/ai/anthropic.ts remains a valid reference for teammates.
 export const AI_PROVIDERS = ['anthropic', 'openai', 'google'] as const
 export type AiProvider = (typeof AI_PROVIDERS)[number]
 
@@ -35,13 +38,14 @@ export type AiCallStatus = (typeof AI_CALL_STATUSES)[number]
 // behind the `output_modalities` query string pricing.ts sends — see the
 // OPENROUTER_MODELS_URL comment there before concluding a slug doesn't
 // exist.
+// Free-tier Gemini ids as returned by the Google AI API. OpenRouter slugs
+// are only used to price the row at write time (docs/rules/ai-usage.md) —
+// calls go to Google directly with a free-tier API key, not through OpenRouter.
+// Google AI Studio free-tier models available to new API keys (2026-10).
+// Prefer gemini-3.5-flash; lite is cheaper when it works for the account.
 export const OPENROUTER_SLUGS = {
-	'claude-opus-5': 'anthropic/claude-opus-5',
-	'claude-sonnet-5': 'anthropic/claude-sonnet-5',
-	'claude-haiku-4-5-20251001': 'anthropic/claude-haiku-4.5',
-	'gpt-5.4': 'openai/gpt-5.4',
-	'gpt-5.4-mini': 'openai/gpt-5.4-mini',
-	'gemini-3.8-flash': 'google/gemini-3.8-flash'
+	'gemini-3.5-flash': 'google/gemini-3.5-flash',
+	'gemini-3.5-flash-lite': 'google/gemini-3.5-flash-lite'
 } satisfies Record<string, string>
 
 // The model ids a call site is allowed to ask for. `satisfies` above keeps

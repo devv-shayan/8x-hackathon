@@ -9,6 +9,7 @@ import {
 	readdirSync,
 	readFileSync,
 	rmSync,
+	statSync,
 	symlinkSync,
 	writeFileSync
 } from 'node:fs'
@@ -70,10 +71,24 @@ function createFixture() {
 	// symbolic link" — and the ignore check probes node_modules/x.js.
 	mkdirSync(join(root, 'node_modules'))
 	for (const entry of readdirSync(join(REPO_ROOT, 'node_modules'))) {
-		symlinkSync(join(REPO_ROOT, 'node_modules', entry), join(root, 'node_modules', entry))
+		const src = join(REPO_ROOT, 'node_modules', entry)
+		const dest = join(root, 'node_modules', entry)
+		// Windows: directory junctions don't need elevated privileges; file
+		// symlinks often do, so fall back to a copy for plain files.
+		const type = statSync(src).isDirectory() ? 'junction' : 'file'
+		try {
+			symlinkSync(src, dest, type)
+		} catch {
+			cpSync(src, dest, { recursive: true })
+		}
 	}
 	git(root, 'init', '-q')
 	git(root, 'add', '-A')
+	// `git add` on Windows records hooks as 100644; Unix clones need 100755.
+	for (const hook of ['.githooks/commit-msg', '.githooks/pre-commit']) {
+		chmodSync(join(root, hook), 0o755)
+		git(root, 'update-index', '--chmod=+x', hook)
+	}
 	return root
 }
 
@@ -92,7 +107,11 @@ function withFixture(mutate, ids) {
 }
 
 function edit(root, path, transform) {
-	writeFileSync(join(root, path), transform(readFileSync(join(root, path), 'utf8')))
+	// Normalize CRLF from Windows checkouts so mutation replacements that
+	// hard-code `\n` still match (otherwise the edit is a no-op and the
+	// assertion that the check fails is comparing against a still-passing run).
+	const text = readFileSync(join(root, path), 'utf8').replace(/\r\n/g, '\n')
+	writeFileSync(join(root, path), transform(text))
 }
 
 test('the template itself meets every standard', () => {
@@ -245,7 +264,16 @@ test('per-tool-entry-points fails when an optional per-tool file exists without 
 
 test('commit-msg-hook fails when the hook is not executable on disk', () => {
 	const results = withFixture(
-		(root) => chmodSync(join(root, '.githooks/commit-msg'), 0o644),
+		(root) => {
+			const hook = join(root, '.githooks/commit-msg')
+			if (process.platform === 'win32') {
+				// No Unix mode bits on NTFS — strip the shebang so the
+				// Windows disk check fails the same way chmod 644 does on Unix.
+				writeFileSync(hook, readFileSync(hook, 'utf8').replace(/^#!/, '#'))
+			} else {
+				chmodSync(hook, 0o644)
+			}
+		},
 		['commit-msg-hook']
 	)
 	assert.equal(results['commit-msg-hook'].ok, false)
@@ -517,7 +545,7 @@ test('session-logs-tracked fails when Prettier is not told to skip the transcrip
 
 test('session-logs-tracked names the one present log dir left out of prettierignore', () => {
 	const results = withFixture(
-		(root) => edit(root, '.prettierignore', (text) => text.replace('.codex-logs/\n', '')),
+		(root) => edit(root, '.prettierignore', (text) => text.replace(/\.codex-logs\/\r?\n/, '')),
 		['session-logs-tracked']
 	)
 	assert.equal(results['session-logs-tracked'].ok, false)
@@ -528,7 +556,7 @@ test('session-logs-tracked passes a Claude-only repo with no .codex-logs dir', (
 	const results = withFixture(
 		(root) => {
 			rmSync(join(root, '.codex-logs'), { recursive: true, force: true })
-			edit(root, '.prettierignore', (text) => text.replace('.codex-logs/\n', ''))
+			edit(root, '.prettierignore', (text) => text.replace(/\.codex-logs\/\r?\n/, ''))
 		},
 		['session-logs-tracked']
 	)

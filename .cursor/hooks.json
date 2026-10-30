@@ -1,0 +1,20 @@
+{
+	"version": 1,
+	"hooks": {
+		"beforeSubmitPrompt": [
+			{
+				"command": "py -3 .cursor/hooks/extract-session-log.py"
+			}
+		],
+		"afterAgentResponse": [
+			{
+				"command": "py -3 .cursor/hooks/extract-session-log.py"
+			}
+		],
+		"stop": [
+			{
+				"command": "py -3 .cursor/hooks/extract-session-log.py"
+			}
+		]
+	}
+}

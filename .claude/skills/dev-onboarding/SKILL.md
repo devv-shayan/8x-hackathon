@@ -28,20 +28,23 @@ else to run by hand:
 ## 2. Environment variables
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Every variable in `.env.example` has an inline comment explaining what
-it's for. You'll need real values for at minimum:
+This project uses a single gitignored `.env` for local work — Next.js and
+the Prisma CLI both load it. Every variable in `.env.example` has an
+inline comment explaining what it's for. You'll need real values for at
+minimum:
 
 - `DATABASE_URL` / `DIRECT_URL` — ask a teammate for the shared dev
-  database, or provision your own local Postgres.
+  database, or provision your own (Supabase Postgres works).
 - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` /
   `SUPABASE_SECRET_KEY` — **only if this project has Supabase Auth**
   (check for `src/lib/supabase/` — if it's absent, this project removed
   auth per `docs/rules/auth.md` and these don't apply to it). Get real
   values from the project's Supabase dashboard (Settings → API) or a
   teammate.
+- `GEMINI_API_KEY` — Google AI Studio key for free-tier Gemini calls.
 - `CRON_SECRET` — any value locally (`openssl rand -hex 32`); only needs
   to match production if you're testing a cron route end to end.
 
@@ -49,7 +52,7 @@ Sentry/PostHog vars can stay empty locally — both no-op gracefully. Don't
 spend time chasing real values for these unless you're specifically
 testing observability.
 
-Run `pnpm check:env` after filling in `.env.local` — it won't validate the
+Run `pnpm check:env` after filling in `.env` — it won't validate the
 _values_, but it confirms nothing the app actually reads is missing.
 
 ## 3. Database
