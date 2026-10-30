@@ -50,6 +50,8 @@ model Profile {
   activity           Activity[]
   notifications      Notification[]
   topics             Topic[]
+  students           Student[]
+  gaps               Gap[]
   premiumGrants      PremiumGrant[]      @relation("grantee")
   premiumGranted     PremiumGrant[]      @relation("granter")
   analyticsEvents    AnalyticsEvent[]

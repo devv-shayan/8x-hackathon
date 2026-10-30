@@ -52,7 +52,9 @@ and adds only what is specific to that tool.
 This repo is a play built on the **mobile monorepo template**: an Expo app (`apps/mobile`, the
 product), a Next.js marketing site, admin panel and API (`apps/web`), a shared brand package
 (`packages/brand`) and a Supabase backend (`supabase/`). The product is in
-[docs/product/brief.md](docs/product/brief.md). AI calls go through `apps/web/src/server/ai/`, and
+[docs/product/brief.md](docs/product/brief.md), and
+[docs/product/context.md](docs/product/context.md) says how the code fits together and what's built:
+read it before starting work. AI calls go through `apps/web/src/server/ai/`, and
 only the server calls them: the app reaches them through `/api/app/v1`.
 
 It follows the web template, [8xsocial/template-web](https://github.com/8xsocial/template-web).
