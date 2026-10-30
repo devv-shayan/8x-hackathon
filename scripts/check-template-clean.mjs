@@ -1,28 +1,32 @@
 #!/usr/bin/env node
 // Keeps the template repository free of session logs and agent worktrees.
 //
-// The template is handed to many engineers, and every project is generated
-// from it, so whatever it tracks lands in every project's first commit. Session transcripts
-// (.claude-logs/, .codex-logs/) belong to the project whose work they record,
-// not to the template, and this check catches one committed here. An agent
+// The template is handed to many engineers, and every play is cloned from it,
+// so whatever it tracks lands in every play's history. Session transcripts
+// (.claude-logs/, .codex-logs/) belong to the play whose work they record, not
+// to the template: .claude/log-session.py already writes nothing here, and
+// this check catches a log committed by hand or by another tool. An agent
 // worktree under .claude/worktrees/ is machine-local state that `git add -A`
 // can sweep in as an embedded repository.
 //
-// The template is identified by its repository (GITHUB_REPOSITORY in CI, the
-// `origin` remote locally). A project generated from it has its own
-// repository, so this check passes there without looking at anything, and the
-// project commits its logs as usual.
+// Two things identify the template: the root package.json is still named
+// "app-template", and the repository is the template's own (GITHUB_REPOSITORY
+// in CI, the `origin` remote locally). A copy made from the template has its
+// own repository, so this check passes there without looking at anything, even
+// before the package is renamed: a play commits its logs exactly as before.
 //
 // Usage: node scripts/check-template-clean.mjs [--root <dir>] [--template]
 // --template treats the checkout as the template whatever its repository.
 // Exit codes: 0 clean (or not the template), 1 something tracked that must not
-// be, 2 could not run (no tracked files to read).
+// be, 2 could not run (no package.json, or no tracked files to read).
 
-import { resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
-export const TEMPLATE_REPOSITORY = '8xsocial/template-web'
+export const TEMPLATE_PACKAGE_NAME = 'app-template'
+export const TEMPLATE_REPOSITORY = '8xsocial/template-monorepo'
 
 const LOG_DIRS = ['.claude-logs', '.codex-logs']
 // What a log directory may hold in the template: the note that explains it,
@@ -46,11 +50,20 @@ export function reasonToReject(path) {
 	return null
 }
 
-/** The tracked paths that must not be in the template. */
-export function findTemplateLeaks(trackedFiles) {
+/**
+ * The tracked paths that must not be in the template. Empty when the package
+ * is not the template: a play's logs are its own.
+ */
+export function findTemplateLeaks({ packageName, trackedFiles }) {
+	if (packageName !== TEMPLATE_PACKAGE_NAME) return []
 	return trackedFiles
 		.map((path) => ({ path, reason: reasonToReject(path) }))
 		.filter((leak) => leak.reason != null)
+}
+
+function readPackageName(root) {
+	const raw = readFileSync(join(root, 'package.json'), 'utf8')
+	return JSON.parse(raw).name
 }
 
 /** Whether `root` is the template's own repository, not a copy of it. */
@@ -82,6 +95,23 @@ function main() {
 	const rootIndex = args.indexOf('--root')
 	const root = resolve(rootIndex === -1 ? '.' : args[rootIndex + 1])
 
+	let packageName
+	try {
+		packageName = readPackageName(root)
+	} catch (error) {
+		console.error(
+			`check-template-clean: cannot read ${join(root, 'package.json')}: ${error.message}`
+		)
+		process.exit(2)
+	}
+
+	if (packageName !== TEMPLATE_PACKAGE_NAME) {
+		console.log(
+			`check-template-clean: root package is "${packageName}", not the template; nothing to check.`
+		)
+		process.exit(0)
+	}
+
 	const forced = args.includes('--template')
 	const githubRepository = process.env.GITHUB_REPOSITORY ?? ''
 	if (!forced && !isTemplateRepository({ githubRepository, originUrl: originUrlOf(root) })) {
@@ -99,7 +129,7 @@ function main() {
 		process.exit(2)
 	}
 
-	const leaks = findTemplateLeaks(trackedFiles)
+	const leaks = findTemplateLeaks({ packageName, trackedFiles })
 	if (leaks.length === 0) {
 		console.log(
 			`check-template-clean: the template tracks no session logs or worktrees (${trackedFiles.length} files checked).`
@@ -108,12 +138,12 @@ function main() {
 	}
 
 	console.error(
-		`check-template-clean: the template repository (${TEMPLATE_REPOSITORY}) must not track:`
+		`check-template-clean: the template repository (root package "${TEMPLATE_PACKAGE_NAME}") must not track:`
 	)
 	for (const leak of leaks) console.error(`  ${leak.path}  — ${leak.reason}`)
 	console.error(
 		'\nUntrack them and keep your local copies with: git rm -r --cached <path>\n' +
-			'A project generated from the template has its own repository, and commits its own logs as usual.'
+			'A copy of the template has its own repository, and commits its own logs as usual.'
 	)
 	process.exit(1)
 }

@@ -1,138 +1,74 @@
 # Auth
 
-**Default: Supabase Auth, for anything with real user accounts.** A pure
-landing/marketing page with no sign-in gets it removed entirely — see
-"Removing auth" below. `template-setup` asks this explicitly; don't leave
-it undecided.
+Supabase Auth is the identity provider for both apps. It owns sign-in, sessions and tokens.
+It is never a path to application data ([database](database.md)): **Supabase owns auth,
+Prisma owns every other byte**, and that boundary does not blur.
 
-## Why Supabase Auth, not next-auth or something else
+## One identity, two transports
 
-This is the one place this template intentionally uses Supabase for
-something beyond a connection string — a pattern proven in
-production: **Supabase owns auth, session, and (if a
-project needs it) realtime; Prisma owns every other byte of data.** Never
-let that boundary blur — no `supabase.from()` calls for application data,
-ever (see `docs/rules/database.md`).
+| Caller                      | The session travels as                                                                                      | The server verifies it with                                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| The website and admin panel | **HttpOnly cookies**, set by `@supabase/ssr` and refreshed on every request by `apps/web/src/middleware.ts` | `createServerSupabaseClient()` → `auth.getUser()` in a Server Component, route handler or server action    |
+| The mobile app → `apps/web` | **`Authorization: Bearer <access token>`**, the current session's token from `supabase.auth.getSession()`   | The route, server-side: `auth.getUser(token)` on the secret-key client, `requireUser()` with `/api/app/v1` |
 
-## The three pieces
+- **The app never sends a user id the server trusts.** Identity comes from the verified token,
+  never from the request body; otherwise anyone can act as any account. `/api/lifecycle/session`
+  is the reference: it reads the bearer token, resolves the user with Supabase, and only then
+  writes. `/api/delete-account` accepts the app's bearer token the same way.
+- **A route the app calls authenticates by bearer token only.** No cookies, so no ambient
+  credential a third-party page could ride on (no CSRF surface). A route the website calls
+  uses the cookie session.
+- **Tokens expire.** The app refreshes them (`autoRefreshToken`, restarted when the app returns
+  to the foreground in `apps/mobile/lib/supabase.ts`). Always read the token from
+  `getSession()` at request time; never cache one in app state.
+- `profiles.id` **is** the Supabase auth user's UUID, set when the profile row is created,
+  never generated separately. RevenueCat's app user id is the same UUID
+  (`Purchases.logIn(session.user.id)`), which is how the RevenueCat webhook finds the profile.
+  Keep that call.
 
-1. **`src/proxy.ts`** refreshes the session cookie on every request, before
-   next-intl's locale routing runs. It fails open — if
-   `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` aren't set, or
-   the network call to Supabase fails, the site still serves pages; the
-   session just doesn't get refreshed on that request. Confirmed directly:
-   the app boots and serves 200s with no Supabase env vars at all, and with
-   fake/unreachable Supabase credentials, in both cases well under 200ms.
-2. **`src/lib/supabase/server.ts`** (`createServerSupabaseClient`) — read
-   the current session in a Server Component or route handler. Can't
-   refresh an expired session itself (Server Components can't set cookies);
-   that's what `proxy.ts` is for.
-3. **`src/lib/supabase/secret-key.ts`** (`createSecretKeyClient`) —
-   bypasses auth entirely. Server-only, for admin auth operations (deleting
-   a user's auth account) or a verified webhook with no session. Never call
-   this from a path a request can reach without already being verified
-   trusted.
+## The clients, and what each may do
 
-There's no fourth "authenticated Supabase client for data" tier the way
-some other org repos have it — this template has no data-access role for
-Supabase at all, on purpose.
+| Client                                                                 | Where it runs                      | May                                                                                           |
+| ---------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/web/src/lib/supabase/server.ts` (`createServerSupabaseClient`)   | Server Components, routes, actions | Read the person's session                                                                     |
+| `apps/web/src/lib/supabase/browser.ts` (`createBrowserSupabaseClient`) | The browser                        | Sign in and out                                                                               |
+| `apps/web/src/lib/supabase/secret-key.ts` (`createSecretKeyClient`)    | **Server code only**               | Auth's admin API (verify a bearer token, look up, list and delete users), signed storage URLs |
+| `apps/mobile/lib/supabase.ts` (publishable key)                        | The device                         | Sign in and out, hold and refresh the session                                                 |
 
-That is enforced by the type system, not by review. Both wrappers return
-`AuthOnlySupabaseClient` (`src/lib/supabase/auth-only.ts`), the client's
-auth surface and nothing else, so `supabase.from()` or `.rpc()` fails
-`pnpm typecheck`. The SDK itself can only be imported inside
-`src/lib/supabase/` and `src/proxy.ts` (`eslint.config.mjs`), so there is no
-way to construct a wider client elsewhere. A project that adopts Supabase
-realtime widens that one type deliberately — never to `from` or `rpc`.
+Each web wrapper returns `AuthOnlySupabaseClient` (`src/lib/supabase/auth-only.ts`,
+`Pick<SupabaseClient, 'auth' | 'storage'>`), so `.from()` and `.rpc()` fail `npm run typecheck`,
+and ESLint bans importing `@supabase/*` anywhere but those files and `src/middleware.ts`. The
+mobile client is narrowed the same way: `apps/mobile/lib/supabase.ts` exports
+`Pick<SupabaseClient, 'auth'>`, and is the only file in `apps/mobile` allowed the import.
 
-## The `User.id` convention
+## Keys
 
-`prisma/schema/example.prisma` models this: `User.id` **is** the Supabase
-auth user's UUID, set explicitly when the row is first created (an auth
-webhook, or on first sign-in), never Prisma-generated
-(`@default(cuid())`). This avoids running two parallel identity systems
-that have to stay in sync.
+- Clients get the **publishable** key: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (web) and
+  `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (app). It is public by design.
+- Only server code gets the **secret** key, `SUPABASE_SECRET_KEY`. It bypasses RLS and every
+  other check; it never reaches a browser or a phone ([secrets](secrets.md)).
+- The legacy `*_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` JWT names are read only as
+  fallbacks for older deployments. New setups use the publishable and secret keys.
 
-## Authorization: enforced in the app, RLS as a locked door
+## Sign-in methods and the stores
 
-**The real authorization boundary is the API/action layer**, not Postgres
-Row Level Security. Prisma connects over a direct connection and does not go
-through PostgREST, so RLS has nothing to enforce against a Prisma query — the
-check that actually protects a row is the ownership guard you write in the
-handler. RLS is a _second, locked door_ behind that, not the primary lock.
+The template offers email one-time codes, Sign in with Apple (Apple's native sheet on iOS,
+exchanged with `supabase.auth.signInWithIdToken`; Supabase's OAuth flow elsewhere) and Google
+through Supabase's OAuth flow.
+Two store rules follow from any sign-in change ([store review](store-review.md)):
 
-For any handler / action / loader that touches user-scoped data:
+- **Apple 4.8:** if the iOS app offers any third-party login, it offers Sign in with Apple too.
+  The template meets it natively (`expo-apple-authentication`, see `app/(auth)/login.tsx`),
+  and `check:store` holds it there.
+- **Apple 5.1.1(v), Google Play:** an app that lets you create an account lets you delete it
+  from inside the app, and Play also needs a web deletion link (`/delete-account`). Deletion is
+  a server route using the secret-key client's auth admin API, after the route has verified who
+  is asking. It emits `account_deleted` (the platform's erasure hook, `docs/EVENTS.md`).
 
-1. Resolve the caller's session first (`createServerSupabaseClient`);
-   reject if absent.
-2. Assert the caller may access the _specific_ rows (ownership / membership
-   / role) **before** the query, not after.
-3. Never scope a query by a client-supplied id alone — scope it to the
-   authenticated user server-side.
+A login required to use the app means App Review needs a demo account in the review notes:
+that is a human's job, and `store-review` says so rather than guessing.
 
-### RLS on, no policies — the deny-by-default backstop
+## Admin sign-in
 
-Two settings, together, make it structurally impossible for anything but
-Prisma to read application data:
-
-1. **Keep the Supabase Data API off.** Settings → API → disable it. Nothing
-   in this template talks to PostgREST or `supabase-js` for data
-   (`docs/rules/database.md`), so nothing legitimate breaks.
-2. **Enable RLS with no policies on every table**, via a migration:
-
-   ```sql
-   ALTER TABLE "<table>" ENABLE ROW LEVEL SECURITY;
-   ```
-
-   RLS enabled with zero policies denies every row to every role that is
-   _subject_ to RLS — which is exactly the `anon` and `authenticated` roles
-   the Data API would use. So even if someone flips the Data API back on
-   later, those roles get nothing. There is no policy to write because there
-   is no sanctioned path through PostgREST to govern.
-
-**Do not `FORCE ROW LEVEL SECURITY`.** Prisma connects as the table owner
-(the default Supabase `postgres` connection), and the owner is exempt from
-RLS _unless_ you force it. Forcing it would subject the owner to the
-policies that don't exist and deny every Prisma query — breaking the app to
-protect a door no one uses. Enable, don't force.
-
-Enabling RLS is an `ALTER TABLE`, which the Prisma schema can't express, so
-it lives in a hand-written migration — one of the sanctioned exceptions in
-`docs/rules/migrations.md`. Add the `ENABLE ROW LEVEL SECURITY` statement for
-each new table in a migration alongside the one CI generates to create it.
-
-**Enforced by `pnpm check:rls`**, which runs at the end of CI's `migrations`
-job against the replayed database and reads `pg_class` and `pg_policy`
-directly: every table enabled, no policies, none forced. A new table goes
-red there until its RLS migration lands. "Every table" is deliberate — it
-removes the per-table judgement of what counts as user-scoped. A table that
-genuinely must stay open is listed in `RLS_EXEMPT_TABLES` in
-`scripts/check-rls.mjs` with the reason; the list ships empty, and FORCE or a
-policy is refused even on an exempt table.
-
-This whole section applies the moment a project has real user accounts.
-
-## Wiring it up (when `template-setup` says this project needs accounts)
-
-1. `pnpm add @supabase/supabase-js @supabase/ssr` (already the case if
-   you're reading this in a repo generated after this rule was added —
-   check `package.json` before re-adding).
-2. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
-   `SUPABASE_SECRET_KEY` from the Supabase project's dashboard
-   (Settings → API Keys). Use the `sb_publishable_…` / `sb_secret_…` keys,
-   never the legacy anon / service_role JWTs — keep them disabled on the
-   Supabase project.
-3. Everything else — `src/proxy.ts`, `src/lib/supabase/*` — is already
-   present and working; there's nothing else to scaffold.
-
-## Removing auth (landing pages, no accounts)
-
-1. `pnpm remove @supabase/supabase-js @supabase/ssr`.
-2. Delete `src/lib/supabase/`.
-3. In `src/proxy.ts`, delete the Supabase block and go back to a plain
-   `export default createIntlMiddleware(routing)`.
-4. Remove `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`/
-   `SUPABASE_SECRET_KEY` from `.env.example` and their entries in
-   `src/lib/env.ts`.
-5. Run `pnpm check:env` and `pnpm typecheck` to confirm nothing's left
-   dangling.
+The admin panel is the web app's cookie session plus an admin check. See
+[authorization](authorization.md).

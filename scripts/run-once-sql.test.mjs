@@ -61,15 +61,15 @@ test('an explicit --db-url wins, then DIRECT_URL, then DATABASE_URL', () => {
 test('redaction drops credentials and the query string, keeps host and database', () => {
 	assert.equal(
 		redactDatabaseUrl(
-			'postgresql://user:s3cret@db.example.com:5432/postgres?password=x&sslmode=require'
+			'postgresql://user:password@db.example.com:5432/postgres?password=placeholder&sslmode=require'
 		),
 		'postgresql://db.example.com:5432/postgres'
 	)
 	assert.equal(redactDatabaseUrl('not a url'), '<unparseable database url>')
 })
 
-test('arguments default to prisma/run-once.sql and no explicit URL', () => {
-	assert.deepEqual(parseArgs([]), { dbUrl: undefined, file: 'prisma/run-once.sql' })
+test('arguments default to apps/web/prisma/run-once.sql and no explicit URL', () => {
+	assert.deepEqual(parseArgs([]), { dbUrl: undefined, file: 'apps/web/prisma/run-once.sql' })
 	assert.deepEqual(parseArgs(['--file', 'other.sql', '--db-url', 'postgresql://x@h/d']), {
 		dbUrl: 'postgresql://x@h/d',
 		file: 'other.sql'

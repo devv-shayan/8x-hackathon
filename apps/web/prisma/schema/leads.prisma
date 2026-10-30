@@ -1,0 +1,28 @@
+// What the marketing site collects before anyone has an account: the waitlist and the
+// support form (which also takes public account-deletion requests, category 'deletion').
+// Written only by the API routes behind those forms; read only by the admin panel.
+model WaitlistEntry {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  /// 'web', 'app', a campaign tag.
+  source    String?
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("waitlist")
+}
+
+model ContactMessage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String
+  message   String
+  /// 'general' | 'deletion' | …
+  category  String   @default("general")
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([handled])
+  @@map("contact_messages")
+}

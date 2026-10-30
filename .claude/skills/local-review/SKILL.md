@@ -1,89 +1,137 @@
 ---
 name: local-review
-description: Run the full local pre-push gate (lint, typecheck, format, env-var check, unit tests, build) and a manual review pass against this repo's AGENTS.md/docs/rules rules — the mechanism that makes the no-over-committing rule work by catching problems before a paid CI run does. Use when the user says "/local-review", "review this before I push", "is this ready", or has finished a change and wants it validated locally before CI sees it.
+description: 'Run the full local pre-push gate (the same commands CI runs: secrets, template, typecheck, lint, format, standards, events, env, store readiness, tests, web build, commit messages, and the database gates: drift, RLS, the runtime-role suites), the store-review skill when the app changed, and a manual review pass against this repo''s AGENTS.md and docs/rules. It is what makes the don''t-over-commit rule work, by catching problems before a paid CI run does. Use when the user says "/local-review", "review this before I push", "is this ready", or has finished a change and wants it validated locally before CI sees it.'
 ---
 
 # Local review
 
-A pre-push gate: the same checks CI runs, plus a manual rule-compliance pass CI can't fully automate. Run this once a change is functionally done, not after every edit.
+A pre-push gate: the same checks CI runs, plus a manual pass against the rules CI can't fully
+automate. Run it once a change is functionally done, not after every edit.
 
-**This is what makes `docs/rules/commits.md`'s no-over-committing rule actually work.** Every push triggers real, paid CI runs — this skill exists so CI _confirms_ what's already verified, instead of being the first place a lint error, a type error, or a broken build gets discovered. If you're about to push-and-see-what-CI-says, run this first instead. If it's clean, commit once — not once per fix as you iterate.
+**This is what makes `docs/rules/commits.md`'s don't-over-commit rule work.** Every push runs
+paid CI. This skill exists so CI _confirms_ what is already verified, instead of being the first
+place a lint error, a type error or a broken build is discovered. If it is clean, commit once,
+not once per fix.
 
-## 1. Automated gates, in order
+## 1. Automated gates, in CI's order
 
-Stop at the first failure and fix it (or report it) before continuing — don't run everything blind and dump five unrelated failures on the user.
+These are exactly the commands the `check` job in `.github/workflows/ci.yml` runs on every pull
+request, in the same order. A gate added to one is added to the other in the same PR, and
+`check:standards` holds them to it: `local-review-mirrors-ci` reads both lists from the files,
+and fails when this skill leaves out one of that job's gates, runs them in another order, or
+runs a gate no CI job runs.
 
-```bash
-pnpm lint
-pnpm typecheck
-pnpm format:check   # if this fails, just run `pnpm format` — it's always safe, never ask first
-pnpm check:env
-pnpm check:secrets   # scans tracked files for committed credentials
-pnpm check:standards
-pnpm check:ai-models   # skip if the project deleted AI usage tracking
-pnpm test
-DATABASE_URL="postgresql://<your local database>" pnpm check:rls   # needs the migrations applied
-```
-
-`check:rls` reads the database rather than the migration files, so it needs
-one: the local Postgres `dev-onboarding` set up, with
-`pnpm exec prisma migrate deploy` run against it first. Without
-`DATABASE_URL` it fails rather than skips — a skipped RLS check is the same
-as no RLS check. CI runs it at the end of the `migrations` job against the
-replayed database, so a table without RLS turns that job red.
-
-`check:standards` (`scripts/check-standards.mjs`) is the one gate that
-checks the scaffolding rather than the code: the rules index, the commit
-hook, the CI gates, the lint and TypeScript config actually in effect,
-tracked-file hygiene. A failure means a standard was unwired — usually by a
-refactor that moved or deleted something without noticing it was
-load-bearing. `docs/STANDARDS.md` lists what it looks for and how to meet
-each item.
-
-`check:ai-models` is the one gate here that calls out to the network. It
-exits 0 when OpenRouter is unreachable, so a failure means a slug this
-project maps has actually been retired upstream — a real finding, and one
-that otherwise surfaces months later as a model quietly costing $0. See
-`docs/rules/ai-usage.md`.
-
-Then a full build with the same placeholder env vars CI's `build` job uses (every route is dynamic, so these never need to be real):
+Stop at the first failure and fix it (or report it) before continuing. Don't run everything
+blind and hand the user five unrelated failures. Report each command's real result, not "it
+passed".
 
 ```bash
-DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
-DIRECT_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
-CRON_SECRET="placeholder-secret" \
-pnpm build
+npm run check:secrets    # every tracked file, session logs included
+npm run check:template   # the template tracks no session logs or worktrees; a play passes
+npm run typecheck        # web, mobile, @app/contract and @app/brand
+npm run lint             # 0 errors and 0 warnings (--max-warnings=0)
+npm run format:check     # if this fails, run `npm run format`: always safe, never ask first
+npm run check:standards  # the standards checklist (docs/STANDARDS.md)
+npm run check:events     # every fired event is in its app's registry; unfired ones only warn
+npm run check:env        # every env read is declared in the schema and .env.example, and vice versa
+npm run check:store      # the store-review rules a file can decide (section 2 does the rest)
+npm test                 # scripts, mobile Jest (+ packages/brand), the web and @app/contract suites
+npm run web:build        # the Next.js production build
 ```
 
-## 2. Manual review pass
+The build leaves `apps/web/.next/` behind; delete it afterwards if disk is tight.
 
-Diff the branch against its merge-base (`git diff $(git merge-base main HEAD)...HEAD` or `git diff main...HEAD` if the branch is up to date), and check the changed files against these rules from `AGENTS.md`/`docs/rules/*`:
+Then the commit messages, the same check CI's `commits` job runs over the branch:
 
-- **Database access** — every query goes through `db` from `@/server/db/client`. Flag any raw `pg`/`postgres` client, any Supabase `.from()`/`.rpc()` call, any `$queryRaw` that isn't called out explicitly as necessary.
-- **Migrations** — nothing hand-edited under `prisma/schema/migrations/`. If the diff touches that folder, that's a stop-the-review finding, not a style note.
-- **Run-once SQL** — a change to `prisma/run-once.sql` replaces the previous one-off rather than appending to it (the old one already ran), creates no tables/columns/indexes the schema doesn't declare, and survives CI's replay onto an empty database (no dependence on production-only rows). See `docs/rules/migrations.md`, "Run-once SQL".
-- **API routes** — `src/app/api/**/route.ts` files contain zero logic, just `export const GET = createApiRoute(...)`/`createCronRoute(...)`. Schema + handler logic lives in `src/server/api/**`.
-- **Server/Client boundaries** — no `@/server/**` import (or anything marked `server-only`) reachable from a file with `'use client'` at the top. Client Component boundaries should be as small as the diff allows.
-- **State management** — `QueryClient` only ever constructed inside a `useState` initializer (see `src/components/query-provider.tsx`), never at module scope. No new global state library (Zustand, Redux, Jotai) added without it being an explicit, discussed decision — flag it, don't silently allow it.
-- **Auth** — no Supabase `.from()`/`.rpc()` for application data (auth/session only, see `docs/rules/auth.md`); no auth check added to a page instead of the API/action layer.
-- **Env vars** — any new `process.env.X` has a matching `.env.example` entry and `src/lib/env.ts` schema entry. `pnpm check:env` catches most of this mechanically; still worth a manual look for anything its regex might miss (e.g. a dynamically-constructed var name).
-- **AI calls** (`docs/rules/ai-usage.md`) — every provider SDK call goes
-  through `trackAiCall`, never direct from feature code. A new AI call, a
-  new model id, or any change under `src/server/lib/ai-usage/` means running
-  `/ai-usage-check` rather than reviewing it by eye — the silent failure
-  here is a call that still works but stopped being costed, which no amount
-  of reading the diff will show you. Flag a `feature` string that doesn't
-  distinguish the call from an existing one, and anything but ids in `meta`.
-- **Magic numbers** (`docs/rules/code-quality.md`) — deliberately not an ESLint rule (too noisy — see that file for why). A numeric literal whose meaning isn't obvious from context — a threshold, rate, timeout, limit — should be a named constant. Flag it, don't just wave it through because the linter didn't.
-- **DRY / Rule of Three** — if the diff's logic already exists in 2+ other files, that's the signal to extract before adding a third copy, not after. Don't flag 2 occurrences as a problem — that's expected, not a violation (see the Sandi Metz caveat in `docs/rules/code-quality.md` for why premature extraction is its own failure mode).
-- **God files** — no numeric threshold, but if a changed file now mixes routing/data-access/business-logic/rendering in one place, say so.
-- **Docstrings** — flag comments that just restate the code below them; that's noise, not documentation. A missing comment on a genuinely non-obvious invariant is a real finding, an unnecessary one is too.
-- **Naming** — camelCase for JS/TS, PascalCase for components/types, `SCREAMING_SNAKE_CASE` only for true constants, snake_case only inside `@map`/`@@map` on the Prisma side.
-- **Feature scope** (`docs/rules/feature-approach.md`) — if the diff is a brand-new feature, did the PR/commit description show an 80/20 tradeoff was considered, or does it look like the fullest possible version was built without that being asked for? If it's an adjustment to something existing, scope-mimimization is the wrong lens — check test/edge-case coverage instead.
-- **Commit messages** — `git log <merge-base>..HEAD --oneline` matches Conventional Commits. Catch this locally; it's the same rule the push-time hook and CI's `commits` job enforce, just cheaper to fix before either runs.
+```bash
+git fetch origin main
+node scripts/check-commit-message.mjs --range origin/main..HEAD
+```
 
-## 3. Report
+Then the database gates, the ones CI's `migrations` job runs. They read a database with the
+migrations applied, not the files, so they need a replay: a throwaway local Postgres, never a
+shared or production one (Prisma needs a user name in the URL, or it fails with `P1010`):
 
-A short pass/fail summary: which gates passed, what the manual pass found (file:line for each item), and what's a blocking issue vs. worth flagging but not blocking. If you fixed anything trivial (formatting, an obviously-missing env declaration), say so. If something needs a judgment call from the user (e.g. a new global store, a `$queryRaw` usage), ask rather than deciding for them.
+```bash
+createdb app_replay
+psql -d app_replay -v ON_ERROR_STOP=1 -q -f apps/web/prisma/ci/supabase-shim.sql
+export DATABASE_URL="postgresql://$USER@localhost:5432/app_replay" DIRECT_URL="postgresql://$USER@localhost:5432/app_replay"
+npx prisma migrate deploy --schema apps/web/prisma/schema && npm run db:run-once
+npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel apps/web/prisma/schema --exit-code
+npm run check:rls        # RLS on, no policies, nothing granted to anon or authenticated
+TEST_DATABASE_URL="$DATABASE_URL" npm run test:db --workspace=@app/web   # as a non-superuser
+dropdb app_replay
+```
 
-If everything's clean and this is the point the branch is actually done: this is also the trigger to write or finalize the PR's real title/description (mark it ready for review if it was opened as a draft) — see `docs/rules/pull-requests.md`. Don't leave a PR description describing an earlier, incomplete state of the branch once you've confirmed the work is finished.
+Without `DATABASE_URL`, `check:rls` fails rather than skips: a skipped RLS check is the same as
+none. A schema change with no migration shows up in the drift check; CI generates the
+migration (`docs/rules/migrations.md`), and `node scripts/generate-migration.mjs --check
+--db-url "$DATABASE_URL"` shows what it will write.
+
+## 2. Mobile: the store-review skill
+
+If the diff touches `apps/mobile` or `packages/`, run the **`store-review`** skill
+(`.claude/skills/store-review/SKILL.md`) on the branch. It classifies the change (an **OTA
+update** or **needs a store build**, and why), runs `check:store`, applies the rule table in
+`docs/rules/store-review.md` to the diff, and ends in one verdict: SHIP, FIX FIRST or NEEDS A
+HUMAN. Put the classification and the verdict in the report.
+
+## 3. Manual review pass
+
+Diff the branch against its merge base (`git diff origin/main...HEAD`) and check the changed
+files against `AGENTS.md` and the `docs/rules/` file for each area touched:
+
+- **The three non-negotiables** (`AGENTS.md`):
+  - a new screen, route, button, paywall step, toggle or state-changing cron has its events
+    registered in its app's registry (`apps/web/src/lib/analytics/events.ts` on the web, the
+    `EventName` union in `apps/mobile/lib/analytics.ts` on the app) and fired: a new name in
+    `check:events`' "registered but not yet fired" warnings is a finding
+    (`docs/rules/analytics.md`); the `events` skill should have run first;
+  - a change under `apps/web/src/app/api/dashboard/v1/` was checked against the live contract
+    from your stats dashboard, not from memory;
+  - anything writing `plan_type`, `premium_*` or a subscription row does it in server code, and
+    has been read twice.
+- **Data** (`docs/rules/database.md`, `docs/rules/mobile-data.md`): no new Supabase
+  `.from()`/`.rpc()` call site anywhere; queries live in a store under `src/server/db/`, and a
+  `$queryRaw` says in a comment why Prisma can't express it; a failed query surfaces as an
+  error, never an empty list; shared counts come from `dashboard-stats.ts`; nothing
+  inner-joins `analytics_events` or `analytics_pageviews` to `profiles`; no `v1` response
+  shape changed; a new table has its security migration.
+- **Auth** (`docs/rules/auth.md`, `docs/rules/authorization.md`): identity from the verified
+  session or bearer token, never from the request body; an admin page sits under
+  `admin/(protected)/`, whose layout guards it; every admin API route and server action calls
+  `requireAdmin()` itself; an unset secret closes the route (503), never opens it.
+- **Secrets** (`docs/rules/secrets.md`): no value in `eas.json` or `app.json` (`app.json`
+  holds `REPLACE_WITH_…` placeholders; `eas.json` profiles carry no `env`, since EAS expands no
+  `$VAR` there and a profile value overrides the EAS variable); nothing secret named `EXPO_PUBLIC_*` or `NEXT_PUBLIC_*`; no
+  credential in a comment, a fixture or a session log.
+- **Logging and errors** (`docs/rules/logging.md`, `docs/rules/error-handling.md`): no new
+  `console.*` in application code; no raw error text reaching a person.
+- **Migrations** (`docs/rules/migrations.md`): a schema change doesn't break a column the app
+  or a `v1` route reads.
+- **Brand** (`docs/rules/code-style.md`): no hardcoded hex that has a token in
+  `packages/brand`.
+- **Magic numbers** (`docs/rules/code-quality.md`): deliberately not an ESLint rule. A
+  threshold, rate, timeout or limit whose meaning isn't obvious gets a named constant.
+- **DRY, the Rule of Three**: logic that already exists in two other files is extracted before
+  a third copy lands. Two occurrences are expected, not a violation.
+- **God files**: a changed file that now mixes routing, data access, business logic and
+  rendering.
+- **Comments**: flag comments that restate the code; a missing one on a genuinely non-obvious
+  invariant is also a finding.
+- **Naming**: camelCase for TypeScript, PascalCase for components and types,
+  `SCREAMING_SNAKE_CASE` only for true constants, snake_case for columns and event names.
+- **Feature scope** (`docs/rules/feature-approach.md`): a brand-new feature shows the 80/20
+  choice was offered; an adjustment to a live feature covers its edge cases.
+
+## 4. Report
+
+A short pass/fail summary: each gate and its real result, the OTA-or-build classification and
+store-review verdict for a mobile change, and what the manual pass found (file:line for each
+item), separating what blocks from what is worth flagging. Say what you fixed if you fixed
+anything trivial (formatting, say). If something needs a judgement call (a new dependency, a
+new global store, a `v1` change), ask rather than deciding.
+
+If everything is clean and the branch is done, this is also the moment to write or finalize the
+PR's real title and description, with the standards count before and after, the gates, and a
+Production Watch List, and to mark it ready if it was a draft (`docs/rules/pull-requests.md`).

@@ -1,85 +1,49 @@
-# Pull requests — write the description last, not first
+# Pull requests: write the description last, not first
 
-**Don't write the PR title/description when you open the PR if the work
-isn't actually done yet.** The failure mode this rule exists to stop: an
-agent opens a PR early (to satisfy branch protection, or to get CI
-feedback while iterating), writes a title and description describing what
-it intends to do, then the branch evolves — more commits land, bugs get
-found and fixed, scope shifts — and the description never gets updated.
-The merged PR's description now describes the _first_ commit's intent, not
-what actually shipped. That's the wrong context for a human reviewer, and
-it's actively misleading for any AI (a future Claude Code Review pass, an
-agent scanning PR history for context on why something exists) that reads
-that description later and trusts it.
+A PR description written when the branch was opened describes the first commit's intent, not
+what shipped. A reviewer trusts it anyway, and so does any agent that reads PR history later
+for context on why something exists.
 
 ## The rule
 
-- If the work is genuinely finished before you open the PR, write the real
-  title/description immediately — normal case, nothing changes.
-- If you need to open the PR before the work is done (branch protection
-  requires a PR to exist to get CI signal, or you're iterating and want
-  visibility), **open it as a draft** (`gh pr create --draft`) with a
-  minimal title and no fabricated description — don't write final-sounding
-  copy for work that isn't final. A one-line placeholder is fine.
-- **Only write the real title and description once you've verified the
-  work is actually done** — same bar as `docs/rules/commits.md`'s
-  don't-over-commit rule: locally verified, `local-review` clean, nothing
-  left to fix. At that point, mark it ready for review (`gh pr ready`) and
-  write the description to reflect everything that actually happened
-  across the whole branch — every commit, every fix, every scope change —
-  not just what was true when the branch was created.
-- If a PR was opened non-draft with an early description (e.g. before this
-  rule existed, or a different agent didn't follow it) and more work
-  landed afterward, treat rewriting the description as part of finishing
-  the work, not optional cleanup — `gh pr edit --body "..."` before
-  merging.
+- If the work is finished when you open the PR, write the real title and description now.
+- If the PR needs to exist earlier (CI signal, a Vercel preview, an EAS preview build), open it
+  as a **draft** (`gh pr create --draft`) with a placeholder, not final-sounding copy for
+  unfinished work.
+- Write the real title and description once the work is verified: the gates pass locally and
+  nothing is left to fix. Then mark it ready (`gh pr ready`) and describe everything that
+  happened across the branch, every fix and scope change included.
+- If more lands after that, rewrite the description before it is merged
+  (`gh pr edit --body …`).
 
-## Why draft specifically, not just "remember to update it later"
+Draft is a real GitHub state. The Claude review workflow
+(`.github/workflows/claude-code-review.yml`) skips drafts, so no review run is spent on a diff
+that is still moving. Marking the PR ready is what triggers it.
 
-Draft is a real GitHub state, not a note-to-self that's easy to skip.
-`.github/workflows/claude-code-review.yml` already gates on
-`github.event.pull_request.draft == false` — a draft PR doesn't get an AI
-review pass at all, so there's no wasted review run against a description
-(or a diff) that's still changing. Marking the PR "ready for review" is
-already the natural trigger point to also finalize the description — do
-both in the same step, not as two separate things to remember.
+## What the description carries
 
-## What "done" means here
+The title follows the commit format ([commits](commits.md)). The body has:
 
-Same definition as `docs/rules/commits.md`: locally verified with
-`local-review`, not "I think this works." Don't mark a PR ready and write
-its final description, then discover a bug and push another fix — that's
-the over-committing pattern from `commits.md` happening to the PR
-description specifically. If you do end up pushing after marking ready,
-update the description again before merging; don't leave it describing an
-earlier state of the branch.
+1. **What changed and why**, in plain words.
+2. **Standards before and after**: the `npm run check:standards` count on `main` and on the
+   branch, and any line of `scripts/standards-exceptions.json` the PR deleted.
+3. **Gates**: each command run locally and its real result. Not "tests pass": the output line
+   that says so.
+4. **Mobile changes**: the `store-review` verdict ([store review](store-review.md)), and whether
+   the change ships as an **OTA update** or **needs a store build**, with the reason
+   ([OTA updates](ota.md)).
+5. **Production Watch List**: what a play cloned from this template would see change, and what
+   to watch after it merges (a metric, an error, a store review, a migration's run).
+6. **Where this differs from the plan or the issue**, if it does, and why.
 
-## Screenshots
+End it with the attribution line your tool requires, if any. The `ship` skill
+(`.claude/skills/ship/SKILL.md`) opens the PR with this body.
 
-A pull request that changes what people see carries a `## Screenshots`
-section in its description: the screen before the change and after it.
-That way someone who doesn't read code sees the change without opening the app. A
-change nobody sees (an API, a cron, a refactor, tests) leaves it out.
+## Merging
 
-- Before and After of the same screen at the same size, Before first, from
-  the running app: Before on `main` (or production), After on your branch.
-  New UI shows the new screen, empty and filled.
-- Start each image's alt text with "Before:" or "After:" and say what it
-  shows.
-- In the browser, drag the images into the description. An agent can't
-  upload one, so it commits them on the PR branch under
-  `.pr-screenshots/<topic>/` and links each at that commit:
-  `https://github.com/<org>/<repo>/blob/<sha>/.pr-screenshots/<topic>/before.png?raw=1`.
-  A link through a branch name breaks once the branch is deleted; one
-  through a commit doesn't.
-- Use one of those two kinds, a GitHub upload or a PNG, JPEG, GIF or
-  WebP in this repo linked at a commit, and at most six.
-- Add them before you merge.
-
-```md
-## Screenshots
-
-| Before                                                                                                                                 | After                                                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ![Before: the cards stacked in a narrow rail](https://github.com/your-org/your-repo/blob/<sha>/.pr-screenshots/cards/before.png?raw=1) | ![After: the cards in one row under the table](https://github.com/your-org/your-repo/blob/<sha>/.pr-screenshots/cards/after.png?raw=1) |
-```
+An agent never merges on its own. It opens the PR, watches CI to green
+(`gh pr checks <n> --watch`), fixes what fails properly, and stops. It merges a pull request
+only when the person explicitly tells it to merge that pull request; "push to main" or "merge
+to main" said before there is a PR means "land this", not "merge". It never pushes to `main` to
+get around a block, and never force-pushes anything but its own branch. Merge with a merge
+commit (`gh pr merge <n> --merge`, [commits](commits.md)).

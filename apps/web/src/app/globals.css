@@ -1,0 +1,540 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tokens are CSS variables emitted from packages/brand into <head> (see
+ * src/app/layout.tsx), scoped by <html data-preset data-scheme>. Colours are
+ * channels: rgb(var(--c-<role>) / var(--c-<role>-a, 1)). Prefer the Tailwind
+ * utilities (bg-surface, text-ink-secondary, bg-brand text-on-brand…); reach
+ * for the raw variables only where a utility cannot go. No hex values here.
+ *
+ * Motion reads the preset's own easing and durations (--ease-out, --dur-*,
+ * --stagger-step, --rise), so dusk moves calmly and daylight crisply from the
+ * same classes. The web-only values below are derived from those, never typed.
+ */
+
+/* The story's light is registered so it can move and brighten between acts. */
+@property --act-x {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 62%;
+}
+@property --act-y {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 42%;
+}
+@property --act-a {
+	syntax: '<number>';
+	inherits: true;
+	initial-value: 1;
+}
+
+@layer base {
+	/* The bare `ring` utility's colour (Tailwind's default is a stock blue). */
+	*,
+	::before,
+	::after {
+		--tw-ring-color: rgb(var(--c-border-focus) / 0.5);
+	}
+
+	:root {
+		/* Web-only motion, derived from the preset's own durations. */
+		--dur-rise: calc(var(--dur-slow) * 1.45);
+		--dur-deal: calc(var(--dur-slow) * 1.35);
+		/* Nav height plus breathing room, for in-page anchors under the fixed nav. */
+		--nav-clearance: 5.5rem;
+	}
+
+	/* Display line heights are a web decision (the mobile scale is px). The
+	   serif needs air for its ascenders; the grotesque at 800 wants to be dense. */
+	[data-preset='dusk'] {
+		--lh-display: 1.02;
+		--lh-heading: 1.1;
+		/* Blended against the painted ground (see Ground.tsx), so it textures the
+		   midnight without lifting it toward slate. */
+		--grain-opacity: 0.3;
+		--grain-blend: soft-light;
+	}
+	[data-preset='daylight'] {
+		--lh-display: 0.94;
+		--lh-heading: 1.02;
+		--grain-opacity: 0.2;
+		--grain-blend: multiply;
+	}
+
+	/* The phone's bezel: near-black in the ground's hue on dark, ink on light. */
+	[data-scheme='dark'] {
+		--device-bezel: rgb(var(--c-shadow-tint));
+	}
+	[data-scheme='light'] {
+		--device-bezel: rgb(var(--c-text-primary));
+	}
+
+	html {
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		text-rendering: optimizeLegibility;
+		font-optical-sizing: auto;
+		scroll-behavior: smooth;
+		scroll-padding-top: var(--nav-clearance);
+		accent-color: rgb(var(--c-brand-fill));
+		caret-color: rgb(var(--c-brand-ink));
+		scrollbar-color: rgb(var(--c-border-active) / var(--c-border-active-a, 1)) transparent;
+	}
+
+	body {
+		background-color: rgb(var(--c-bg));
+		color: rgb(var(--c-text-primary));
+		font-family: var(--font-text);
+		font-feature-settings:
+			'kern' 1,
+			'liga' 1,
+			'calt' 1;
+		letter-spacing: -0.006em;
+	}
+
+	/* Headlines speak in the preset's display face (serif for dusk, grotesque for daylight). */
+	h1,
+	h2 {
+		font-family: var(--font-display);
+	}
+
+	::selection {
+		background-color: rgb(var(--c-brand-fill));
+		color: rgb(var(--c-on-brand));
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		color: rgb(var(--c-text-tertiary));
+		opacity: 1;
+	}
+
+	:focus-visible {
+		outline: 2px solid rgb(var(--c-border-focus));
+		outline-offset: 3px;
+	}
+
+	a {
+		text-underline-offset: 0.2em;
+		text-decoration-thickness: from-font;
+	}
+
+	summary {
+		list-style: none;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
+}
+
+@layer components {
+	/* ── Type roles on the web ────────────────────────────────────────────────
+	 * Family, weight and tracking come from the preset's role scale; sizes are
+	 * the web's (the brand scale is phone-sized). */
+	.t-hero {
+		font-family: var(--type-display-hero-family);
+		font-weight: var(--type-display-hero-weight);
+		letter-spacing: var(--type-display-hero-tracking);
+		font-size: clamp(2.75rem, 1.55rem + 4.95vw, 6rem);
+		line-height: var(--lh-display);
+	}
+	.t-display {
+		font-family: var(--type-display-family);
+		font-weight: var(--type-display-weight);
+		letter-spacing: var(--type-display-tracking);
+		font-size: clamp(2.1rem, 1.3rem + 3.3vw, 4.4rem);
+		line-height: var(--lh-display);
+	}
+	.t-h1 {
+		font-family: var(--type-h1-family);
+		font-weight: var(--type-h1-weight);
+		letter-spacing: var(--type-h1-tracking);
+		font-size: clamp(2rem, 1.35rem + 2.4vw, 3.35rem);
+		line-height: var(--lh-heading);
+	}
+	.t-h2 {
+		font-family: var(--type-h1-family);
+		font-weight: var(--type-h1-weight);
+		letter-spacing: var(--type-h1-tracking);
+		font-size: clamp(1.7rem, 1.2rem + 1.7vw, 2.6rem);
+		line-height: var(--lh-heading);
+	}
+	.t-h3 {
+		font-family: var(--type-h3-family);
+		font-weight: var(--type-h3-weight);
+		letter-spacing: var(--type-h3-tracking);
+		font-size: clamp(1.2rem, 1.05rem + 0.45vw, 1.45rem);
+		line-height: 1.2;
+	}
+	.t-lead {
+		font-size: clamp(1.075rem, 1rem + 0.35vw, 1.25rem);
+		line-height: 1.55;
+		letter-spacing: var(--type-lead-tracking);
+	}
+	.t-number {
+		font-family: var(--type-number-family);
+		font-weight: var(--type-number-weight);
+		letter-spacing: var(--type-number-tracking);
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* ── Materials ──────────────────────────────────────────────────────── */
+
+	/* Film grain (dusk) / paper tooth (daylight). A layer, placed first in a
+	   `relative` container whose content sits in a `relative` wrapper above it. */
+	.grain {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		opacity: var(--grain-opacity);
+		mix-blend-mode: var(--grain-blend);
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+	}
+
+	/* ── Operate surfaces (admin) ── kept as they were; the marketing site uses
+	   `.pane` and its own buttons below. */
+	.card {
+		@apply rounded-2xl border border-line-soft bg-surface shadow-card;
+	}
+	.hairline {
+		border-color: rgb(var(--c-border-hairline) / var(--c-border-hairline-a, 1));
+	}
+	.btn-primary {
+		@apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover;
+	}
+	.btn-ghost {
+		@apply inline-flex items-center justify-center gap-2 rounded-xl border border-line-active px-5 py-3 font-semibold text-ink transition-colors hover:bg-surface2;
+	}
+
+	/* A raised pane: surface, hairline, top-lit edge on dark grounds. */
+	.pane {
+		@apply rounded-card border border-line-soft bg-surface shadow-card;
+	}
+	[data-scheme='dark'] .pane,
+	.pane[data-scheme='dark'] {
+		background-image: linear-gradient(
+			180deg,
+			rgb(var(--c-border-glass) / calc(var(--c-border-glass-a, 1) * 0.5)),
+			transparent 42%
+		);
+		box-shadow:
+			inset 0 1px 0 rgb(var(--c-border-glass) / var(--c-border-glass-a, 1)),
+			var(--shadow-card);
+	}
+
+	/* ── The phone ──────────────────────────────────────────────────────────
+	 * `--screen` is the rendered screen width as a plain number (px). The app
+	 * screen is laid out at its true 393 × 852 pt and scaled to that width, so
+	 * its type and spacing are the app's own, at any size, with no JS. */
+	.device {
+		--bezel: calc(var(--screen) * 0.034px);
+		position: relative;
+		/* Never stretched by a flex or grid parent: the bezel is the screen's size. */
+		align-self: flex-start;
+		height: max-content;
+		flex: none;
+		width: calc(var(--screen) * 1px + var(--bezel) * 2);
+		padding: var(--bezel);
+		border-radius: calc(var(--screen) * 0.14px + var(--bezel));
+		background: var(--device-bezel);
+		box-shadow:
+			0 0 0 1px rgb(var(--c-border-active) / var(--c-border-active-a, 1)),
+			inset 0 0 0 1px rgb(var(--c-border-glass) / var(--c-border-glass-a, 1)),
+			var(--shadow-overlay);
+	}
+	.device-screen {
+		position: relative;
+		width: calc(var(--screen) * 1px);
+		aspect-ratio: 393 / 852;
+		overflow: hidden;
+		border-radius: calc(var(--screen) * 0.14px);
+		background: rgb(var(--c-bg));
+		isolation: isolate;
+	}
+	.device-canvas {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 393px;
+		height: 852px;
+		transform: scale(calc(var(--screen) / 393));
+		transform-origin: 0 0;
+	}
+
+	/* ── Scene-scroll story ─────────────────────────────────────────────────
+	 * One index decides the act; these states do the choreography. A screen is
+	 * DEALT onto the one before it: the incoming sheet rises from slightly too
+	 * close out of a blur and lands on top, while the outgoing one stays put a
+	 * beat, settles back and defocuses underneath. Scrolling up plays it back. */
+	.deal {
+		position: absolute;
+		inset: 0;
+		transition:
+			opacity calc(var(--dur-deal) * 0.6) var(--ease-out),
+			transform var(--dur-deal) var(--ease-out),
+			filter var(--dur-deal) var(--ease-out);
+	}
+	.deal[data-state='future'] {
+		z-index: 3;
+		opacity: 0;
+		transform: translateY(4%) scale(1.035);
+		filter: blur(5px);
+	}
+	.deal[data-state='active'] {
+		z-index: 2;
+		opacity: 1;
+		transform: none;
+		filter: blur(0);
+	}
+	.deal[data-state='past'] {
+		z-index: 1;
+		opacity: 0;
+		transform: translateY(-1.5%) scale(0.985);
+		filter: blur(3.5px);
+		transition-delay: calc(var(--dur-deal) * 0.5), 0s, 0s;
+	}
+
+	/* Copy cannot crossfade: two headings at half opacity is mush. The
+	   outgoing act leaves first; the incoming heading wipes up from a clip edge. */
+	.act {
+		transition:
+			opacity var(--dur-base) var(--ease-out),
+			transform var(--dur-deal) var(--ease-out);
+	}
+	.act[data-state='future'] {
+		opacity: 0;
+		transform: translateY(28px);
+	}
+	.act[data-state='past'] {
+		opacity: 0;
+		transform: translateY(-28px);
+	}
+	.act[data-state='active'] {
+		transition-delay: calc(var(--dur-base) * 0.4);
+	}
+	.act-title {
+		clip-path: inset(-0.15em -0.1em -0.3em -0.1em);
+		transition: clip-path var(--dur-deal) var(--ease-out);
+	}
+	.act[data-state='active'] .act-title {
+		transition-delay: calc(var(--dur-base) * 0.4);
+	}
+	.act[data-state='future'] .act-title {
+		clip-path: inset(100% -0.1em -0.3em -0.1em);
+	}
+	.act[data-state='past'] .act-title {
+		clip-path: inset(-0.15em -0.1em 100% -0.1em);
+	}
+
+	/* The light in the room. Every act is lit by the accent alone; what changes
+	   is where the light falls and how strong it is. Dusk: a wide wash across the
+	   whole scene, off-centre, never a halo around the phone. Daylight: the
+	   marigold field the phone stands on, deepening act by act. */
+	.act-light {
+		background: radial-gradient(
+			46% 62% at var(--act-x) var(--act-y),
+			rgb(var(--c-brand-glow) / calc(var(--c-brand-glow-a, 1) * var(--act-a))),
+			rgb(var(--c-brand-glow) / 0) 74%
+		);
+		transition:
+			--act-x calc(var(--dur-deal) * 1.4) var(--ease-in-out),
+			--act-y calc(var(--dur-deal) * 1.4) var(--ease-in-out),
+			--act-a calc(var(--dur-deal) * 1.4) var(--ease-in-out);
+	}
+	.act-field {
+		background: rgb(var(--c-brand-fill) / var(--act-a));
+		transition: --act-a calc(var(--dur-deal) * 1.4) var(--ease-in-out);
+	}
+
+	/* A section's own light on dusk: one low wash at its head, fading to nothing
+	   inside the box so neighbouring sections never meet on a seam. */
+	.section-wash {
+		background: radial-gradient(
+			42% 36% at var(--wash-x, 12%) 0%,
+			rgb(var(--c-brand-glow) / calc(var(--c-brand-glow-a, 1) * 0.42)),
+			rgb(var(--c-brand-glow) / 0) 72%
+		);
+	}
+}
+
+@layer utilities {
+	/*
+	 * compat: was gradient text. Emphasis now comes from colour and weight —
+	 * gradient text is retired. Renders as the accent ink.
+	 */
+	.text-gradient {
+		color: rgb(var(--c-brand-ink));
+	}
+
+	/* The dusk sky over the first viewport: two washes of the accent that fade
+	   to nothing well inside the box, so the section never ends on a seam. */
+	.atmosphere {
+		background:
+			radial-gradient(
+				48% 58% at 76% 46%,
+				rgb(var(--c-brand-glow) / calc(var(--c-brand-glow-a, 1) * 0.6)),
+				rgb(var(--c-brand-glow) / 0) 72%
+			),
+			radial-gradient(
+				40% 38% at 8% 0%,
+				rgb(var(--c-brand-glow) / calc(var(--c-brand-glow-a, 1) * 0.32)),
+				rgb(var(--c-brand-glow) / 0) 70%
+			);
+	}
+
+	/* Soft atmospheric wash of the accent behind hero elements (not a halo). */
+	.accent-glow {
+		background: radial-gradient(
+			60% 60% at 50% 0%,
+			rgb(var(--c-brand-glow) / var(--c-brand-glow-a, 1)) 0%,
+			rgb(var(--c-brand-glow) / 0) 70%
+		);
+	}
+
+	/* ── Entrances ─────────────────────────────────────────────────────────
+	 * CSS, so the first viewport never waits on hydration. Dusk dissolves out
+	 * of a blur; daylight rises crisp. */
+
+	/* A word rising out of its own clipped line. The padding extends the clip
+	   past the ascenders and descenders; the negative margin gives it back. */
+	.rise-clip {
+		display: inline-flex;
+		overflow: hidden;
+		vertical-align: bottom;
+		padding: 0.1em 0.05em 0.18em;
+		margin: -0.1em -0.05em -0.18em;
+	}
+	.word-rise {
+		display: inline-block;
+		animation: word-rise var(--dur-rise) var(--ease-out) both;
+		animation-delay: calc(var(--rise-delay, 0ms) + var(--i, 0) * var(--stagger-step));
+	}
+	[data-preset='dusk'] .word-rise {
+		animation-name: word-rise-dissolve;
+	}
+
+	.enter {
+		animation: enter var(--dur-rise) var(--ease-out) both;
+		animation-delay: var(--enter-delay, 0ms);
+	}
+	[data-preset='dusk'] .enter {
+		animation-name: enter-dissolve;
+	}
+
+	/* Scroll reveal: hidden only when a script will reveal it, so a page whose
+	   JS fails still shows everything. */
+	.reveal {
+		transition:
+			opacity var(--dur-rise) var(--ease-out),
+			transform var(--dur-rise) var(--ease-out),
+			filter var(--dur-rise) var(--ease-out);
+		transition-delay: var(--reveal-delay, 0ms);
+	}
+	@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+		.reveal:not(.is-visible) {
+			opacity: 0;
+			transform: translateY(calc(var(--rise) * 2));
+		}
+		[data-preset='dusk'] .reveal:not(.is-visible) {
+			filter: blur(10px);
+		}
+	}
+
+	/* A FAQ answer arriving. */
+	.faq-item[open] .faq-answer {
+		animation: enter var(--dur-base) var(--ease-out) both;
+	}
+	.faq-item[open] .faq-icon {
+		transform: rotate(45deg);
+	}
+
+	/* One-time-code digits typing into their boxes once the pane is revealed. */
+	.is-visible .otp-digit {
+		animation: otp-digit var(--dur-base) var(--ease-out) both;
+		animation-delay: calc(var(--dur-rise) * 0.6 + var(--i, 0) * var(--dur-fast));
+	}
+	@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+		.reveal:not(.is-visible) .otp-digit {
+			opacity: 0;
+		}
+	}
+
+	/* The mobile menu panel. */
+	.menu-panel {
+		animation: menu-in var(--dur-base) var(--ease-out) both;
+		transform-origin: top right;
+	}
+}
+
+/* 130%: far enough that no cap or ascender sits in the clip's bottom padding
+   before the word starts to move. */
+@keyframes word-rise {
+	from {
+		transform: translateY(130%);
+	}
+}
+@keyframes word-rise-dissolve {
+	from {
+		transform: translateY(130%);
+		filter: blur(8px);
+	}
+}
+@keyframes enter {
+	from {
+		opacity: 0;
+		transform: translateY(var(--rise));
+	}
+}
+@keyframes enter-dissolve {
+	from {
+		opacity: 0;
+		transform: translateY(var(--rise));
+		filter: blur(10px);
+	}
+}
+@keyframes otp-digit {
+	from {
+		opacity: 0;
+		transform: translateY(35%) scale(0.8);
+	}
+}
+@keyframes menu-in {
+	from {
+		opacity: 0;
+		transform: translateY(-6px) scale(0.97);
+	}
+}
+
+/*
+ * Reduced motion: nothing travels, scales, blurs or wipes. What stays is what
+ * carries meaning — the story still crossfades between acts and its light still
+ * changes tint, because both say which act you are on. Motion's own components
+ * honour the same setting through <MotionConfig reducedMotion="user">.
+ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+	.deal,
+	.act {
+		transition-property: opacity !important;
+		transition-duration: var(--dur-base) !important;
+		transform: none !important;
+		filter: none !important;
+	}
+	.act-title {
+		clip-path: none !important;
+	}
+	.act-light,
+	.act-field {
+		transition-duration: var(--dur-slow) !important;
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"$comment": "Read by scripts/check-standards.mjs. pending: not met yet, with the PR that meets it. divergences: this repo differs from template-web on purpose. androidPermissions: broad Android permissions the app needs, each with its reason. An entry whose standard is met fails the run, so this file only ever shrinks: the PR that meets a standard deletes its line.",
+	"pending": {},
+	"divergences": {
+		"npm-not-pnpm": "Expo on npm workspaces; pnpm needs node-linker=hoisted and has Metro resolution issues",
+		"no-src-root": "a monorepo: app-level standards are checked per workspace (standards.config.json)"
+	},
+	"androidPermissions": {}
+}

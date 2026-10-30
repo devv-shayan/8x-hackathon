@@ -223,7 +223,7 @@ function words(name) {
 }
 
 // Only names for a *reusable* credential, so the sensitive-assignment rule
-// fires on `API_KEY=…` but not on `x-moad-signature: …` (a per-request HMAC,
+// fires on `API_KEY=…` but not on `x-app-signature: …` (a per-request HMAC,
 // derived from a secret that isn't itself present) or a session/cookie value.
 // Those are handled — where they are handled — by the header and URL rules.
 const CREDENTIAL_WORDS = new Set([
@@ -253,64 +253,15 @@ function isLiveSecret(value, { minLen = 12, minEntropy = 3.6 } = {}) {
 	return shannon(value) >= minEntropy
 }
 
-// An object key is not a credential, even in a sensitively named slot:
-// `videoObjectKey = 'post-videos/clips/123.mp4'` is public storage addressing.
-// The exemption is read off the FIELD, not off the value, because every
-// value-shape test for "this is a path" loses to a key chopped into
-// path-shaped pieces — `uploads/aBcDeFgHi1/JkLmNoPq2/x.mp4` defeats any
-// segment-length cutoff you pick. A field says what it is for: `API_KEY` never
-// gets the exemption however its value is spelled, and the failure mode of a
-// storage field this list has not heard of yet (`clipUri`, say) is a finding
-// one `allowlist secret` away, which is the safe direction to fail in.
-const STORAGE_FIELD_WORDS = new Set([
-	'asset',
-	'attachment',
-	'avatar',
-	'bucket',
-	'clip',
-	'document',
-	'file',
-	'filename',
-	'image',
-	'media',
-	'object',
-	'path',
-	'photo',
-	'prefix',
-	'thumbnail',
-	'upload',
-	'uri',
-	'url',
-	'video'
-])
-
-// `key` is the one credential word a storage field may carry: `objectKey`,
-// `fileKey` and `videoKey` are storage parlance, and that ambiguity is what the
-// exemption exists to tolerate. Nobody calls a storage path a secret, a token
-// or a password, so a field carrying one of those keeps its entropy check
-// however many storage words sit beside it — `secretVideoUrl` holding a
-// capability URL is a credential, and the path it is shaped like is the point.
-const STORAGE_AMBIGUOUS_CREDENTIAL_WORDS = new Set(['key', 'apikey'])
-
-function isStorageField(name) {
-	const parts = words(name)
-	if (!parts.some((word) => STORAGE_FIELD_WORDS.has(word))) return false
-	return parts.every(
-		(word) => !CREDENTIAL_WORDS.has(word) || STORAGE_AMBIGUOUS_CREDENTIAL_WORDS.has(word)
-	)
-}
-
-// A path with a file extension, spelled the way an extension is spelled
-// (lowercase, letter-led) so a base64 tail like `.aB12` does not qualify.
-function isObjectKeyPath(value) {
-	return value.includes('/') && /\.[a-z][a-z0-9]{1,4}$/.test(value)
-}
-
 function looksLikeSecretValue(value) {
 	if (!/^[A-Za-z0-9._+/=~-]{20,}$/.test(value)) return false
 	// Supabase's publishable key is public by design (it ships in the browser
 	// bundle), so it may sit in .env.example or a CI workflow in the clear.
 	if (value.startsWith('sb_publishable_')) return false
+	// RevenueCat's public SDK keys (appl_ iOS, goog_ Android, amzn_ Amazon) are
+	// the same: the app bundle carries them, so Expo config may too. A RevenueCat
+	// secret key starts sk_ and is still caught.
+	if (/^(?:appl|goog|amzn)_/.test(value)) return false
 	if (!/[0-9]/.test(value) || !/[A-Za-z]/.test(value)) return false
 	if (isPlaceholderValue(value)) return false
 	// A long hex blob is a hash/token; Shannon entropy caps near 4 bits for
@@ -324,8 +275,6 @@ function looksLikeSecretValue(value) {
 // Rules — each finds a shape, then validate() decides if the specific hit is a
 // live credential or an allowlisted placeholder.
 // ---------------------------------------------------------------------------
-
-const PRESIGNED_SIGNATURE_PARAM = /[?&]x-(?:amz|goog)-signature=/i
 
 const RULES = [
 	{
@@ -378,14 +327,9 @@ const RULES = [
 		regex: /\b(?:gh[pousr]_[A-Za-z0-9]{36,255}|github_pat_[0-9A-Za-z_]{22,255})\b/g
 	},
 	{
-		// Every real Slack token is prefix + numeric team/app id + secret
-		// (xoxb-2468135790-2468135791-AbCdEf…), with a short version marker in
-		// front of the id on a legacy workspace token (xoxa-2-24681357…).
-		// Matching any word run instead reads a test double like
-		// `xoxb-slack-token` as a live token.
 		id: 'slack-token',
 		description: 'a Slack token',
-		regex: /\bxox[baprs]-(?:[0-9]{1,3}-)?[0-9]{6,}-[0-9A-Za-z-]{8,}\b/g
+		regex: /\bxox[baprs]-[0-9A-Za-z-]{10,}\b/g
 	},
 	{
 		id: 'stripe-secret-key',
@@ -433,20 +377,12 @@ const RULES = [
 		validate: (password) => !isPlaceholderValue(password)
 	},
 	{
-		// A presigned URL's signature is exempt by name, not by dropping
-		// `signature` from the rule: it is a per-request HMAC derived from a key
-		// that isn't in the URL, the same reason CREDENTIAL_WORDS leaves
-		// `x-moad-signature` out, while a `?signature=` on some other callback
-		// URL has no such guarantee and is still reported. The reusable half of
-		// a presigned URL is caught either way — X-Amz-Credential carries the
-		// access key id, which aws-access-key-id matches on its own.
 		id: 'sensitive-query-param',
 		description: 'a secret in a URL query parameter',
 		regex:
 			/[?&][\w.-]*(?:key|token|secret|password|passwd|pwd|auth|credential|signature)[\w.-]*=([^&\s"'`]+)/gi,
 		group: 1,
-		validate: (value, match) =>
-			!PRESIGNED_SIGNATURE_PARAM.test(match[0]) && isLiveSecret(value, { minEntropy: 3.0 })
+		validate: (value) => isLiveSecret(value, { minEntropy: 3.0 })
 	},
 	{
 		id: 'auth-header',
@@ -460,14 +396,17 @@ const RULES = [
 		// MY_SERVICE_KEY=<40 random chars>. Deliberately strict — sensitive key
 		// name AND a token-shaped, high-entropy, non-placeholder value — so it
 		// stays off `secret: z.string()` and `apiKey: opts.apiKey`.
+		//
+		// The key may be quoted, and the quote JSON-escaped: `"SENTRY_AUTH_TOKEN":
+		// "…"` in apps/mobile/eas.json or app.json (Expo config is where a real
+		// key gets pasted), and `\"…\": \"…\"` where a transcript quotes that
+		// file. Without the optional quote after the name, no JSON key matched.
 		id: 'sensitive-assignment',
 		description: 'a secret-looking value assigned to a sensitively-named key',
-		regex: /([A-Za-z_][A-Za-z0-9_.-]{2,40})\s*[:=]\s*['"`]?([A-Za-z0-9._+/=~-]{20,})['"`]?/g,
+		regex:
+			/([A-Za-z_][A-Za-z0-9_.-]{2,40})(?:\\?['"])?\s*[:=]\s*(?:\\?['"`])?([A-Za-z0-9._+/=~-]{20,})['"`]?/g,
 		group: 2,
-		validate: (value, match) =>
-			isCredentialKey(match[1]) &&
-			!(isStorageField(match[1]) && isObjectKeyPath(value)) &&
-			looksLikeSecretValue(value)
+		validate: (value, match) => isCredentialKey(match[1]) && looksLikeSecretValue(value)
 	}
 ]
 
@@ -527,9 +466,9 @@ function globToRegExp(glob) {
 	const escaped = glob
 		.trim()
 		.replace(/[.+^${}()|[\]\\]/g, '\\$&')
-		.replace(/\*\*/g, '\0')
+		.replace(/\*\*/g, ' ')
 		.replace(/\*/g, '[^/]*')
-		.replace(/\0/g, '.*')
+		.replace(/ /g, '.*')
 		.replace(/\?/g, '.')
 	return new RegExp(`(^|/)${escaped}$`)
 }
@@ -616,6 +555,12 @@ function main() {
 		console.error('Usage: check-secrets.mjs --staged | --all | <path> ...')
 		process.exit(2)
 	}
+	// A scan that reads nothing passes. Outside a git checkout `git ls-files`
+	// lists nothing, and --all would report a clean tree it never looked at.
+	if (mode === 'all' && trackedFiles().length === 0) {
+		console.error('check:secrets --all found no tracked files; run it inside the git checkout.')
+		process.exit(2)
+	}
 
 	const findings = run({ mode, paths })
 	if (findings.length === 0) process.exit(0)
@@ -635,6 +580,6 @@ function main() {
 	process.exit(1)
 }
 
-if (process.argv[1] != null && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 	main()
 }

@@ -1,31 +1,34 @@
 #!/usr/bin/env node
-// Applies prisma/run-once.sql to a database exactly once per version of the
-// file. .github/workflows/deploy-migrations.yml runs this against production
-// right after `prisma migrate deploy` on every push to main; ci.yml's
-// migrations job runs it against a throwaway Postgres on every PR, where the
-// ledger is empty and the file always applies, so a broken one-off fails
-// there instead of on main. docs/rules/migrations.md ("Run-once SQL") is the
-// policy for what belongs in the file.
+// Applies apps/web/prisma/run-once.sql to a database exactly once per version
+// of the file. .github/workflows/deploy-migrations.yml runs this against
+// production right after `prisma migrate deploy` on every push to main;
+// ci.yml's migrations job runs it against a throwaway Postgres on every PR,
+// where the ledger is empty and the file always applies, so a broken one-off
+// fails there instead of on main. docs/rules/migrations.md ("Run-once SQL") is
+// the policy for what belongs in the file. From template-web; run from the
+// repository root (`npm run db:run-once`).
 //
-// "Once" is a ledger: the _run_once_sql table (prisma/schema/run-once-sql.prisma)
-// holds the SHA-256 of every file version this database has applied. A
-// version is the file's executable content — comments and whitespace don't
-// count, so a doc tweak never re-runs a one-off. The ledger row and the SQL go
-// to Postgres as ONE command, which runs as one implicit transaction: either
-// both land or neither does, so a failed one-off is retried on the next deploy
-// and a successful one can never run twice.
+// "Once" is a ledger: the _run_once_sql table
+// (apps/web/prisma/schema/run-once-sql.prisma) holds the SHA-256 of every file
+// version this database has applied. A version is the file's executable
+// content — comments and whitespace don't count, so a doc tweak never re-runs
+// a one-off. The ledger row and the SQL go to Postgres as ONE command, which
+// runs as one implicit transaction: either both land or neither does, so a
+// failed one-off is retried on the next deploy and a successful one can never
+// run twice.
 //
 // Usage:
 //   node scripts/run-once-sql.mjs                     DIRECT_URL, else DATABASE_URL
 //   node scripts/run-once-sql.mjs --db-url <url>
-//   node scripts/run-once-sql.mjs --file <path>       default prisma/run-once.sql
+//   node scripts/run-once-sql.mjs --file <path>       default apps/web/prisma/run-once.sql
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { PrismaClient } from '@prisma/client'
 
-const DEFAULT_FILE = 'prisma/run-once.sql'
+const DEFAULT_FILE = 'apps/web/prisma/run-once.sql'
 const LEDGER_TABLE = '_run_once_sql'
 const SHORT_HASH_LENGTH = 12
 // Prisma's "table does not exist" error: the ledger migration hasn't been
@@ -124,7 +127,7 @@ async function main() {
 	} catch (error) {
 		if (error?.code === PRISMA_TABLE_MISSING_CODE) {
 			console.error(
-				`The ${LEDGER_TABLE} table does not exist on ${target} — apply the migrations first (\`pnpm exec prisma migrate deploy\`).`
+				`The ${LEDGER_TABLE} table does not exist on ${target} — apply the migrations first (\`npx prisma migrate deploy\` in apps/web).`
 			)
 			process.exit(1)
 		}
@@ -139,15 +142,11 @@ async function main() {
 
 	console.log(`Applying ${file} (version ${version}) to ${target} ...`)
 	try {
-		const output = execFileSync(
-			'pnpm',
-			['exec', 'prisma', 'db', 'execute', '--stdin', '--url', url],
-			{
-				input: buildScript({ hash, sqlText }),
-				encoding: 'utf-8',
-				stdio: ['pipe', 'pipe', 'pipe']
-			}
-		)
+		const output = execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', url], {
+			input: buildScript({ hash, sqlText }),
+			encoding: 'utf-8',
+			stdio: ['pipe', 'pipe', 'pipe']
+		})
 		process.stdout.write(output)
 	} catch (error) {
 		// The ledger insert goes first, so a race with another run of this same
@@ -164,7 +163,7 @@ async function main() {
 	console.log(`Applied ${file} and recorded version ${version} in ${LEDGER_TABLE}.`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 	main().catch((error) => {
 		console.error(error)
 		process.exit(1)

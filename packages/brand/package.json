@@ -1,0 +1,19 @@
+{
+	"name": "@app/brand",
+	"version": "0.2.0",
+	"private": true,
+	"type": "module",
+	"description": "The single brand source: two presets (dusk, daylight), one accent, role-typed palettes, type scale, radii, elevation and motion. Web reads it as CSS variables + a Tailwind preset; mobile through a ThemeProvider.",
+	"main": "./index.ts",
+	"types": "./index.ts",
+	"exports": {
+		".": "./index.ts",
+		"./config": "./brand.config.ts",
+		"./tailwind-preset": "./tailwind-preset.ts",
+		"./tailwind-native": "./tailwind-native.ts"
+	},
+	"scripts": {
+		"test": "jest --config ../../apps/mobile/jest.config.js packages/brand",
+		"typecheck": "tsc --noEmit -p ."
+	}
+}

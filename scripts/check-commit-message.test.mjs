@@ -30,3 +30,29 @@ test('rejects a header over 72 characters', () => {
 	const long = 'feat(auth): ' + 'a'.repeat(70)
 	assert.equal(validateCommitMessage(long).valid, false)
 })
+
+test('accepts every curated scope, and no scope at all', () => {
+	for (const scope of ['mobile', 'web', 'paywall', 'ota', 'store', 'deps']) {
+		assert.equal(validateCommitMessage(`fix(${scope}): handle the empty state`).valid, true, scope)
+	}
+	assert.equal(validateCommitMessage('chore: bump the lockfile').valid, true)
+})
+
+test('rejects a scope outside the curated list', () => {
+	assert.equal(validateCommitMessage('feat(search): add fuzzy matching').valid, false)
+})
+
+test('judges a nested scope by its first segment', () => {
+	assert.equal(validateCommitMessage('fix(mobile/settings): align the rows').valid, true)
+	assert.equal(validateCommitMessage('fix(search/index): rebuild on boot').valid, false)
+})
+
+test('accepts the merge commits GitHub writes', () => {
+	// The merge button's commit, and the synthetic merge a pull_request
+	// checkout sits on, which `--range origin/main..HEAD` includes.
+	assert.equal(
+		validateCommitMessage('Merge pull request #3 from acme/chore/prettier-eslint').valid,
+		true
+	)
+	assert.equal(validateCommitMessage('Merge 1a2b3c4d into 5e6f7a8b').valid, true)
+})

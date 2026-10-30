@@ -1,146 +1,77 @@
 # Error handling
 
-Two failure modes get two different responses — don't blend them.
+Two kinds of failure get two different responses. Don't blend them.
 
-- **A user did something the product doesn't allow** (declined payment,
-  plan limit, taken username) — throw `AppError`
-  (`src/lib/errors/app-error.ts`) with a message written for the user, not
-  the log. This is normal control flow, not a bug: it's never sent to
-  Sentry, only counted in PostHog so product can see how often it happens.
-- **Something actually broke** (an unexpected null, a downstream timeout, a
-  real bug) — let it throw as whatever error the failing code produces.
-  `captureError()`/`captureClientError()` report it to Sentry and hand back
-  a generic, safe message — never the raw error.
+- **The person did something the product doesn't allow** (a declined payment, a plan limit, a
+  code that expired): an expected error, with a message written for them. Normal control flow,
+  not a bug. It is counted in PostHog, never sent to Sentry.
+- **Something actually broke** (an unexpected null, a timeout, a real bug): let it throw.
+  Report it with `log.error`, and show the person a generic, safe message. Never the raw error.
 
-## The one rule
+## The rules
 
-**Never call `Sentry.captureException`, `console.error`, or write a raw
-`error.message` into a response/UI directly.** Always go through:
+1. **Nothing raw reaches the person.** No stack trace, database error string or internal code
+   in a response body, a toast, an alert or an error screen. Verbose errors are free
+   reconnaissance for an attacker. Log the detail server-side; show a message they can act on.
+2. **A failed request is an error the UI shows, never an empty list.** A screen that renders
+   "No items yet" because the fetch failed is lying. Loading, empty and failed are three states
+   and each gets its own UI. On mobile, the API client (`apps/mobile/lib/api.ts`) throws on
+   any failure and the TanStack Query error state renders it (`components/QueryError.tsx`); a
+   hook never catches a failure to return `[]`.
+3. **Unexpected errors go through the logger's `log.error`,** never a direct
+   `Sentry.captureException` or `console.error` in feature code. One call means one place for
+   context and redaction, and the same line reaches whatever the app reports to. Pass the
+   error itself as `{ error }` so its stack survives.
+4. **Don't report what you expected.** An expected error sent to Sentry or logged as an error
+   is noise, and noise is how the reports stop being read. A handled failure is `log.warn` at
+   most.
 
-- **`captureError(error, context?)`** — `src/lib/observability/capture-error.ts`,
-  server-only (route handlers, server actions, cron jobs).
-- **`captureClientError(error, context?)`** — `src/lib/observability/capture-client-error.ts`,
-  client components (error boundaries, event handlers).
+## What each app has
 
-Both normalize any error and return `{ userMessage, status, isExpected }` —
-`userMessage` is always safe to show; nothing else about the error should
-reach the user. This implements the rule already stated in
-`docs/rules/code-quality.md`'s Logging section (a stack trace or raw DB
-error is free reconnaissance for an attacker, not just bad UX) — that's the
-_why_, this file is the _how_.
+- **Mobile:** Sentry (`@sentry/react-native`) is initialised in `apps/mobile/app/_layout.tsx`,
+  enabled only in release builds with `EXPO_PUBLIC_SENTRY_DSN` set, with performance tracing
+  off. The mobile logger (`apps/mobile/lib/logger/`) is the reporting helper: in a release
+  build, `log.error` sends the error to Sentry (an exception when an `Error` is passed as
+  `{ error }`, a message otherwise), and every other line is a breadcrumb, so the lines before
+  a crash arrive with it ([logging](logging.md)). The root `ErrorBoundary` catches render
+  errors, shows a generic fallback and reports through `log.error`; the API client reports a
+  response that breaks the contract the same way. Source maps must be uploaded for every build
+  and every OTA update, or crashes are unreadable ([mobile releases](mobile-releases.md)).
+- **Web:** no Sentry. Server code reports with the Pino logger's `log.error`
+  (`apps/web/src/server/lib/logger/`), a structured line on stdout that Vercel's log drain
+  collects. The `/api/app/v1` routes throw `ApiError` (`src/server/api/app-errors.ts`) for an
+  expected failure, with a message written for the person; `createAppRoute` turns anything
+  else into a 500 with a generic message and logs the detail. Other routes return their JSON
+  errors directly. Client Components have no error reporting.
 
-## Throwing a user-facing error
+Neither app has template-web's `AppError`, `captureError` or `captureClientError`; don't import
+them, and don't write a second helper beside `log.error`.
 
-```ts
-import { AppError } from '@/lib/errors/app-error'
+## template-web's helpers, for a play that adds Sentry to the web
 
-if (!canAfford) {
-	throw new AppError("You've hit your plan's limit — upgrade to add more.", {
-		status: 402,
-		code: 'plan_limit'
-	})
-}
-```
+The standard is template-web's pair:
 
-`createApiRoute` (`src/server/api/route-factory.ts`) already catches this
-and responds with the right status + `userMessage` — nothing extra to wire
-up in a route handler. `validatedAction`
-(`src/server/actions/validated-action.ts`) is the Server Action equivalent
-— same Zod input contract, same `captureError` reporting, returns
-`{ ok: true, data } | { ok: false, error, status }` instead of a `Response`
-since a Server Action's return value goes straight to whatever called it:
+- `AppError` (`src/lib/errors/app-error.ts`): the expected error, with a user-facing message, a
+  status and a code. Route and action factories translate it into the response.
+- `captureError(error, context)` (server) and `captureClientError(error, context)` (client):
+  report an unexpected error to Sentry and return `{ userMessage, status, isExpected }`, where
+  `userMessage` is always safe to show.
 
-```ts
-'use server'
+This repo hasn't adopted them, or Sentry for `apps/web`. A play that adds Sentry to the web
+adopts the pair whole rather than scattering `Sentry.captureException` calls. Until then: throw
+and catch plainly, return a generic message from routes, and report through `log.error` in
+both apps.
 
-import { z } from 'zod'
-import { validatedAction } from '@/server/actions/validated-action'
+## Mobile-specific
 
-export const createThing = validatedAction({
-	input: z.object({ name: z.string().min(1) }),
-	handler: async (input) => {
-		if (!canAfford) {
-			throw new AppError("You've hit your plan's limit — upgrade to add more.", { status: 402 })
-		}
-		return prisma.thing.create({ data: { name: input.name } })
-	}
-})
-```
-
-On the client, pass the `error`/`userMessage` straight to `toast()`
-(`docs/rules/components.md`) — that's the intended path for showing a
-specific, per-error message; the route-level error boundaries deliberately
-don't (see below).
-
-## Error boundaries
-
-- **`src/app/[locale]/error.tsx`, `src/app/global-error.tsx`,
-  `src/app/[locale]/not-found.tsx`** — route-level, already wired, nothing
-  to add per-project. Both `error.tsx`/`global-error.tsx` auto-recover from
-  a stale-chunk error after a redeploy (reload once, throttled) before
-  showing the fallback UI. These show one generic, friendly message — not a
-  per-error one — because Next strips custom error properties crossing the
-  server→client boundary in production, so an `AppError`'s `userMessage`
-  thrown in a Server Component doesn't reliably survive to reach them. For
-  a specific user-facing message, handle it where the error is still a real
-  object: a Server Action's return value, an API route's JSON body, or an
-  error thrown directly in a Client Component (which `captureClientError`
-  and `<ErrorBoundary>` below both see intact).
-- **`src/components/error-boundary.tsx`** — wrap a smaller subtree (a
-  widget that can fail independently of the rest of the page) with
-  `<ErrorBoundary>` when you want a smaller blast radius than the whole
-  route. Don't wrap something route-level `error.tsx` already covers —
-  that's redundant. Its `onError` calls `unstable_rethrow` first so a
-  `notFound()`/`redirect()` thrown inside the wrapped subtree still reaches
-  Next's own handling instead of being swallowed into a generic fallback —
-  keep that call if you ever touch this file.
-- **`src/app/[locale]/[...rest]/page.tsx`** — exists purely so
-  `[locale]/not-found.tsx` actually gets used. Without it, a URL with no
-  matching page (e.g. `/typo`) never resolves into the `[locale]`
-  segment at all, so Next falls back to its own built-in default 404
-  instead of your custom one — a real Next.js App Router + next-intl
-  gotcha, confirmed by testing it in a browser, not just assumed. Leave
-  this file alone; it's plumbing, not a page to build on.
-
-`global-error.tsx` uses hardcoded hex values instead of the design tokens —
-deliberate, not an oversight: it can render before `globals.css` loads, so
-it can't depend on `@theme`. Every other error UI goes through
-`src/components/error-page.tsx` and the real tokens.
-
-## Slack alerts
-
-`captureError` also posts to Slack (`src/lib/notifications/slack.ts`) for
-every unexpected error, production-only — local/preview noise never pages
-anyone. No-ops entirely until `SLACK_ALERT_WEBHOOK_URL` is set (create an
-"Incoming Webhook" in Slack's app settings), same "off until configured"
-convention as Sentry/PostHog. Fire-and-forget and never throws, same as
-every other observability call in this file.
-
-This posts every occurrence with no de-duplication — fine at a template's
-starting scale, but a hot error loop will flood the channel until nobody
-reads it. If that happens, extend `notifyUnexpectedError` in
-`src/lib/notifications/slack.ts` with a fingerprinted digest (track
-last-alerted-at per `error.name`, only post on first occurrence and again
-after a cooldown) rather than adding a second, uncoordinated alert path — a
-fingerprinted digest is the usual shape of that pattern. Swapping the
-destination entirely (Discord, PagerDuty, Teams) means changing
-`postToSlack`'s body only — `captureError` and everything upstream of it
-doesn't know or care what `notifyUnexpectedError` actually does.
-
-`captureClientError` does **not** trigger a Slack alert — a webhook URL is
-a secret and can't safely ship in the client bundle. If client-side errors
-need to reach Slack too, the usual pattern is to `POST` to a dedicated internal API route from the
-error boundary, which then calls `captureError` server-side; that's the
-extension point if this project needs it, not a reason to move the webhook
-URL to `NEXT_PUBLIC_*`.
-
-## Why `AppError` isn't Sentry-reported
-
-An expected failure happening is not new information for an engineer — it's
-confirmation the guard rail works. Reserve Sentry for what nobody predicted;
-otherwise it fills with noise until nobody reads it, which is worse than
-under-reporting. Sharing one
-`error_category` taxonomy between its Sentry and PostHog reporting so both
-tools describe failures the same way — worth adopting here too once this
-project has enough real error categories for a taxonomy to be more than one
-entry.
+- **The app must work offline and degraded.** `OfflineBanner` / `OfflineOverlay` handle no
+  network; a request that fails for any other reason still shows its error state, not a
+  spinner forever.
+- **An unconfigured build must say so.** Without `EXPO_PUBLIC_SITE_URL` the API client throws
+  `not_configured` before any request, and screens show "Not connected yet"; without Supabase
+  credentials every sign-in method says sign-in isn't set up. The fake `200 null` fetch that
+  once made such a build silently show nothing (what App Review would have seen, Apple 2.1) is
+  gone; don't bring the pattern back anywhere.
+- **A native crash cannot be fixed over the air.** An OTA update can fix a JavaScript error; a
+  crash in native code needs a store build, and the minimum-version gate to move people off the
+  broken one ([OTA updates](ota.md)).

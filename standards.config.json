@@ -1,0 +1,7 @@
+{
+	"$comment": "Read by scripts/check-standards.mjs. Repo-level standards run once at the root; each workspace below runs the app-level standards for its kind: next (the web app's checks, paths inside the workspace) or expo (the mobile standards).",
+	"workspaces": [
+		{ "path": "apps/web", "kind": "next" },
+		{ "path": "apps/mobile", "kind": "expo" }
+	]
+}
