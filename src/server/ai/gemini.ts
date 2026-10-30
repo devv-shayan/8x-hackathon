@@ -1,5 +1,6 @@
 import 'server-only'
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, type ContentListUnion } from '@google/genai'
+import { env } from '@/lib/env'
 import { trackAiCall } from '@/server/lib/ai-usage/sink'
 import type { TrackedModel } from '@/server/lib/ai-usage/models'
 import type { AiUsageMeta } from '@/server/lib/ai-usage/track'
@@ -9,7 +10,7 @@ import type { AiUsageMeta } from '@/server/lib/ai-usage/track'
 // `trackAiCall`. See docs/rules/ai-usage.md for the layering this follows.
 
 const ai = new GoogleGenAI({
-	apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+	apiKey: env.GEMINI_API_KEY || env.GOOGLE_API_KEY
 })
 
 export type AiContext = {
@@ -19,10 +20,12 @@ export type AiContext = {
 }
 
 type GenerateParams = {
-	contents: string | Array<{ role: string; parts: Array<{ text: string }> }>
+	contents: ContentListUnion
 	systemInstruction?: string
 	temperature?: number
 	maxOutputTokens?: number
+	responseMimeType?: string
+	responseJsonSchema?: unknown
 }
 
 /**
@@ -44,7 +47,9 @@ export function generateContent(context: AiContext, params: GenerateParams) {
 			config: {
 				systemInstruction: params.systemInstruction,
 				temperature: params.temperature,
-				maxOutputTokens: params.maxOutputTokens
+				maxOutputTokens: params.maxOutputTokens,
+				responseMimeType: params.responseMimeType,
+				responseJsonSchema: params.responseJsonSchema
 			}
 		})
 	)

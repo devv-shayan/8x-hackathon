@@ -111,8 +111,9 @@ which wouldn't set us apart.
 
 All calls go through the template's tracked provider layer
 (`docs/rules/ai-usage.md`): a `src/server/ai/gemini.ts` module shaped like
-`src/server/ai/anthropic.ts`. `gemini-3.8-flash` is already in the model
-price map.
+`src/server/ai/anthropic.ts`. Reading the video uses
+`gemini-3.5-flash-lite` in static mode, the best of the models we tested on
+speed and timestamp accuracy.
 
 | Step                 | Input                                                                    | Output                                                           |
 | -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
