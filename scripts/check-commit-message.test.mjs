@@ -1,6 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { validateCommitMessage } from './check-commit-message.mjs'
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 test('accepts a well-formed conventional commit', () => {
 	assert.equal(validateCommitMessage('feat(auth): add magic link sign-in').valid, true)
@@ -55,4 +62,27 @@ test('accepts the merge commits GitHub writes', () => {
 		true
 	)
 	assert.equal(validateCommitMessage('Merge 1a2b3c4d into 5e6f7a8b').valid, true)
+})
+
+test('the cli judges the message when the script is invoked directly', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'commit-msg-'))
+	const file = join(dir, 'msg')
+	try {
+		writeFileSync(file, 'fixes\n')
+		const rejected = spawnSync(process.execPath, ['scripts/check-commit-message.mjs', file], {
+			cwd: ROOT,
+			encoding: 'utf8'
+		})
+		assert.equal(rejected.status, 1, rejected.stderr)
+		assert.match(rejected.stderr, /Invalid commit message/)
+
+		writeFileSync(file, 'fix(ci): run the commit message check on windows\n')
+		const accepted = spawnSync(process.execPath, ['scripts/check-commit-message.mjs', file], {
+			cwd: ROOT,
+			encoding: 'utf8'
+		})
+		assert.equal(accepted.status, 0, accepted.stderr)
+	} finally {
+		rmSync(dir, { recursive: true, force: true })
+	}
 })

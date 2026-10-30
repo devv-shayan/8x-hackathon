@@ -8,11 +8,12 @@
 // `./src/*`), so a unit test can import a module by the same alias the app
 // uses — e.g. `import { redact } from '@/server/lib/logger'` — without booting
 // Next.
-import { pathToFileURL } from 'node:url'
-
 const CANDIDATE_SUFFIXES = ['.ts', '.tsx', '/index.ts']
 const ALIAS_PREFIX = '@/'
-const SRC_URL = pathToFileURL(new URL('../src/', import.meta.url).pathname).href
+// `import.meta.url` is already a file URL. Routing it through `pathname` and
+// `pathToFileURL` doubles the drive on Windows (`file:///D:/D:/...`), so `@/`
+// never resolves and the test runner reports a missing package.
+const SRC_URL = new URL('../src/', import.meta.url).href
 // `pkg/sub` or `@scope/pkg/sub`, with no extension and no `node:` scheme.
 const PACKAGE_SUBPATH = /^(?!node:)(?:@[^/.][^/]*\/)?[^/.@][^/]*\/[^.]+$/
 

@@ -531,7 +531,8 @@ export function run({ mode, paths = [] }) {
 		if (text == null || isSkipped(path, allowlist)) continue
 		// Session transcripts are routinely over 1MB and are exactly where a
 		// credential lands, so the generated-bundle size cap does not apply to them.
-		const isTranscript = /(^|\/)\.(claude|codex)-logs\//.test(path)
+		// Git prints `/`. A path built with `join()` on Windows uses `\`.
+		const isTranscript = /(^|[\\/])\.(claude|codex)-logs[\\/]/.test(path)
 		if ((!isTranscript && text.length > MAX_BYTES) || isProbablyBinary(text)) continue
 		for (const finding of scanText(text)) findings.push({ path, ...finding })
 	}

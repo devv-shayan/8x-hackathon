@@ -7,8 +7,8 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
+	readFileSync,
 	rmSync,
-	symlinkSync,
 	writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -32,6 +32,7 @@ import {
 	createMonorepoFixture,
 	edit,
 	editJson,
+	linkNodeModule,
 	privacyManifest,
 	write
 } from './standards-fixture.mjs'
@@ -1311,10 +1312,15 @@ function createRepoFixture() {
 	// symbolic link" — and the ignore check probes node_modules/x.js.
 	mkdirSync(join(root, 'node_modules'))
 	for (const entry of readdirSync(join(REPO_ROOT, 'node_modules'))) {
-		symlinkSync(join(REPO_ROOT, 'node_modules', entry), join(root, 'node_modules', entry))
+		linkNodeModule(join(REPO_ROOT, 'node_modules', entry), join(root, 'node_modules', entry))
 	}
 	git(root, 'init', '-q')
 	git(root, 'add', '-A')
+	// `git add` on Windows records hooks as 100644. Unix clones need 100755.
+	for (const hook of ['.githooks/commit-msg', '.githooks/pre-commit', '.githooks/pre-push']) {
+		if (!existsSync(join(root, hook))) continue
+		git(root, 'update-index', '--chmod=+x', hook)
+	}
 	return root
 }
 
@@ -1514,7 +1520,14 @@ fixtureTest(
 	['commit-msg-hook'],
 	() => {
 		const results = withFixture(
-			(root) => chmodSync(join(root, '.githooks/commit-msg'), 0o644),
+			(root) => {
+				const hook = join(root, '.githooks/commit-msg')
+				if (process.platform === 'win32') {
+					writeFileSync(hook, readFileSync(hook, 'utf8').replace(/^#!/, '#'))
+				} else {
+					chmodSync(hook, 0o644)
+				}
+			},
 			['commit-msg-hook']
 		)
 		assert.equal(results['commit-msg-hook'].ok, false)
