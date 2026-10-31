@@ -7,6 +7,7 @@ import { uuid } from './common'
 //                                    a hand with a question
 // POST classes/{id}/turns/{turn} → answer or skip a question; that student raises a hand
 //                                    again, until the class is finished
+// POST classes/{id}/turns/{turn}/help → a private explanation of that question from the video
 // GET classes/open?topic_id=       → the class left unfinished on a topic, or null
 // POST classes/{id}/end            → end the class, dropping the questions nobody picked
 
@@ -48,6 +49,15 @@ export const startClassBody = z
 
 export const classParams = z.object({ id: uuid })
 
+export const classHelpBody = z.object({}).strict()
+
+export const classHelpResponse = z.object({
+	help: z.object({
+		explanation: z.string(),
+		start_seconds: z.number().int().nonnegative().nullable()
+	})
+})
+
 export const endClassBody = z.object({}).strict()
 
 export const classTurnParams = z.object({ id: uuid, turn: uuid })
@@ -60,6 +70,7 @@ export const answerTurnBody = z
 		path: ['answer']
 	})
 
+export type ClassHelp = z.infer<typeof classHelpResponse>['help']
 export type ClassSession = z.infer<typeof classSchema>
 export type ClassTurn = z.infer<typeof classTurnSchema>
 export type ClassStudent = z.infer<typeof classStudentSchema>

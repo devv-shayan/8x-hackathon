@@ -67,6 +67,14 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			return count > 0
 		},
 
+		/** Records that the person was given help on a question still waiting on an answer. */
+		async markHelpUsed(classId: string, turnId: string) {
+			await client.classTurn.updateMany({
+				where: { id: turnId, classId, outcome: null },
+				data: { helpUsedAt: new Date() }
+			})
+		},
+
 		/** Removes the questions the person never picked. */
 		async dropOpenTurns(classId: string) {
 			await client.classTurn.deleteMany({ where: { classId, outcome: null } })
