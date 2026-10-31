@@ -9,7 +9,7 @@ A phone-first app, for 8x Playmakers C2 (theme: learning that sticks). The user 
 video, explains it in their own words, then teaches it to AI students who ask about what they
 missed. Each gap comes back days later as a one-minute warm-up from a student who remembers them.
 
-The working name is Protégé. It isn't final, and the app still says MyApp.
+The app is called Chalkback: you're at the chalkboard, and the class talks back.
 
 ## The loop
 
@@ -47,8 +47,9 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | Schema          | `apps/web/prisma/schema/learning.prisma`                            |
 | Home screen     | `apps/mobile/app/(tabs)/index.tsx`                                  |
 
-Reading a video tries captions through yt-dlp first, then Supadata (YouTube blocks yt-dlp from
-cloud servers, so hosted reads depend on `SUPADATA_API_KEY`), then falls back to Gemini. The limit is 90
+In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't
+read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
+The limit is 90
 minutes with captions and 30 without. Key concepts keep only quotes found in the transcript, and
 the timestamp comes from the transcript, not the model.
 
