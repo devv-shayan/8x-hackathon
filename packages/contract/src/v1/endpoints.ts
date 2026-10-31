@@ -14,6 +14,7 @@ import { profileResponse, updateProfileBody } from './profile'
 import { createTaskBody, listTasksQuery, listTasksResponse, taskResponse } from './tasks'
 import { createUploadBody, createUploadResponse } from './uploads'
 import { readVideoBody, readVideoResponse } from './videos'
+import { answerTurnBody, classResponse, classTurnParams, startClassBody } from './classes'
 
 // Every /api/app/v1 route, once: its method, path, who may call it, and the
 // schemas for what goes in and what comes back. The web builds each route from
@@ -36,6 +37,23 @@ export type Endpoint = {
 }
 
 export const endpoints = {
+	startClass: {
+		method: 'POST',
+		path: '/api/app/v1/classes',
+		auth: 'user',
+		body: startClassBody,
+		response: classResponse,
+		status: 201
+	},
+	answerTurn: {
+		method: 'POST',
+		path: '/api/app/v1/classes/:id/turns/:turn',
+		auth: 'user',
+		params: classTurnParams,
+		body: answerTurnBody,
+		response: classResponse,
+		status: 200
+	},
 	readVideo: {
 		method: 'POST',
 		path: '/api/app/v1/videos',

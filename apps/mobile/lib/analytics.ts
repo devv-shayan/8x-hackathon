@@ -26,6 +26,12 @@ type EventName =
 	// Reading a video — judged on how many readers go on to teach it. Metadata:
 	//   { concept_count: number }
 	| 'video_read'
+	// The class — judged on how many who start finish, and how often they needed help.
+	// Metadata: class_answered { outcome: 'answered' | 'needed_help' | 'skipped' },
+	// class_finished { question_count: number }.
+	| 'class_started'
+	| 'class_answered'
+	| 'class_finished'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:
 	//   { method: 'email' | 'apple' | 'google' }
