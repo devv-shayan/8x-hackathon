@@ -1,7 +1,8 @@
+import { z } from 'zod'
 import type { TranscriptSegment } from './transcript'
 
-// Turns a YouTube caption file (WebVTT) into transcript segments. Nothing here calls anything;
-// youtube-info.ts is what fetches the file.
+// Turns YouTube captions into transcript segments: a caption file (WebVTT) from yt-dlp, or timed
+// chunks from Supadata. Nothing here calls anything; youtube-info.ts and supadata.ts fetch them.
 
 // A segment closes at the end of a sentence once it has run this long, or at this ceiling
 // when the captions have no punctuation, which auto-generated ones often don't.
@@ -9,6 +10,7 @@ const MIN_SEGMENT_SECONDS = 5
 const MAX_SEGMENT_SECONDS = 20
 
 const SECONDS_PER_MINUTE = 60
+const MS_PER_SECOND = 1000
 const CUE_TIMING = /^(\d+):(\d{2}):(\d{2})\.\d{3} --> /
 const SENTENCE_END = /[.?!]["')\]]?$/
 const INLINE_TAG = /<[^>]*>/g
@@ -53,11 +55,10 @@ function readLines(vtt: string): CaptionLine[] {
 	return lines
 }
 
-/** A caption file's speech as transcript segments. Empty if the file has none. */
-export function parseCaptions(vtt: string): TranscriptSegment[] {
+function toSegments(lines: CaptionLine[]): TranscriptSegment[] {
 	const segments: TranscriptSegment[] = []
 	let current: TranscriptSegment | null = null
-	for (const { startSeconds, text } of readLines(vtt)) {
+	for (const { startSeconds, text } of lines) {
 		current = current
 			? { startSeconds: current.startSeconds, text: `${current.text} ${text}` }
 			: { startSeconds, text }
@@ -71,4 +72,22 @@ export function parseCaptions(vtt: string): TranscriptSegment[] {
 	}
 	if (current) segments.push(current)
 	return segments
+}
+
+/** A caption file's speech as transcript segments. Empty if the file has none. */
+export function parseCaptions(vtt: string): TranscriptSegment[] {
+	return toSegments(readLines(vtt))
+}
+
+export const timedCaptionSchema = z.object({ text: z.string(), offset: z.number().nonnegative() })
+
+/** Timed chunks, with their offsets in milliseconds, as transcript segments, one each. */
+export function parseTimedCaptions(
+	captions: z.infer<typeof timedCaptionSchema>[]
+): TranscriptSegment[] {
+	const segments = captions.map(({ text, offset }) => ({
+		startSeconds: Math.floor(offset / MS_PER_SECOND),
+		text: cleanLine(text)
+	}))
+	return segments.filter(({ text }) => text)
 }

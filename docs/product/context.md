@@ -47,7 +47,8 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | Schema          | `apps/web/prisma/schema/learning.prisma`                            |
 | Home screen     | `apps/mobile/app/(tabs)/index.tsx`                                  |
 
-Reading a video tries captions through yt-dlp first, then falls back to Gemini. The limit is 90
+Reading a video tries captions through yt-dlp first, then Supadata (YouTube blocks yt-dlp from
+cloud servers, so hosted reads depend on `SUPADATA_API_KEY`), then falls back to Gemini. The limit is 90
 minutes with captions and 30 without. Key concepts keep only quotes found in the transcript, and
 the timestamp comes from the transcript, not the model.
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseCaptions } from './captions'
+import { parseCaptions, parseTimedCaptions } from './captions'
 
 const HEADER = 'WEBVTT\nKind: captions\nLanguage: en\n\n'
 
@@ -57,4 +57,20 @@ test('hours count, and sound labels, speaker marks and entities are cleaned up',
 test('a file with no speech gives no segments', () => {
 	assert.deepEqual(parseCaptions(HEADER), [])
 	assert.deepEqual(parseCaptions(`${HEADER}00:00:01.000 --> 00:00:02.000\n[Music]\n`), [])
+})
+
+test('timed chunks become segments at whole seconds, without sound labels', () => {
+	const segments = parseTimedCaptions([
+		{ text: 'Plants make food.', offset: 1900 },
+		{ text: '[Music]', offset: 2500 },
+		{ text: 'They use light &amp; water.', offset: 7000 }
+	])
+	assert.deepEqual(segments, [
+		{ startSeconds: 1, text: 'Plants make food.' },
+		{ startSeconds: 7, text: 'They use light & water.' }
+	])
+})
+
+test('timed chunks with no speech give no segments', () => {
+	assert.deepEqual(parseTimedCaptions([{ text: '[Music]', offset: 0 }]), [])
 })
