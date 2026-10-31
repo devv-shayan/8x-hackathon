@@ -84,6 +84,11 @@ coverage/
 # `git add -A` would otherwise commit them as embedded repositories.
 .claude/worktrees/
 
+# Wireframe HTML is a local source for the screenshots. It is not part of the
+# commit, and Prettier would otherwise fail the pre-push gate on it.
+wireframes-screenshots/**/*.html
+wireframes-screenshots/*.html
+
 # NOTE: .claude-logs/ is intentionally COMMITTED in a play — build logs ride to GitHub.
 # The template itself keeps none: log-session.py writes nothing while the root
 # package is named app-template, and check:template fails if one is tracked.
