@@ -16,6 +16,8 @@ import { createUploadBody, createUploadResponse } from './uploads'
 import { readVideoBody, readVideoResponse } from './videos'
 import {
 	answerTurnBody,
+	classHelpBody,
+	classHelpResponse,
 	classParams,
 	classResponse,
 	classTurnParams,
@@ -61,6 +63,15 @@ export const endpoints = {
 		params: classTurnParams,
 		body: answerTurnBody,
 		response: classResponse,
+		status: 200
+	},
+	getClassHelp: {
+		method: 'POST',
+		path: '/api/app/v1/classes/:id/turns/:turn/help',
+		auth: 'user',
+		params: classTurnParams,
+		body: classHelpBody,
+		response: classHelpResponse,
 		status: 200
 	},
 	openClass: {

@@ -1,7 +1,7 @@
 {
 	"expo": {
-		"name": "MyApp",
-		"slug": "my-app",
+		"name": "Chalkback",
+		"slug": "chalkback",
 		"version": "1.0.0",
 		"runtimeVersion": { "policy": "fingerprint" },
 		"updates": {
@@ -11,7 +11,7 @@
 			"requestHeaders": { "expo-channel-name": "production" }
 		},
 		"orientation": "portrait",
-		"scheme": "myapp",
+		"scheme": "chalkback",
 		"icon": "./assets/icon.png",
 		"userInterfaceStyle": "automatic",
 		"splash": {
@@ -21,7 +21,7 @@
 		},
 		"ios": {
 			"supportsTablet": false,
-			"bundleIdentifier": "com.yourcompany.myapp",
+			"bundleIdentifier": "com.chalkback.app",
 			"usesAppleSignIn": true,
 			"privacyManifests": {
 				"NSPrivacyAccessedAPITypes": [
@@ -45,7 +45,7 @@
 			}
 		},
 		"android": {
-			"package": "com.yourcompany.myapp",
+			"package": "com.chalkback.app",
 			"adaptiveIcon": {
 				"foregroundImage": "./assets/icon.png",
 				"backgroundColor": "#090f1e"
@@ -67,7 +67,7 @@
 				{
 					"action": "VIEW",
 					"autoVerify": true,
-					"data": [{ "scheme": "myapp" }],
+					"data": [{ "scheme": "chalkback" }],
 					"category": ["BROWSABLE", "DEFAULT"]
 				}
 			]

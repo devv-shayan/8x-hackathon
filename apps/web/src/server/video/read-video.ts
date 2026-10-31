@@ -39,9 +39,10 @@ export type VideoTranscript = {
  * YouTube link in, title and timestamped transcript out. Call it once per
  * video and store the result: every later step reads the stored transcript.
  *
- * Captions come first: they arrive in seconds, cost no tokens, and their
- * timestamps are YouTube's own. Gemini reads the video when there are none, or
- * when neither yt-dlp nor Supadata can get them.
+ * In production Gemini reads the video first, and Supadata's captions step in when it can't.
+ * Elsewhere captions come first: they arrive in seconds, cost no tokens, and their timestamps
+ * are YouTube's own. Gemini reads the video when there are none, or when neither yt-dlp nor
+ * Supadata can get them.
  *
  * Throws an ApiError, with a message fit to show, for anything the user can
  * act on.
@@ -52,11 +53,26 @@ export async function readVideo(url: string): Promise<VideoTranscript> {
 		throw new ApiError('invalid_request', "That doesn't look like a YouTube video link.")
 	}
 	const watchUrl = `https://www.youtube.com/watch?v=${videoId}`
+	if (process.env.NODE_ENV === 'production') return readGeminiFirst(videoId, watchUrl)
 	const info = await fetchInfo(videoId)
 	assertCanRead(info)
 	const title = info?.title ?? (await fetchTitle(watchUrl))
 	const segments = info?.segments ?? parseTranscript(await transcribe(watchUrl, videoId))
 	return { videoId, title, segments }
+}
+
+// The title check can refuse a video and Gemini can refuse to transcribe one, or find it too
+// long without captions. Captions may still get through, so the error stands only if they don't.
+async function readGeminiFirst(videoId: string, watchUrl: string): Promise<VideoTranscript> {
+	try {
+		const title = await fetchTitle(watchUrl)
+		return { videoId, title, segments: parseTranscript(await transcribe(watchUrl, videoId)) }
+	} catch (error) {
+		const info = await fetchSupadataInfo(videoId)
+		if (!info?.segments) throw error
+		assertVideoLength(info.durationSeconds, true)
+		return { videoId, title: info.title, segments: info.segments }
+	}
 }
 
 // yt-dlp costs nothing, so it goes first. Supadata covers the times YouTube refuses it, which on

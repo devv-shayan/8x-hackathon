@@ -12,17 +12,11 @@ import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
+import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
 
 // Reading a long video can take a minute or more, far past the API default.
 const READ_VIDEO_TIMEOUT_MS = 5 * 60 * 1000
-const SECONDS_PER_MINUTE = 60
-
-function formatTimestamp(totalSeconds: number) {
-	const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE)
-	const seconds = String(totalSeconds % SECONDS_PER_MINUTE).padStart(2, '0')
-	return `${minutes}:${seconds}`
-}
 
 function ConceptCard({ concept }: { concept: KeyConcept }) {
 	return (

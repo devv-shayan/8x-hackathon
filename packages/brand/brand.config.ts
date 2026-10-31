@@ -45,6 +45,6 @@ export const brandConfig: {
 	// 🎨 BRAND: app name (mobile) and site name (web). Keep them the same word
 	// unless the site deliberately goes by another name: the website shows the
 	// app's own screens, so two names read as two products.
-	appName: 'MyApp',
-	siteName: 'MyApp'
+	appName: 'Chalkback',
+	siteName: 'Chalkback'
 }

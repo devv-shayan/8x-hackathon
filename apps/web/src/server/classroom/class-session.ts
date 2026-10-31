@@ -4,6 +4,7 @@ import { notFound } from '@/server/api/app-route'
 import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
+import { explainFromVideo } from './help'
 import { nextQuestion } from './next-question'
 import { DEFAULT_STUDENTS, heardTurns } from './student-turn'
 
@@ -105,7 +106,11 @@ export async function answerTurn(
 ) {
 	const session = await classStore.find(userId, classId)
 	if (!session) throw notFound()
-	const saved = await classStore.answerTurn(classId, turnId, { answer: answer ?? null, outcome })
+	const helped = session.turns.some(({ id, helpUsedAt }) => id === turnId && helpUsedAt)
+	const saved = await classStore.answerTurn(classId, turnId, {
+		answer: answer ?? null,
+		outcome: helped && outcome === 'answered' ? 'needed_help' : outcome
+	})
 	if (!saved) throw new ApiError('conflict', 'That question has already been answered.')
 	const topic = await topicStore.findById(userId, session.topicId)
 	if (!topic) throw notFound()
@@ -115,6 +120,29 @@ export async function answerTurn(
 	const speaker = students.find(({ id }) => id === answered?.studentId)
 	if (updated && speaker) await raiseHand(topic, updated, students, speaker, answered)
 	return toWireClass(userId, classId)
+}
+
+/** Private help for a question still waiting on an answer. The class never sees it. */
+export async function helpWithTurn(
+	userId: string,
+	classId: string,
+	turnId: string,
+	cancelled: AbortSignal
+) {
+	const session = await classStore.find(userId, classId)
+	const turn = session?.turns.find(({ id }) => id === turnId)
+	if (!session || !turn) throw notFound()
+	if (!isOpen(turn)) throw new ApiError('conflict', 'That question has already been answered.')
+	const topic = await topicStore.findById(userId, session.topicId)
+	if (!topic) throw notFound()
+	const { explanation, startSeconds } = await explainFromVideo(
+		classId,
+		topic.segments,
+		turn.question
+	)
+	// Closing the panel before the help arrives means the person never saw it.
+	if (!cancelled.aborted) await classStore.markHelpUsed(classId, turnId)
+	return { explanation, start_seconds: startSeconds }
 }
 
 /** Ends the class early. Questions the person hadn't picked were never asked, so they go. */

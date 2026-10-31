@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
 	MAX_CLASS_QUESTIONS,
 	type ClassSession,
@@ -13,10 +13,13 @@ import { Card } from '@/components/ui/Card'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Screen } from '@/components/ui/Screen'
+import { Sheet } from '@/components/ui/Sheet'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
+import { useColors } from '@/contexts/ThemeContext'
 import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
+import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
 
 // A student's next question is an AI call, so it takes longer than the API default.
@@ -50,7 +53,7 @@ function TurnCard({ session, turn }: { session: ClassSession; turn: ClassTurn })
 }
 
 function finishedMessage(turns: ClassTurn[]) {
-	const count = turns.filter(({ outcome }) => outcome === 'answered').length
+	const count = turns.filter(({ outcome }) => outcome !== 'skipped').length
 	if (count === 0) return 'Class ended. You didn’t answer any questions.'
 	return `Class finished. You answered ${count} ${count === 1 ? 'question' : 'questions'}.`
 }
@@ -82,6 +85,80 @@ function RaisedHands({
 				))}
 			</View>
 		</View>
+	)
+}
+
+function HelpSheet({
+	session,
+	turn,
+	open,
+	onClose
+}: {
+	session: ClassSession
+	turn: ClassTurn
+	open: boolean
+	onClose: () => void
+}) {
+	const c = useColors()
+	const queryClient = useQueryClient()
+	const queryKey = ['class-help', turn.id]
+	const help = useQuery({
+		queryKey,
+		queryFn: ({ signal }) =>
+			api('getClassHelp', {
+				signal,
+				params: { id: session.id, turn: turn.id },
+				body: {},
+				timeoutMs: CLASS_TIMEOUT_MS
+			}).then((r) => r.help),
+		enabled: open,
+		staleTime: Infinity,
+		retry: false
+	})
+	const start = help.data?.start_seconds
+
+	// Cancelling tells the server the person didn't stay for the help, so it isn't counted.
+	function close() {
+		void queryClient.cancelQueries({ queryKey })
+		onClose()
+	}
+
+	return (
+		<Sheet open={open} onClose={close} title="I’ll be back">
+			<View style={s.help}>
+				<Eyebrow tone="muted">From the video, just for you</Eyebrow>
+				<View style={s.helpMeta}>
+					{start != null ? (
+						<View style={[s.chip, { borderColor: c.textSecondary }]}>
+							<Text variant="caption" tone="secondary">
+								{formatTimestamp(start)}
+							</Text>
+						</View>
+					) : null}
+					<Text variant="caption" tone="secondary">
+						{`${studentName(session, turn)} is still waiting`}
+					</Text>
+				</View>
+				{help.isPending ? (
+					<Text variant="body" tone="secondary">
+						Looking in the video…
+					</Text>
+				) : help.isError ? (
+					<>
+						<Text variant="body">{errorMessage(help.error)}</Text>
+						<Button
+							label="Try again"
+							variant="secondary"
+							fullWidth
+							onPress={() => help.refetch()}
+						/>
+					</>
+				) : (
+					<Text variant="body">{help.data.explanation}</Text>
+				)}
+				<Button label="Back to answer" fullWidth onPress={close} />
+			</View>
+		</Sheet>
 	)
 }
 
@@ -124,6 +201,7 @@ export default function ClassScreen() {
 	const [current, setSession] = useState<ClassSession | null>(null)
 	const [answer, setAnswer] = useState('')
 	const [pickedId, setPickedId] = useState<string | null>(null)
+	const [helpOpen, setHelpOpen] = useState(false)
 
 	// Leaving mid-class doesn't lose it: the same hands are up when the person comes back.
 	const open = useQuery({
@@ -167,8 +245,10 @@ export default function ClassScreen() {
 				body: outcome === 'skipped' ? { outcome } : { outcome, answer },
 				timeoutMs: CLASS_TIMEOUT_MS
 			}),
-		onSuccess: ({ class: updated }, { outcome }) => {
-			track('class_answered', { outcome })
+		onSuccess: ({ class: updated }, { turn }) => {
+			// The server decides needed_help, from whether help was given on this question.
+			const saved = updated.turns.find(({ id }) => id === turn.id)
+			track('class_answered', { outcome: saved?.outcome ?? 'answered' })
 			if (updated.finished) finishClass(updated, false)
 			else setSession(updated)
 			setAnswer('')
@@ -241,6 +321,16 @@ export default function ClassScreen() {
 								onPress={() => reply.mutate({ turn: openTurn, outcome: 'answered' })}
 							/>
 							<Button
+								label="I’ll be back: check the video"
+								variant="secondary"
+								disabled={busy}
+								fullWidth
+								onPress={() => {
+									track('class_help_opened', { student: studentName(session, openTurn) })
+									setHelpOpen(true)
+								}}
+							/>
+							<Button
 								label="Skip this one"
 								variant="ghost"
 								disabled={busy}
@@ -262,6 +352,15 @@ export default function ClassScreen() {
 							<Button label="Back to home" fullWidth onPress={() => router.back()} />
 						</View>
 					)}
+
+					{openTurn ? (
+						<HelpSheet
+							session={session}
+							turn={openTurn}
+							open={helpOpen}
+							onClose={() => setHelpOpen(false)}
+						/>
+					) : null}
 				</>
 			)}
 		</Screen>
@@ -275,5 +374,8 @@ const s = StyleSheet.create({
 	hand: { flex: 1 },
 	bubble: { gap: 6 },
 	answer: { paddingHorizontal: 12 },
-	composer: { gap: 10, paddingTop: 8 }
+	composer: { gap: 10, paddingTop: 8 },
+	help: { gap: 12 },
+	helpMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+	chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }
 })

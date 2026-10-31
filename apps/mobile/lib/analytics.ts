@@ -33,6 +33,8 @@ type EventName =
 	| 'class_started'
 	| 'class_resumed'
 	| 'class_hand_picked'
+	// class_help_opened { student: string }: how often a question sends the person to the video.
+	| 'class_help_opened'
 	| 'class_answered'
 	| 'class_finished'
 	// Auth — judged on how many who start signing in finish, per method.
