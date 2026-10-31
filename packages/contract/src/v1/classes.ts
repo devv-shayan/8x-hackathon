@@ -30,12 +30,25 @@ export const classTurnSchema = z.object({
 	outcome: turnOutcomeSchema.nullable()
 })
 
+export const CONCEPT_RESULTS = ['correct', 'missed', 'wrong'] as const
+export const conceptResultSchema = z.object({
+	concept: z.string(),
+	result: z.enum(CONCEPT_RESULTS),
+	/** From the stored key concept; null only if that concept no longer has a timestamp. */
+	start_seconds: z.number().int().nonnegative().nullable()
+})
+
 export const classSchema = z.object({
 	id: uuid,
 	topic_id: uuid,
 	students: z.array(classStudentSchema),
 	turns: z.array(classTurnSchema),
-	finished: z.boolean()
+	finished: z.boolean(),
+	/**
+	 * Null while the class is still open: scoring stays hidden until it ends.
+	 * Filled on a finished class for the assessment screen.
+	 */
+	concept_results: z.array(conceptResultSchema).nullable()
 })
 
 export const classResponse = z.object({ class: classSchema })
@@ -74,4 +87,5 @@ export type ClassHelp = z.infer<typeof classHelpResponse>['help']
 export type ClassSession = z.infer<typeof classSchema>
 export type ClassTurn = z.infer<typeof classTurnSchema>
 export type ClassStudent = z.infer<typeof classStudentSchema>
+export type ConceptResult = z.infer<typeof conceptResultSchema>
 export type TurnOutcome = z.infer<typeof turnOutcomeSchema>

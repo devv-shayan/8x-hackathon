@@ -5,18 +5,23 @@ import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
 import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
+import { isLocalDemoUser } from '@/server/demo/local-demo'
+import {
+	demoStudentQuestion,
+	scoreDemoExplanation
+} from '@/server/demo/score-demo-explanation'
 import { explainFromVideo } from './help'
+import { scoreExplanation } from './find-explanation-score'
 import { checkWaitingQuestion, nextQuestion } from './next-question'
+import { focusConceptLines } from './score-explanation'
 import { DEFAULT_STUDENTS, heardTurns, knowsTheSource } from './student-turn'
 
 type StoredClass = NonNullable<Awaited<ReturnType<typeof classStore.find>>>
 
 type Outcome = 'answered' | 'needed_help' | 'skipped'
 
-// Until scoring exists (8X-15) every concept is fair game. After that, this becomes the
-// concepts the explanation missed or got wrong.
-function focusConcepts(topic: TopicRecord): string[] {
-	return topic.concepts.map(({ title, quote }) => `${title}: "${quote}"`)
+function focusConcepts(topic: TopicRecord, results: StoredClass['conceptResults']): string[] {
+	return focusConceptLines(topic.concepts, results)
 }
 
 type StoredTurn = StoredClass['turns'][number]
@@ -33,7 +38,7 @@ async function questionInput(topic: TopicRecord, session: StoredClass, students:
 		classId: session.id,
 		transcript: topic.segments.map(({ text }) => text).join('\n'),
 		explanation: session.explanation,
-		focusConcepts: focusConcepts(topic),
+		focusConcepts: focusConcepts(topic, session.conceptResults),
 		students,
 		// A question nobody has heard yet isn't part of the class, and Omar's may come from the
 		// video, which Maya must not see.
@@ -55,6 +60,7 @@ function waitingFrom(session: StoredClass, speaker: Student) {
 // Every student keeps a hand up with their question ready, and the person picks who to answer.
 // So a student only thinks of a new question once theirs has been dealt with.
 async function raiseHand(
+	userId: string,
 	topic: TopicRecord,
 	session: StoredClass,
 	students: Student[],
@@ -62,6 +68,20 @@ async function raiseHand(
 	answered?: StoredTurn
 ) {
 	if (session.turns.length >= MAX_CLASS_QUESTIONS) return
+	if (isLocalDemoUser(userId)) {
+		const focus = focusConcepts(topic, session.conceptResults)
+		await classStore.addTurn(
+			session.id,
+			speaker.id,
+			demoStudentQuestion({
+				studentName: speaker.name,
+				knowsSource: knowsTheSource(speaker),
+				focusConcepts: focus,
+				turnIndex: session.turns.length
+			})
+		)
+		return
+	}
 	const question = await nextQuestion({
 		...(await questionInput(topic, session, students)),
 		speaker,
@@ -75,11 +95,13 @@ async function raiseHand(
 // another student just raised. Only then does a waiting student change theirs. Best effort: the
 // one they have still works.
 async function rethinkWaiting(
+	userId: string,
 	topic: TopicRecord,
 	session: StoredClass,
 	students: Student[],
 	answeredStudentId: string
 ) {
+	if (isLocalDemoUser(userId)) return
 	const waiting = session.turns.filter(
 		(turn) => isOpen(turn) && turn.studentId !== answeredStudentId
 	)
@@ -123,6 +145,11 @@ async function toWireClass(userId: string, classId: string): Promise<ClassSessio
 
 async function toWire(userId: string, session: StoredClass): Promise<ClassSession> {
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
+	const finished = !session.turns.some(isOpen)
+	const topic = finished ? await topicStore.findById(userId, session.topicId) : null
+	const starts = new Map(
+		(topic?.concepts ?? []).map(({ title, startSeconds }) => [title, startSeconds])
+	)
 	return {
 		id: session.id,
 		topic_id: session.topicId,
@@ -136,7 +163,15 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 				outcome
 			})
 		),
-		finished: !session.turns.some(isOpen)
+		finished,
+		// Scoring stays off the wire until the class ends (docs/product/context.md).
+		concept_results: finished
+			? session.conceptResults.map(({ concept, result }) => ({
+					concept,
+					result,
+					start_seconds: starts.get(concept) ?? null
+				}))
+			: null
 	}
 }
 
@@ -149,12 +184,20 @@ export async function openClass(userId: string, topicId: string) {
 export async function startClass(userId: string, topicId: string, explanation: string) {
 	const topic = await topicStore.findById(userId, topicId)
 	if (!topic) throw notFound()
-	const session = await classStore.create(topicId, explanation)
+	const conceptResults = isLocalDemoUser(userId)
+		? scoreDemoExplanation(explanation, topic.concepts)
+		: await scoreExplanation({
+				topicId: topic.id,
+				segments: topic.segments,
+				concepts: topic.concepts,
+				explanation
+			})
+	const session = await classStore.create(topicId, explanation, conceptResults)
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	// One at a time, so a student who saw the video can steer clear of the question before theirs.
 	for (const student of students) {
 		const current = await classStore.find(userId, session.id)
-		await raiseHand(topic, current ?? session, students, student)
+		await raiseHand(userId, topic, current ?? session, students, student)
 	}
 	return toWireClass(userId, session.id)
 }
@@ -181,9 +224,9 @@ export async function answerTurn(
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	const speaker = students.find(({ id }) => id === answered?.studentId)
 	if (updated && speaker) {
-		await raiseHand(topic, updated, students, speaker, answered)
+		await raiseHand(userId, topic, updated, students, speaker, answered)
 		const raised = await classStore.find(userId, classId)
-		if (raised) await rethinkWaiting(topic, raised, students, speaker.id)
+		if (raised) await rethinkWaiting(userId, topic, raised, students, speaker.id)
 	}
 	return toWireClass(userId, classId)
 }

@@ -276,8 +276,11 @@ function RootLayout() {
 		const sub = DeviceEventEmitter.addListener(
 			'__dev_skip_auth__',
 			(payload?: { onboarding?: boolean }) => {
-				setIsAuthed(true)
-				setOnboardingCompleted(!payload?.onboarding)
+				void import('@/lib/demoAuth').then(async ({ enableLocalDemoAuth }) => {
+					await enableLocalDemoAuth()
+					setIsAuthed(true)
+					setOnboardingCompleted(!payload?.onboarding)
+				})
 			}
 		)
 		return () => sub.remove()
