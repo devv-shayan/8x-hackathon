@@ -28,8 +28,11 @@ type EventName =
 	| 'video_read'
 	// The class — judged on how many who start finish, and how often they needed help.
 	// Metadata: class_answered { outcome: 'answered' | 'needed_help' | 'skipped' },
-	// class_finished { question_count: number }.
+	// class_finished { question_count: number, ended_early: boolean },
+	// class_hand_picked { student: string } (the student's name, shows who gets picked).
 	| 'class_started'
+	| 'class_resumed'
+	| 'class_hand_picked'
 	| 'class_answered'
 	| 'class_finished'
 	// Auth — judged on how many who start signing in finish, per method.
