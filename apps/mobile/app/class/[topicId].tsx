@@ -126,7 +126,7 @@ function Assessment({ session }: { session: ClassSession }) {
 						<Card key={turn.id}>
 							<View style={s.conceptRow}>
 								<Eyebrow tone="muted">
-									{studentName(session, turn)} · {outcomeLabel(turn.outcome!)}
+									{`${studentName(session, turn)} · ${outcomeLabel(turn.outcome!)}`}
 								</Eyebrow>
 								<Text variant="body">{turn.question}</Text>
 							</View>

@@ -7,10 +7,7 @@ type Concept = { title: string }
  * Deterministic scoring for the local skip-auth demo. Gemini TLS from this machine is flaky,
  * and the demo still needs a mixed correct / missed / wrong assessment to walk through.
  */
-export function scoreDemoExplanation(
-	explanation: string,
-	concepts: Concept[]
-): ConceptResult[] {
+export function scoreDemoExplanation(explanation: string, concepts: Concept[]): ConceptResult[] {
 	const text = explanation.toLowerCase()
 	return concepts.map(({ title }) => ({
 		concept: title,

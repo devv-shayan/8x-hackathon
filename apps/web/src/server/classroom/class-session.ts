@@ -6,10 +6,7 @@ import { classStore } from '@/server/db/classes'
 import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
 import { isLocalDemoUser } from '@/server/demo/local-demo'
-import {
-	demoStudentQuestion,
-	scoreDemoExplanation
-} from '@/server/demo/score-demo-explanation'
+import { demoStudentQuestion, scoreDemoExplanation } from '@/server/demo/score-demo-explanation'
 import { explainFromVideo } from './help'
 import { scoreExplanation } from './find-explanation-score'
 import { checkWaitingQuestion, nextQuestion } from './next-question'

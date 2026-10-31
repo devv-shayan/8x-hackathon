@@ -186,7 +186,9 @@ export const demoMemory = {
 		turnId: string,
 		answer: { answer: string | null; outcome: 'answered' | 'needed_help' | 'skipped' }
 	) {
-		const turn = classes.get(classId)?.turns.find((entry) => entry.id === turnId && entry.outcome === null)
+		const turn = classes
+			.get(classId)
+			?.turns.find((entry) => entry.id === turnId && entry.outcome === null)
 		if (!turn) return false
 		turn.answer = answer.answer
 		turn.outcome = answer.outcome
@@ -195,7 +197,9 @@ export const demoMemory = {
 	},
 
 	markHelpUsed(classId: string, turnId: string) {
-		const turn = classes.get(classId)?.turns.find((entry) => entry.id === turnId && entry.outcome === null)
+		const turn = classes
+			.get(classId)
+			?.turns.find((entry) => entry.id === turnId && entry.outcome === null)
 		if (turn) turn.helpUsedAt = new Date()
 	},
 
