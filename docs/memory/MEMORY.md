@@ -2,7 +2,7 @@
 
 Durable notes for this play. One line per note. See `AGENTS.md` ("Project memory") for how to write one.
 
-Nothing recorded yet — this is a fresh clone of the template.
+- [App name](app-name.md) — the app is Chalkback, picked 2026-10-31; identifiers and what still needs doing
 
 Worth writing early, once each is decided:
 

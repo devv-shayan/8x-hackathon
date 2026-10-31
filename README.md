@@ -1,7 +1,7 @@
-# Playmakers Learn
+# Chalkback
 
 Learn from a YouTube video by teaching it to AI students, who come back days later to check you
-still remember. See [docs/product/brief.md](docs/product/brief.md). The app name is still open.
+still remember. See [docs/product/brief.md](docs/product/brief.md).
 
 Built on 8x's monorepo template; the rest of this file is the template's guide. On top of the
 quickstart below, set `GEMINI_API_KEY` in `apps/web/.env.local` to read videos, and install

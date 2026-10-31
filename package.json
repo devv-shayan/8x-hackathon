@@ -1,5 +1,5 @@
 {
-	"name": "playmakers-learn",
+	"name": "chalkback",
 	"version": "0.1.0",
 	"private": true,
 	"description": "Learn from a YouTube video by teaching it to AI students who come back to check you remember. Expo app, Next.js API, Supabase.",

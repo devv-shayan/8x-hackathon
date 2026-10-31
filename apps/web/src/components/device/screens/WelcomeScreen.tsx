@@ -19,9 +19,9 @@ import {
  * 🎨 REPLACE: the tagline and description mirror APP_TAGLINE and
  * APP_DESCRIPTION in apps/mobile/lib/constants.ts; change them together.
  */
-const TAGLINE = 'Your next great idea starts here.'
+const TAGLINE = 'Teach it. The class talks back.'
 const DESCRIPTION =
-	'A production-ready mobile app template with auth, subscriptions, analytics, and polished UI — ready from day one.'
+	'Explain what you watched to AI students who ask about what you missed, so it sticks.'
 
 /** The dealt cards' resting poses, as in the app. */
 const CARDS = [

@@ -1,4 +1,4 @@
-# Product brief
+# Chalkback: product brief
 
 Playmakers C2 · theme: learning that sticks · pair: Shayan Khan and Sayed Arif
 Status: draft for the pair to review, 2026-10-29 (day 2)
