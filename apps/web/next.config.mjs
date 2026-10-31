@@ -10,15 +10,16 @@ const nextConfig = {
 	// root config, so it warns that the Next plugin is missing when it isn't.
 	// Next 16 drops build-time lint entirely.
 	eslint: { ignoreDuringBuilds: true },
-	// The app running in a browser (`expo start --web`) is another origin, and on a phone that
-	// origin is the Mac's LAN address. Development only: nothing in production needs this.
+	// The app running in a browser is another origin: chalkback-app in production, and in
+	// development `expo start --web`, which on a phone is the Mac's LAN address. A native app
+	// isn't a browser and needs none of this.
 	async headers() {
-		if (process.env.NODE_ENV !== 'development') return []
+		const origin = process.env.NODE_ENV === 'development' ? '*' : 'https://chalkback-app.vercel.app'
 		return [
 			{
 				source: '/api/app/v1/:path*',
 				headers: [
-					{ key: 'Access-Control-Allow-Origin', value: '*' },
+					{ key: 'Access-Control-Allow-Origin', value: origin },
 					{ key: 'Access-Control-Allow-Methods', value: 'GET,POST,PATCH,DELETE,OPTIONS' },
 					{ key: 'Access-Control-Allow-Headers', value: 'Authorization,Content-Type' }
 				]
