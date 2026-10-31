@@ -41,6 +41,15 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			})
 		},
 
+		/** The newest class on this topic still waiting on an answer, or null. */
+		findOpen(userId: string, topicId: string) {
+			return client.class.findFirst({
+				where: { topicId, topic: { userId }, turns: { some: { outcome: null } } },
+				orderBy: { createdAt: 'desc' },
+				select: CLASS
+			})
+		},
+
 		addTurn(classId: string, studentId: string, question: string) {
 			return client.classTurn.create({ data: { classId, studentId, question } })
 		},
@@ -53,15 +62,28 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		) {
 			const { count } = await client.classTurn.updateMany({
 				where: { id: turnId, classId, outcome: null },
-				data: answer
+				data: { ...answer, answeredAt: new Date() }
 			})
 			return count > 0
 		},
 
-		/** What these students last talked about with the person, in earlier classes. */
-		pastTurns(studentIds: string[], classId: string) {
+		/** Removes the questions the person never picked. */
+		async dropOpenTurns(classId: string) {
+			await client.classTurn.deleteMany({ where: { classId, outcome: null } })
+		},
+
+		/**
+		 * What these students last talked about with the person, in earlier classes on this topic.
+		 * A question nobody picked was never heard, so it isn't part of that.
+		 */
+		pastTurns(studentIds: string[], classId: string, topicId: string) {
 			return client.classTurn.findMany({
-				where: { studentId: { in: studentIds }, classId: { not: classId } },
+				where: {
+					studentId: { in: studentIds },
+					classId: { not: classId },
+					class: { topicId },
+					outcome: { not: null }
+				},
 				orderBy: { createdAt: 'desc' },
 				take: PAST_TURNS_LIMIT
 			})

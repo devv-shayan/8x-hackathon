@@ -3,8 +3,6 @@ import { z } from 'zod'
 // What a student says next, and the rules for accepting it. Nothing here calls anything, so it
 // is all unit-testable; next-question.ts sends this to the model.
 
-export const MAX_CLASS_QUESTIONS = 4
-
 export const DEFAULT_STUDENTS = [
 	{
 		name: 'Maya',
@@ -27,7 +25,7 @@ function knowsTheSource({ name }: { name: string }): boolean {
 export const STUDENT_TURN_INSTRUCTION = [
 	'You play the students in a small class. A person is teaching them something they learned.',
 	"Write what one student says next, in that student's voice, in one or two short spoken sentences.",
-	"After an answer, first react to it in a few natural words, showing whether it helped or left the student confused. Never mark it right or wrong, and don't praise.",
+	"When you have just been answered, first react to it in a few natural words, showing whether it helped or left the student confused. Never mark it right or wrong, and don't praise.",
 	'Then ask one question. Ask about what sounds wrong first, then the most important idea left out. Skip fine details.',
 	'Never give the answer away. Do not repeat an earlier question.',
 	'Do not claim what the teacher said unless you repeat their exact words in quotation marks.',
@@ -54,27 +52,16 @@ const studentTurnSchema = z.object({ question: z.string() })
 const followUpSchema = z.object({ follow_up: z.boolean() })
 
 type Named = { id: string; name: string }
-type TurnSoFar = { studentId: string; question: string; answer: string | null }
+export type TurnSoFar = { studentId: string; question: string; answer: string | null }
 
 export type StudentQuestion = { studentId: string; question: string }
 
-// Who speaks is decided here, not by the model: it tends to favour one student.
-export function otherStudent<T extends Named>(students: T[], turns: TurnSoFar[]): T {
-	const last = students.findIndex(({ id }) => id === turns.at(-1)?.studentId)
-	const student = students[(last + 1) % students.length]
-	if (!student) throw new Error('A class needs at least one student')
-	return student
-}
+type Heard = { outcome: string | null; answeredAt: Date | null; createdAt: Date }
 
-// One follow-up in a row, so a student never pins the teacher down. A skip moves on: the
-// teacher has said they don't know, and asking again would only press them.
-export function studentWhoCanFollowUp<T extends Named>(
-	students: T[],
-	turns: TurnSoFar[]
-): T | null {
-	const last = turns.at(-1)
-	if (!last || last.answer === null || turns.at(-2)?.studentId === last.studentId) return null
-	return students.find(({ id }) => id === last.studentId) ?? null
+/** The questions the person dealt with, in the order they did. */
+export function heardTurns<T extends Heard>(turns: T[]): T[] {
+	const when = ({ answeredAt, createdAt }: T) => (answeredAt ?? createdAt).getTime()
+	return turns.filter(({ outcome }) => outcome !== null).sort((a, b) => when(a) - when(b))
 }
 
 export function parseFollowUp(raw: string | undefined): boolean {
@@ -99,7 +86,17 @@ type PromptInput = {
 	pastTurns: TurnSoFar[]
 }
 
-type Speaker = Named & { persona: string }
+export type Speaker = Named & { persona: string }
+
+/** Whether the speaker has an answer to react to, and whether it helped. */
+export type TurnMoment = 'no_answer' | 'answered' | 'follow_up'
+
+const MOMENT_PROMPTS: Record<TurnMoment, string> = {
+	no_answer:
+		'The teacher has not answered you, so there is nothing to react to. Just ask your question, without saying how the explanation seemed to you.',
+	answered: 'React to the answer you just got, then ask your next question.',
+	follow_up: 'Your last question was not answered well. React, then ask it again in a simpler way.'
+}
 
 function describeTurns(turns: TurnSoFar[], students: Named[]): string {
 	const lines = turns.map(({ studentId, question, answer }) => {
@@ -109,9 +106,8 @@ function describeTurns(turns: TurnSoFar[], students: Named[]): string {
 	return lines.join('\n') || 'Nothing yet.'
 }
 
-export function buildFollowUpPrompt(turns: TurnSoFar[]): string {
-	const last = turns.at(-1)
-	return `Question: ${last?.question ?? ''}\nAnswer: ${last?.answer ?? ''}`
+export function buildFollowUpPrompt({ question, answer }: TurnSoFar): string {
+	return `Question: ${question}\nAnswer: ${answer ?? ''}`
 }
 
 /**
@@ -121,7 +117,7 @@ export function buildFollowUpPrompt(turns: TurnSoFar[]): string {
 export function buildStudentTurnPrompt(
 	input: PromptInput,
 	speaker: Speaker,
-	followUp: boolean
+	moment: TurnMoment
 ): string {
 	const { transcript, explanation, focusConcepts, students, turns, pastTurns } = input
 	const knows = knowsTheSource(speaker)
@@ -136,8 +132,6 @@ export function buildStudentTurnPrompt(
 		...(knows
 			? [`Focus concepts:\n${focusConcepts.join('\n')}`, `Video transcript:\n${transcript}`]
 			: []),
-		followUp
-			? 'Your last question was not answered well. Ask it again in a simpler way.'
-			: 'Ask your next question.'
+		MOMENT_PROMPTS[moment]
 	].join('\n\n')
 }
