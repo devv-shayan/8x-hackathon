@@ -3,10 +3,11 @@ import { MAX_CLASS_QUESTIONS, type ClassSession } from '@app/contract'
 import { notFound } from '@/server/api/app-route'
 import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
+import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
 import { explainFromVideo } from './help'
-import { nextQuestion } from './next-question'
-import { DEFAULT_STUDENTS, heardTurns } from './student-turn'
+import { checkWaitingQuestion, nextQuestion } from './next-question'
+import { DEFAULT_STUDENTS, heardTurns, knowsTheSource } from './student-turn'
 
 type StoredClass = NonNullable<Awaited<ReturnType<typeof classStore.find>>>
 
@@ -26,6 +27,31 @@ function isOpen({ outcome }: StoredTurn) {
 
 type Student = Awaited<ReturnType<typeof classStore.studentsFor>>[number]
 
+// What a student needs to write a question, from the class as it stands now.
+async function questionInput(topic: TopicRecord, session: StoredClass, students: Student[]) {
+	return {
+		classId: session.id,
+		transcript: topic.segments.map(({ text }) => text).join('\n'),
+		explanation: session.explanation,
+		focusConcepts: focusConcepts(topic),
+		students,
+		// A question nobody has heard yet isn't part of the class, and Omar's may come from the
+		// video, which Maya must not see.
+		turns: heardTurns(session.turns),
+		pastTurns: await classStore.pastTurns(
+			students.map(({ id }) => id),
+			session.id,
+			session.topicId
+		)
+	}
+}
+
+function waitingFrom(session: StoredClass, speaker: Student) {
+	return session.turns
+		.filter((turn) => isOpen(turn) && turn.studentId !== speaker.id)
+		.map(({ question }) => question)
+}
+
 // Every student keeps a hand up with their question ready, and the person picks who to answer.
 // So a student only thinks of a new question once theirs has been dealt with.
 async function raiseHand(
@@ -36,25 +62,57 @@ async function raiseHand(
 	answered?: StoredTurn
 ) {
 	if (session.turns.length >= MAX_CLASS_QUESTIONS) return
-	const pastTurns = await classStore.pastTurns(
-		students.map(({ id }) => id),
-		session.id,
-		session.topicId
-	)
 	const question = await nextQuestion({
-		classId: session.id,
+		...(await questionInput(topic, session, students)),
 		speaker,
 		answered,
-		transcript: topic.segments.map(({ text }) => text).join('\n'),
-		explanation: session.explanation,
-		focusConcepts: focusConcepts(topic),
-		students,
-		// A question nobody has heard yet isn't part of the class, and Omar's may come from the
-		// video, which Maya must not see.
-		turns: heardTurns(session.turns),
-		pastTurns
+		waiting: waitingFrom(session, speaker)
 	})
 	if (question) await classStore.addTurn(session.id, question.studentId, question.question)
+}
+
+// A question written earlier can go stale once the person answers someone else, or match what
+// another student just raised. Only then does a waiting student change theirs. Best effort: the
+// one they have still works.
+async function rethinkWaiting(
+	topic: TopicRecord,
+	session: StoredClass,
+	students: Student[],
+	answeredStudentId: string
+) {
+	const waiting = session.turns.filter(
+		(turn) => isOpen(turn) && turn.studentId !== answeredStudentId
+	)
+	await Promise.all(
+		waiting.map(async ({ id, question, studentId }) => {
+			const speaker = students.find((student) => student.id === studentId)
+			if (!speaker) return
+			try {
+				const others = waitingFrom(session, speaker)
+				// Maya never hears of Omar's question: it may come from the video.
+				const status = await checkWaitingQuestion(
+					session.id,
+					question,
+					heardTurns(session.turns),
+					knowsTheSource(speaker) ? others : []
+				)
+				if (status === 'open') return
+				const replacement = await nextQuestion({
+					...(await questionInput(topic, session, students)),
+					speaker,
+					waiting: others,
+					moment: status === 'answered' ? 'question_answered' : 'no_answer'
+				})
+				if (replacement) await classStore.updateQuestion(id, replacement.question)
+			} catch (error) {
+				log.warn('student could not rethink their question', {
+					source: 'classroom/class-session',
+					class_id: session.id,
+					error: error instanceof Error ? error.message : String(error)
+				})
+			}
+		})
+	)
 }
 
 async function toWireClass(userId: string, classId: string): Promise<ClassSession> {
@@ -93,7 +151,11 @@ export async function startClass(userId: string, topicId: string, explanation: s
 	if (!topic) throw notFound()
 	const session = await classStore.create(topicId, explanation)
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
-	await Promise.all(students.map((student) => raiseHand(topic, session, students, student)))
+	// One at a time, so a student who saw the video can steer clear of the question before theirs.
+	for (const student of students) {
+		const current = await classStore.find(userId, session.id)
+		await raiseHand(topic, current ?? session, students, student)
+	}
 	return toWireClass(userId, session.id)
 }
 
@@ -118,7 +180,11 @@ export async function answerTurn(
 	const answered = updated?.turns.find(({ id }) => id === turnId)
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	const speaker = students.find(({ id }) => id === answered?.studentId)
-	if (updated && speaker) await raiseHand(topic, updated, students, speaker, answered)
+	if (updated && speaker) {
+		await raiseHand(topic, updated, students, speaker, answered)
+		const raised = await classStore.find(userId, classId)
+		if (raised) await rethinkWaiting(topic, raised, students, speaker.id)
+	}
 	return toWireClass(userId, classId)
 }
 

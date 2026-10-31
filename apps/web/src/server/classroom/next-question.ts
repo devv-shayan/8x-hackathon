@@ -2,16 +2,21 @@ import 'server-only'
 import { generateContent } from '@/server/ai/gemini'
 import { toVideoError } from '@/server/video/read-video'
 import {
+	buildWaitingCheckPrompt,
 	buildFollowUpPrompt,
 	buildStudentTurnPrompt,
 	FOLLOW_UP_INSTRUCTION,
 	FOLLOW_UP_RESPONSE_JSON_SCHEMA,
+	parseWaitingCheck,
 	parseFollowUp,
 	parseStudentTurn,
 	STUDENT_TURN_INSTRUCTION,
 	STUDENT_TURN_RESPONSE_JSON_SCHEMA,
 	type Speaker,
 	type TurnMoment,
+	type WaitingStatus,
+	WAITING_CHECK_INSTRUCTION,
+	WAITING_CHECK_RESPONSE_JSON_SCHEMA,
 	type StudentQuestion,
 	type TurnSoFar
 } from './student-turn'
@@ -24,6 +29,8 @@ type NextQuestionInput = Parameters<typeof buildStudentTurnPrompt>[0] & {
 	speaker: Speaker
 	/** The speaker's question the person just dealt with, if any. */
 	answered?: TurnSoFar
+	/** Set when the caller already knows the moment, so no check is needed. */
+	moment?: TurnMoment
 }
 
 type Context = { feature: string; model: string; meta: { class_id: string } }
@@ -50,14 +57,14 @@ async function momentFor(context: Context, answered?: TurnSoFar): Promise<TurnMo
 
 /** The speaker's next question, or null when the model has none. */
 export async function nextQuestion(input: NextQuestionInput): Promise<StudentQuestion | null> {
-	const { classId, speaker, answered } = input
+	const { classId, speaker, answered, moment: knownMoment } = input
 	const context = {
 		feature: 'student_turn',
 		model: STUDENT_TURN_MODEL,
 		meta: { class_id: classId }
 	}
 	try {
-		const moment = await momentFor(context, answered)
+		const moment = knownMoment ?? (await momentFor(context, answered))
 		const response = await generateContent(context, {
 			contents: buildStudentTurnPrompt(input, speaker, moment),
 			systemInstruction: STUDENT_TURN_INSTRUCTION,
@@ -69,4 +76,24 @@ export async function nextQuestion(input: NextQuestionInput): Promise<StudentQue
 	} catch (error) {
 		throw toVideoError(error)
 	}
+}
+
+/** What should happen to a question still waiting to be asked. */
+export async function checkWaitingQuestion(
+	classId: string,
+	question: string,
+	turns: TurnSoFar[],
+	otherQuestions: string[]
+): Promise<WaitingStatus> {
+	const response = await generateContent(
+		{ feature: 'student_waiting_check', model: STUDENT_TURN_MODEL, meta: { class_id: classId } },
+		{
+			contents: buildWaitingCheckPrompt(question, turns, otherQuestions),
+			systemInstruction: WAITING_CHECK_INSTRUCTION,
+			temperature: 0,
+			responseMimeType: 'application/json',
+			responseJsonSchema: WAITING_CHECK_RESPONSE_JSON_SCHEMA
+		}
+	)
+	return parseWaitingCheck(response.text)
 }

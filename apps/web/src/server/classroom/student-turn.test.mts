@@ -1,9 +1,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+	buildWaitingCheckPrompt,
 	buildFollowUpPrompt,
 	buildStudentTurnPrompt,
 	heardTurns,
+	parseWaitingCheck,
 	parseFollowUp,
 	parseStudentTurn
 } from './student-turn'
@@ -11,6 +13,7 @@ import {
 const MAYA = { id: 'maya', name: 'Maya', persona: 'A beginner.' }
 const OMAR = { id: 'omar', name: 'Omar', persona: 'A sharp student.' }
 const STUDENTS = [MAYA, OMAR]
+const SKIPPED = { studentId: 'maya', question: 'Huh?', answer: null }
 const MAYA_TURN = { studentId: 'maya', question: 'What?', answer: 'This.' }
 
 const INPUT = {
@@ -19,7 +22,8 @@ const INPUT = {
 	focusConcepts: ['SECRET CONCEPT'],
 	students: STUDENTS,
 	turns: [{ studentId: 'maya', question: 'What is soil for?', answer: 'Water.' }],
-	pastTurns: [{ studentId: 'omar', question: 'Why green?', answer: null }]
+	pastTurns: [{ studentId: 'omar', question: 'Why green?', answer: null }],
+	waiting: ['WAITING QUESTION']
 }
 
 test('parseStudentTurn gives the trimmed question to the speaker', () => {
@@ -81,4 +85,25 @@ test('heard turns leave out open questions and follow the order they were answer
 test('a student with nothing to react to is told not to react', () => {
 	assert.ok(buildStudentTurnPrompt(INPUT, MAYA, 'no_answer').includes('nothing to react to'))
 	assert.ok(buildStudentTurnPrompt(INPUT, MAYA, 'answered').includes('React to the answer'))
+})
+
+test('only the student who saw the video is told what another student will ask', () => {
+	assert.ok(buildStudentTurnPrompt(INPUT, OMAR, 'no_answer').includes('WAITING QUESTION'))
+	assert.ok(!buildStudentTurnPrompt(INPUT, MAYA, 'no_answer').includes('WAITING QUESTION'))
+})
+
+test('the waiting check sees the question, the answers and what others will ask', () => {
+	const prompt = buildWaitingCheckPrompt('Why soil?', [MAYA_TURN, SKIPPED], ['Why rain?'])
+	for (const part of ['Why soil?', 'This.', 'Why rain?']) assert.ok(prompt.includes(part), part)
+	assert.ok(!prompt.includes('null'))
+})
+
+test('the waiting check only accepts its three results', () => {
+	assert.equal(parseWaitingCheck('{"status":"overlap"}'), 'overlap')
+	assert.throws(() => parseWaitingCheck('{"status":"maybe"}'))
+})
+
+test('a student whose question was answered says so before asking something new', () => {
+	const prompt = buildStudentTurnPrompt(INPUT, MAYA, 'question_answered')
+	assert.ok(prompt.includes('just answered what you were going to ask'))
 })

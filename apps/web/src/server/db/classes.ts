@@ -54,6 +54,14 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			return client.classTurn.create({ data: { classId, studentId, question } })
 		},
 
+		/** Changes a question the person hasn't dealt with yet. */
+		async updateQuestion(turnId: string, question: string) {
+			await client.classTurn.updateMany({
+				where: { id: turnId, outcome: null },
+				data: { question }
+			})
+		},
+
 		/** False when the turn isn't an unanswered question in this class. */
 		async answerTurn(
 			classId: string,
