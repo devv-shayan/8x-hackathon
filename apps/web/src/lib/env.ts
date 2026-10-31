@@ -37,6 +37,9 @@ const baseSchema = z.object({
 	// Google AI Studio key for src/server/ai/gemini.ts. Unset, reading a video
 	// answers 503.
 	GEMINI_API_KEY: z.string().optional(),
+	// Supadata key for src/server/video/supadata.ts. YouTube blocks yt-dlp from cloud servers, so
+	// this is where hosted reads get captions. Unset, those reads fall back to Gemini.
+	SUPADATA_API_KEY: z.string().optional(),
 
 	// Minimum severity the server logger emits (docs/rules/logging.md).
 	// Validated here so a typo fails the boot loudly, but the logger reads
