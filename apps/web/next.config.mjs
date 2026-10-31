@@ -15,15 +15,14 @@ const nextConfig = {
 	// isn't a browser and needs none of this.
 	async headers() {
 		const origin = process.env.NODE_ENV === 'development' ? '*' : 'https://chalkback-app.vercel.app'
+		const cors = [
+			{ key: 'Access-Control-Allow-Origin', value: origin },
+			{ key: 'Access-Control-Allow-Methods', value: 'GET,POST,PATCH,DELETE,OPTIONS' },
+			{ key: 'Access-Control-Allow-Headers', value: 'Authorization,Content-Type' }
+		]
 		return [
-			{
-				source: '/api/app/v1/:path*',
-				headers: [
-					{ key: 'Access-Control-Allow-Origin', value: origin },
-					{ key: 'Access-Control-Allow-Methods', value: 'GET,POST,PATCH,DELETE,OPTIONS' },
-					{ key: 'Access-Control-Allow-Headers', value: 'Authorization,Content-Type' }
-				]
-			}
+			{ source: '/api/app/v1/:path*', headers: cors },
+			{ source: '/api/lifecycle/session', headers: cors }
 		]
 	},
 	async redirects() {
