@@ -52,6 +52,12 @@ function TurnCard({ session, turn }: { session: ClassSession; turn: ClassTurn })
 	)
 }
 
+// A class opened from a link or a reload has nothing behind it to go back to.
+function leaveClass() {
+	if (router.canGoBack()) router.back()
+	else router.replace('/(tabs)')
+}
+
 function finishedMessage(turns: ClassTurn[]) {
 	const count = turns.filter(({ outcome }) => outcome !== 'skipped').length
 	if (count === 0) return 'Class ended. You didn’t answer any questions.'
@@ -264,7 +270,7 @@ export default function ClassScreen() {
 
 	const busy = reply.isPending || end.isPending
 	return (
-		<Screen header={<PageHeader title="Class" onBack={() => router.back()} />} gap={14}>
+		<Screen header={<PageHeader title="Class" onBack={leaveClass} />} gap={14}>
 			{open.isPending ? (
 				<Text variant="body" tone="secondary">
 					Checking for your class…
@@ -349,7 +355,7 @@ export default function ClassScreen() {
 					) : (
 						<View style={s.composer}>
 							<Text variant="body">{finishedMessage(answered)}</Text>
-							<Button label="Back to home" fullWidth onPress={() => router.back()} />
+							<Button label="Back to home" fullWidth onPress={leaveClass} />
 						</View>
 					)}
 
