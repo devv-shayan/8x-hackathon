@@ -7,13 +7,18 @@ import { Container } from './Container'
 const COLUMNS = [
 	{
 		title: 'Product',
-		links: [{ href: APP_URL, label: 'Open the app' }]
+		links: [
+			{ href: '/#how', label: 'How it works' },
+			{ href: '/#class', label: 'The class' },
+			{ href: '/#remember', label: 'Warm-ups' },
+			{ href: APP_URL, label: 'Open the app' }
+		]
 	},
 	{
 		title: 'Help',
 		links: [
-			{ href: '/support', label: 'Support' },
-			{ href: '/#faq', label: 'Questions' }
+			{ href: '/#faq', label: 'Questions' },
+			{ href: '/support', label: 'Support' }
 		]
 	},
 	{
@@ -26,32 +31,32 @@ const COLUMNS = [
 	}
 ]
 
-const TAGLINE = 'Teach it. The class talks back.'
+const TAGLINE = 'Teach it back. Find out what stuck.'
 
 export function Footer() {
 	const { siteName } = brandConfig
 	const year = new Date().getFullYear()
 	return (
-		<footer className="border-t border-line-hairline pb-10 pt-16 sm:pt-20">
+		<footer className="l-sans border-t border-[rgb(var(--l-hair))] bg-[rgb(var(--l-paper))] pb-10 pt-14 text-[rgb(var(--l-ink))]">
 			<Container>
-				<div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+				<div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
 					<div className="max-w-xs">
-						<Link href="/" className="inline-flex items-center gap-2.5 rounded-lg">
-							<BrandMark siteName={siteName} />
-							<span className="font-display text-lg font-semibold">{siteName}</span>
+						<Link href="/" className="inline-flex items-center gap-2 text-[17px] font-semibold">
+							<BrandMark />
+							{siteName.toLowerCase()}
 						</Link>
-						<p className="mt-4 text-pretty text-sm leading-relaxed text-ink-secondary">{TAGLINE}</p>
+						<p className="mt-4 text-sm leading-relaxed text-[rgb(var(--l-muted))]">{TAGLINE}</p>
 					</div>
 
 					{COLUMNS.map((col) => (
 						<nav key={col.title} aria-label={col.title}>
-							<p className="text-sm font-semibold text-ink">{col.title}</p>
+							<p className="l-mono">{col.title}</p>
 							<ul className="mt-4 space-y-1">
 								{col.links.map((l) => (
 									<li key={l.href}>
 										<Link
 											href={l.href}
-											className="inline-flex min-h-9 items-center text-sm text-ink-secondary transition-colors duration-fast hover:text-ink"
+											className="inline-flex min-h-9 items-center text-sm text-[rgb(var(--l-muted))] transition-colors duration-fast hover:text-[rgb(var(--l-ink))]"
 										>
 											{l.label}
 										</Link>
@@ -62,9 +67,9 @@ export function Footer() {
 					))}
 				</div>
 
-				<div className="mt-16 flex flex-col gap-2 border-t border-line-hairline pt-6 text-sm text-ink-tertiary sm:flex-row sm:items-center sm:justify-between">
-					<p>
-						© {year} {siteName}. All rights reserved.
+				<div className="mt-14 border-t border-[rgb(var(--l-hair))] pt-6">
+					<p className="l-mono">
+						© {year} {siteName}
 					</p>
 				</div>
 			</Container>

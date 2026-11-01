@@ -1,55 +1,31 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { gaEvent } from '@/lib/analytics/client'
 import { FUNNEL_EVENTS } from '@/lib/analytics/events'
 import { APP_URL } from '@/lib/stores'
 import { BrandMark } from './BrandMark'
 
-// 🎨 REPLACE: your site's sections and pages.
 const LINKS = [
-	{ href: '/#faq', label: 'Questions' },
-	{ href: '/support', label: 'Support' }
+	{ href: '/#how', label: 'How it works' },
+	{ href: '/#class', label: 'The class' },
+	{ href: '/#remember', label: 'Warm-ups' },
+	{ href: '/#faq', label: 'Questions' }
 ]
 
-const CTA_LABEL = 'Try Chalkback'
-
-/** Scroll distance, px, after which the bar contracts into the capsule. */
-const CONTRACT_AFTER = 24
+const CTA_LABEL = 'Try it free'
 
 /**
- * The site header. At the top of the page it is an open, full-width bar over
- * the hero; past the first few pixels of scroll it contracts into a floating
- * glass capsule. Both states are one DOM, so nothing remounts mid-scroll.
- *
- * The mobile menu is a <details> disclosure, so it opens before hydration;
- * script only adds closing on a link tap, Escape, or a tap outside.
+ * The site header: a white bar with a hairline under it, the links in the middle and one
+ * square black button. The mobile menu is a <details> disclosure, so it opens before
+ * hydration; script only adds closing on a link tap, Escape, or a tap outside.
  */
 export function Nav({ siteName }: { siteName: string }) {
 	const pathname = usePathname()
-	const [isContracted, setIsContracted] = useState(false)
 	const menu = useRef<HTMLDetailsElement>(null)
-
-	useEffect(() => {
-		let frame = 0
-		const read = () => {
-			frame = 0
-			setIsContracted(window.scrollY > CONTRACT_AFTER)
-		}
-		const onScroll = () => {
-			if (!frame) frame = requestAnimationFrame(read)
-		}
-		read()
-		window.addEventListener('scroll', onScroll, { passive: true })
-		return () => {
-			window.removeEventListener('scroll', onScroll)
-			if (frame) cancelAnimationFrame(frame)
-		}
-	}, [])
 
 	useEffect(() => {
 		const el = menu.current
@@ -85,29 +61,24 @@ export function Nav({ siteName }: { siteName: string }) {
 	}
 
 	return (
-		<header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5">
+		<header className="l-sans fixed inset-x-0 top-0 z-50 border-b border-[rgb(var(--l-hair))] bg-[rgb(var(--l-paper)/0.92)] text-[rgb(var(--l-ink))] backdrop-blur-md">
 			<a
 				href="#main"
-				className="sr-only rounded-pill bg-ink px-4 py-2 text-sm font-semibold text-ink-inverse focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60]"
+				className="sr-only bg-[rgb(var(--l-ink))] px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60]"
 			>
 				Skip to content
 			</a>
 			<nav
 				aria-label="Main"
-				className={cn(
-					'relative mx-auto flex h-14 items-center justify-between border transition-[max-width,background-color,border-color,box-shadow,padding] duration-slow ease-out',
-					isContracted
-						? 'max-w-[880px] rounded-pill border-line-glass bg-bg/75 pl-4 pr-2 shadow-raised backdrop-blur-xl backdrop-saturate-150'
-						: 'max-w-content border-transparent px-2 sm:px-5'
-				)}
+				className="relative mx-auto flex h-14 max-w-content items-center justify-between px-5 sm:px-8"
 			>
 				<Link
 					href="/"
-					className="flex items-center gap-2.5 rounded-lg font-semibold tracking-tight"
+					className="flex items-center gap-2 text-[17px] font-semibold tracking-tight"
 					onClick={closeMenu}
 				>
-					<BrandMark siteName={siteName} />
-					<span className="font-display text-lg">{siteName}</span>
+					<BrandMark />
+					<span>{siteName.toLowerCase()}</span>
 				</Link>
 
 				<ul className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 md:flex">
@@ -116,7 +87,7 @@ export function Nav({ siteName }: { siteName: string }) {
 							<Link
 								href={link.href}
 								aria-current={pathname === link.href ? 'page' : undefined}
-								className="rounded-pill px-3.5 py-2 text-sm font-medium text-ink-secondary transition-colors duration-fast hover:bg-surface2/70 hover:text-ink aria-[current=page]:text-ink"
+								className="px-3 py-2 text-sm text-[rgb(var(--l-muted))] transition-colors duration-fast hover:text-[rgb(var(--l-ink))]"
 							>
 								{link.label}
 							</Link>
@@ -128,7 +99,7 @@ export function Nav({ siteName }: { siteName: string }) {
 					<Link
 						href={APP_URL}
 						onClick={onCta}
-						className="hidden h-10 items-center rounded-pill bg-ink px-4 text-sm font-semibold text-ink-inverse transition-[transform,background-color] duration-fast hover:bg-ink/90 active:scale-[0.96] sm:inline-flex"
+						className="hidden h-9 items-center bg-[rgb(var(--l-ink))] px-4 text-sm font-medium text-white transition-colors duration-fast hover:bg-[rgb(var(--l-ink)/0.85)] sm:inline-flex"
 					>
 						{CTA_LABEL}
 					</Link>
@@ -136,19 +107,19 @@ export function Nav({ siteName }: { siteName: string }) {
 					<details ref={menu} className="group relative md:hidden">
 						<summary
 							aria-label="Menu"
-							className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-line-soft bg-surface/70 text-ink backdrop-blur-md transition-transform duration-fast active:scale-[0.96]"
+							className="grid h-11 w-11 cursor-pointer place-items-center border border-[rgb(var(--l-hair))]"
 						>
 							<Menu className="h-5 w-5 group-open:hidden" aria-hidden="true" />
 							<X className="hidden h-5 w-5 group-open:block" aria-hidden="true" />
 						</summary>
-						<div className="menu-panel pane absolute right-0 top-[calc(100%+10px)] w-64 p-2 shadow-overlay">
+						<div className="absolute right-0 top-[calc(100%+8px)] w-64 border border-[rgb(var(--l-hair))] bg-[rgb(var(--l-paper))] p-2 shadow-lg">
 							<ul>
 								{LINKS.map((link) => (
 									<li key={link.href}>
 										<Link
 											href={link.href}
 											onClick={closeMenu}
-											className="flex min-h-11 items-center rounded-row px-3.5 text-[15px] font-medium text-ink-secondary transition-colors hover:bg-surface2 hover:text-ink"
+											className="flex min-h-11 items-center px-3 text-[15px] text-[rgb(var(--l-muted))] hover:bg-[rgb(var(--l-wash))] hover:text-[rgb(var(--l-ink))]"
 										>
 											{link.label}
 										</Link>
@@ -158,7 +129,7 @@ export function Nav({ siteName }: { siteName: string }) {
 							<Link
 								href={APP_URL}
 								onClick={onCta}
-								className="mt-1 flex h-12 items-center justify-center rounded-row bg-ink text-[15px] font-semibold text-ink-inverse"
+								className="mt-1 flex h-11 items-center justify-center bg-[rgb(var(--l-ink))] text-[15px] font-medium text-white"
 							>
 								{CTA_LABEL}
 							</Link>
