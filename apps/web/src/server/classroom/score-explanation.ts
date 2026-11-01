@@ -25,22 +25,25 @@ export const SCORE_EXPLANATION_INSTRUCTION = [
 	'Do not add concepts. Copy each concept title exactly as given.'
 ].join(' ')
 
-export const SCORE_EXPLANATION_RESPONSE_JSON_SCHEMA = {
-	type: 'object',
-	properties: {
-		results: {
-			type: 'array',
-			items: {
-				type: 'object',
-				properties: {
-					concept: { type: 'string' },
-					result: { type: 'string', enum: [...CONCEPT_RESULTS] }
-				},
-				required: ['concept', 'result']
+/** The titles are an enum because the model otherwise copies each concept's quote in with them. */
+export function scoreResponseJsonSchema(concepts: StoredConcept[]) {
+	return {
+		type: 'object',
+		properties: {
+			results: {
+				type: 'array',
+				items: {
+					type: 'object',
+					properties: {
+						concept: { type: 'string', enum: concepts.map(({ title }) => title) },
+						result: { type: 'string', enum: [...CONCEPT_RESULTS] }
+					},
+					required: ['concept', 'result']
+				}
 			}
-		}
-	},
-	required: ['results']
+		},
+		required: ['results']
+	}
 }
 
 const scoreResponseSchema = z.object({
@@ -57,7 +60,8 @@ function conceptKey(title: string): string {
  * One result for each stored concept. A concept the model invents is dropped.
  * A stored concept it skips, or labels with something other than correct,
  * missed, or wrong, counts as missed: the class should still ask about it.
- * A malformed reply throws.
+ * A malformed reply throws, and so does one that judges none of the stored concepts: that is
+ * a failed scoring, not an explanation that missed everything.
  */
 export function parseExplanationScore(
 	raw: string | undefined,
@@ -70,6 +74,9 @@ export function parseExplanationScore(
 		if (key.length === 0 || judged.has(key)) continue
 		const parsed = z.enum(CONCEPT_RESULTS).safeParse(result)
 		if (parsed.success) judged.set(key, parsed.data)
+	}
+	if (!concepts.some(({ title }) => judged.has(conceptKey(title)))) {
+		throw new Error('The score matched none of the stored concepts.')
 	}
 	return concepts.map(({ title }) => ({
 		concept: title,

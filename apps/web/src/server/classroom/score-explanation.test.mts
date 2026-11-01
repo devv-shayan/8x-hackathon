@@ -5,7 +5,8 @@ import {
 	buildScorePrompt,
 	focusConceptLines,
 	parseExplanationScore,
-	parseStoredConceptResults
+	parseStoredConceptResults,
+	scoreResponseJsonSchema
 } from './score-explanation'
 
 const CONCEPTS = [
@@ -85,6 +86,23 @@ test('a malformed reply is a real failure, not a user error', () => {
 			(error: unknown) => !(error instanceof ApiError)
 		)
 	}
+})
+
+test('a reply that judges none of the stored concepts is a failure, not a zero', () => {
+	const titlesWithQuotes = CONCEPTS.map(({ title, quote }) => ({
+		concept: `${title}: "${quote}"`,
+		result: 'correct'
+	}))
+	assert.throws(() => parseExplanationScore(reply(titlesWithQuotes), CONCEPTS))
+	assert.throws(() => parseExplanationScore(reply([]), CONCEPTS))
+})
+
+test('the response schema only allows the stored titles', () => {
+	const { concept } = scoreResponseJsonSchema(CONCEPTS).properties.results.items.properties
+	assert.deepEqual(
+		concept.enum,
+		CONCEPTS.map(({ title }) => title)
+	)
 })
 
 test('focusConceptLines keeps only what was missed or wrong', () => {

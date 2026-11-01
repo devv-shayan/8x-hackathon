@@ -7,7 +7,7 @@ import {
 	buildScorePrompt,
 	parseExplanationScore,
 	SCORE_EXPLANATION_INSTRUCTION,
-	SCORE_EXPLANATION_RESPONSE_JSON_SCHEMA,
+	scoreResponseJsonSchema,
 	type ConceptResult
 } from './score-explanation'
 
@@ -35,7 +35,7 @@ export async function scoreExplanation(input: {
 				systemInstruction: SCORE_EXPLANATION_INSTRUCTION,
 				temperature: SCORE_TEMPERATURE,
 				responseMimeType: 'application/json',
-				responseJsonSchema: SCORE_EXPLANATION_RESPONSE_JSON_SCHEMA
+				responseJsonSchema: scoreResponseJsonSchema(concepts)
 			}
 		)
 		return parseExplanationScore(response.text, concepts)
