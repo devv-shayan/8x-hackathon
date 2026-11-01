@@ -42,6 +42,8 @@ let session: {
 }
 let scoreCalls = 0
 let failedScoreCalls = 0
+let afterClassCalls = 0
+let afterClassFails = false
 let questionPrompts: string[] = []
 let gapSaves: { concept: string; result: 'correct' | 'missed' | 'wrong' }[][] = []
 
@@ -112,6 +114,11 @@ function geminiReply(text: unknown): Response {
 
 globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 	const request = String(init?.body)
+	if (request.includes('by the end of a class')) {
+		afterClassCalls += 1
+		if (afterClassFails) throw new TypeError('fetch failed')
+		return geminiReply({ results: [{ concept: 'Xylem', result: 'correct' }] })
+	}
 	if (request.includes("score a teacher's explanation")) {
 		scoreCalls += 1
 		if (scoreCalls <= failedScoreCalls) throw new TypeError('fetch failed')
@@ -127,9 +134,16 @@ globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 beforeEach(() => {
 	scoreCalls = 0
 	failedScoreCalls = 0
+	afterClassCalls = 0
+	afterClassFails = false
 	questionPrompts = []
 	gapSaves = []
 })
+
+async function classWithOneAnswer() {
+	await startClass(USER, TOPIC, 'Plants drink.')
+	await answerTurn(USER, CLASS, 'turn-0', 'answered', 'Water rises through xylem.')
+}
 
 test('a class scored at the start asks about what was missed or wrong', async () => {
 	const started = await startClass(USER, TOPIC, 'Plants drink.')
@@ -202,4 +216,49 @@ test('a class that already has a score is not scored again', async () => {
 	await endClass(USER, CLASS)
 	assert.equal(scoreCalls, 1)
 	assert.equal(gapSaves.length, 1)
+})
+
+test('ending a class counts what was said in it, and keeps the first score', async () => {
+	await classWithOneAnswer()
+	const ended = await endClass(USER, CLASS)
+	assert.equal(afterClassCalls, 1)
+	assert.deepEqual(
+		ended.concept_results?.map(({ concept, result, result_after_class }) => [
+			concept,
+			result,
+			result_after_class
+		]),
+		[
+			['Xylem', 'wrong', 'correct'],
+			['Stomata', 'missed', 'missed']
+		]
+	)
+})
+
+test('a class with no answers is not scored again', async () => {
+	await startClass(USER, TOPIC, 'Plants drink.')
+	const ended = await endClass(USER, CLASS)
+	assert.equal(afterClassCalls, 0)
+	assert.ok(ended.concept_results?.every(({ result_after_class }) => result_after_class === null))
+})
+
+test('a failed score after class leaves the first score', async () => {
+	await classWithOneAnswer()
+	afterClassFails = true
+	const ended = await endClass(USER, CLASS)
+	assert.equal(ended.finished, true)
+	assert.deepEqual(
+		ended.concept_results?.map(({ result, result_after_class }) => [result, result_after_class]),
+		[
+			['wrong', null],
+			['missed', null]
+		]
+	)
+})
+
+test('a class is only scored after class once', async () => {
+	await classWithOneAnswer()
+	await endClass(USER, CLASS)
+	await endClass(USER, CLASS)
+	assert.equal(afterClassCalls, 1)
 })

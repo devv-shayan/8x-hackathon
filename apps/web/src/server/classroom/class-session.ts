@@ -9,9 +9,9 @@ import { topicStore, type TopicRecord } from '@/server/db/topics'
 import { isLocalDemoUser } from '@/server/demo/local-demo'
 import { demoStudentQuestion, scoreDemoExplanation } from '@/server/demo/score-demo-explanation'
 import { explainFromVideo } from './help'
-import { scoreExplanation } from './find-explanation-score'
+import { scoreAfterClass, scoreExplanation } from './find-explanation-score'
 import { checkWaitingQuestion, nextQuestion } from './next-question'
-import { focusConceptLines } from './score-explanation'
+import { focusConceptLines, withResultsAfterClass } from './score-explanation'
 import { DEFAULT_STUDENTS, heardTurns, knowsTheSource } from './student-turn'
 
 type StoredClass = NonNullable<Awaited<ReturnType<typeof classStore.find>>>
@@ -184,19 +184,47 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 		finished,
 		// Scoring stays off the wire until the class ends (docs/product/context.md).
 		concept_results: finished
-			? session.conceptResults.map(({ concept, result }) => ({
+			? session.conceptResults.map(({ concept, result, resultAfterClass }) => ({
 					concept,
 					result,
+					result_after_class: resultAfterClass ?? null,
 					start_seconds: starts.get(concept) ?? null
 				}))
 			: null
 	}
 }
 
-async function scoreIfMissed(userId: string, classId: string) {
+// Best effort: without it the person still sees the first score.
+async function tryScoreAfterClass(topic: TopicRecord, session: StoredClass) {
+	const answers = heardTurns(session.turns).flatMap(({ question, answer }) =>
+		answer ? [{ question, answer }] : []
+	)
+	if (answers.length === 0) return []
+	try {
+		return await scoreAfterClass({
+			topicId: topic.id,
+			segments: topic.segments,
+			concepts: topic.concepts,
+			explanation: session.explanation,
+			answers
+		})
+	} catch (error) {
+		log.warn('could not score the class', {
+			source: 'classroom/class-session',
+			class_id: session.id,
+			error: error instanceof Error ? error.message : String(error)
+		})
+		return []
+	}
+}
+
+// Runs once no question is left open: scores a class that failed to score when it started, then
+// counts what the person said while teaching.
+async function scoreFinishedClass(userId: string, classId: string) {
 	if (isLocalDemoUser(userId)) return
 	const session = await classStore.find(userId, classId)
-	if (!session || session.conceptResults.length > 0 || session.turns.some(isOpen)) return
+	if (!session || session.turns.some(isOpen)) return
+	if (session.conceptResults.some(({ resultAfterClass }) => resultAfterClass)) return
 	const topic = await topicStore.findById(userId, session.topicId)
 	if (!topic) return
 	const results = await tryScore(topic, session.explanation)
@@ -270,7 +298,7 @@ export async function answerTurn(
 		const raised = await classStore.find(userId, classId)
 		if (raised) await rethinkWaiting(userId, topic, raised, students, speaker.id)
 	}
-	await scoreIfMissed(userId, classId)
+	await scoreFinishedClass(userId, classId)
 	return toWireClass(userId, classId)
 }
 
@@ -302,6 +330,6 @@ export async function endClass(userId: string, classId: string) {
 	const session = await classStore.find(userId, classId)
 	if (!session) throw notFound()
 	await classStore.dropOpenTurns(classId)
-	await scoreIfMissed(userId, classId)
+	await scoreFinishedClass(userId, classId)
 	return toWireClass(userId, classId)
 }

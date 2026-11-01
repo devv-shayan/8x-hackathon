@@ -43,8 +43,10 @@ type EventName =
 	| 'class_help_opened'
 	| 'class_answered'
 	| 'class_finished'
-	// Assessment — judged on whether people who finish a class see what they missed.
-	// Metadata: assessment_viewed { correct_count: number, concept_count: number }
+	// Assessment — judged on whether people who finish a class see what they missed, and on
+	// whether teaching fixes it: fixed_count above zero is the aha.
+	// Metadata: assessment_viewed { correct_count: number, final_correct_count: number,
+	// fixed_count: number, concept_count: number }. correct_count is the first explanation's.
 	| 'assessment_viewed'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:

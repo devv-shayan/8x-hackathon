@@ -8,7 +8,10 @@ export const CONCEPT_RESULTS = ['correct', 'missed', 'wrong'] as const
 
 export const conceptResultSchema = z.object({
 	concept: z.string().min(1),
-	result: z.enum(CONCEPT_RESULTS)
+	/** From the first explanation alone. Gaps come from this. */
+	result: z.enum(CONCEPT_RESULTS),
+	/** Set when the class ends, counting what the person said while teaching. */
+	resultAfterClass: z.enum(CONCEPT_RESULTS).optional()
 })
 
 export type ConceptResult = z.infer<typeof conceptResultSchema>
@@ -25,22 +28,38 @@ export const SCORE_EXPLANATION_INSTRUCTION = [
 	'Do not add concepts. Copy each concept title exactly as given.'
 ].join(' ')
 
-export const SCORE_EXPLANATION_RESPONSE_JSON_SCHEMA = {
-	type: 'object',
-	properties: {
-		results: {
-			type: 'array',
-			items: {
-				type: 'object',
-				properties: {
-					concept: { type: 'string' },
-					result: { type: 'string', enum: [...CONCEPT_RESULTS] }
-				},
-				required: ['concept', 'result']
+export const SCORE_AFTER_CLASS_INSTRUCTION = [
+	"You score what a teacher understands by the end of a class, against a video's key concepts.",
+	"You get the teacher's first explanation, then their answers to students' questions.",
+	'For every concept listed, set result to correct, missed, or wrong.',
+	'correct: by the end, the teacher has stated that idea, even in different words.',
+	'missed: the teacher never covers that idea.',
+	'wrong: the last thing the teacher said about that idea contradicts it.',
+	'A later correction replaces what they said earlier.',
+	'Admitting a mistake, or saying they are unsure, does not count unless they also state the idea.',
+	'Use only what the teacher said, the listed concepts, and the transcript.',
+	'Do not add concepts. Copy each concept title exactly as given.'
+].join(' ')
+
+/** The titles are an enum because the model otherwise copies each concept's quote in with them. */
+export function scoreResponseJsonSchema(concepts: StoredConcept[]) {
+	return {
+		type: 'object',
+		properties: {
+			results: {
+				type: 'array',
+				items: {
+					type: 'object',
+					properties: {
+						concept: { type: 'string', enum: concepts.map(({ title }) => title) },
+						result: { type: 'string', enum: [...CONCEPT_RESULTS] }
+					},
+					required: ['concept', 'result']
+				}
 			}
-		}
-	},
-	required: ['results']
+		},
+		required: ['results']
+	}
 }
 
 const scoreResponseSchema = z.object({
@@ -57,7 +76,8 @@ function conceptKey(title: string): string {
  * One result for each stored concept. A concept the model invents is dropped.
  * A stored concept it skips, or labels with something other than correct,
  * missed, or wrong, counts as missed: the class should still ask about it.
- * A malformed reply throws.
+ * A malformed reply throws, and so does one that judges none of the stored concepts: that is
+ * a failed scoring, not an explanation that missed everything.
  */
 export function parseExplanationScore(
 	raw: string | undefined,
@@ -70,6 +90,9 @@ export function parseExplanationScore(
 		if (key.length === 0 || judged.has(key)) continue
 		const parsed = z.enum(CONCEPT_RESULTS).safeParse(result)
 		if (parsed.success) judged.set(key, parsed.data)
+	}
+	if (!concepts.some(({ title }) => judged.has(conceptKey(title)))) {
+		throw new Error('The score matched none of the stored concepts.')
 	}
 	return concepts.map(({ title }) => ({
 		concept: title,
@@ -90,8 +113,27 @@ export function focusConceptLines(concepts: StoredConcept[], results: ConceptRes
 		.map(({ title, quote }) => `${title}: "${quote}"`)
 }
 
+/** Teaching can only raise a result: being unsure in class isn't the same as being wrong. */
+export function withResultsAfterClass(
+	first: ConceptResult[],
+	afterClass: ConceptResult[]
+): ConceptResult[] {
+	const fixed = new Set(
+		afterClass.filter(({ result }) => result === 'correct').map(({ concept }) => concept)
+	)
+	return first.map((item) => ({
+		...item,
+		resultAfterClass: fixed.has(item.concept) ? 'correct' : item.result
+	}))
+}
+
 export function parseStoredConceptResults(value: unknown): ConceptResult[] {
 	return conceptResultsSchema.parse(value)
+}
+
+function buildConceptLines(concepts: StoredConcept[], transcript: string): string {
+	const listed = concepts.map(({ title, quote }) => `${title}: "${quote}"`).join('\n')
+	return `Key concepts:\n${listed}\n\nVideo transcript:\n${transcript}`
 }
 
 export function buildScorePrompt(
@@ -99,10 +141,25 @@ export function buildScorePrompt(
 	concepts: StoredConcept[],
 	transcript: string
 ): string {
-	const listed = concepts.map(({ title, quote }) => `${title}: "${quote}"`).join('\n')
+	return [`What the teacher said:\n${explanation}`, buildConceptLines(concepts, transcript)].join(
+		'\n\n'
+	)
+}
+
+export type ClassAnswer = { question: string; answer: string }
+
+export function buildAfterClassPrompt(
+	explanation: string,
+	answers: ClassAnswer[],
+	concepts: StoredConcept[],
+	transcript: string
+): string {
+	const said = answers.map(
+		({ question, answer }) => `Asked: ${question}\nThe teacher said: ${answer}`
+	)
 	return [
-		`What the teacher said:\n${explanation}`,
-		`Key concepts:\n${listed}`,
-		`Video transcript:\n${transcript}`
+		`What the teacher said first:\n${explanation}`,
+		`What the teacher said in class, in order:\n${said.join('\n')}`,
+		buildConceptLines(concepts, transcript)
 	].join('\n\n')
 }
