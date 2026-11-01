@@ -77,13 +77,16 @@ export function parseExplanationScore(
 	}))
 }
 
-/** What the class should ask about: concepts the explanation missed or got wrong. */
+/**
+ * What the class should ask about: concepts the explanation missed or got wrong, or all of them
+ * when it has no score.
+ */
 export function focusConceptLines(concepts: StoredConcept[], results: ConceptResult[]): string[] {
 	const missedOrWrong = new Set(
 		results.filter(({ result }) => result !== 'correct').map(({ concept }) => concept)
 	)
 	return concepts
-		.filter(({ title }) => missedOrWrong.has(title))
+		.filter(({ title }) => results.length === 0 || missedOrWrong.has(title))
 		.map(({ title, quote }) => `${title}: "${quote}"`)
 }
 

@@ -45,6 +45,11 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			return withResults(row)
 		},
 
+		/** For a class that couldn't be scored when it started. */
+		async saveConceptResults(classId: string, conceptResults: ConceptResult[]) {
+			await client.class.update({ where: { id: classId }, data: { conceptResults } })
+		},
+
 		async find(userId: string, classId: string) {
 			if (isLocalDemoUser(userId)) return demoMemory.findClass(userId, classId)
 			const row = await client.class.findFirst({

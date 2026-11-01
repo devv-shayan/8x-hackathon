@@ -107,6 +107,10 @@ test('focusConceptLines is empty when every concept is correct', () => {
 	assert.deepEqual(lines, [])
 })
 
+test('focusConceptLines keeps every concept when the class has no score', () => {
+	assert.equal(focusConceptLines(CONCEPTS, []).length, CONCEPTS.length)
+})
+
 test('the prompt carries the explanation, the stored concepts, and the transcript', () => {
 	const prompt = buildScorePrompt(
 		'Plants drink through tubes.',
