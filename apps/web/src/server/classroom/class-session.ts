@@ -17,6 +17,26 @@ type StoredClass = NonNullable<Awaited<ReturnType<typeof classStore.find>>>
 
 type Outcome = 'answered' | 'needed_help' | 'skipped'
 
+// Scoring never holds a class up: without a score the students ask about every concept, and the
+// class is scored again when it ends.
+async function tryScore(topic: TopicRecord, explanation: string) {
+	try {
+		return await scoreExplanation({
+			topicId: topic.id,
+			segments: topic.segments,
+			concepts: topic.concepts,
+			explanation
+		})
+	} catch (error) {
+		log.warn('could not score the explanation', {
+			source: 'classroom/class-session',
+			topic_id: topic.id,
+			error: error instanceof Error ? error.message : String(error)
+		})
+		return []
+	}
+}
+
 function focusConcepts(topic: TopicRecord, results: StoredClass['conceptResults']): string[] {
 	return focusConceptLines(topic.concepts, results)
 }
@@ -172,6 +192,16 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 	}
 }
 
+async function scoreIfMissed(userId: string, classId: string) {
+	if (isLocalDemoUser(userId)) return
+	const session = await classStore.find(userId, classId)
+	if (!session || session.conceptResults.length > 0 || session.turns.some(isOpen)) return
+	const topic = await topicStore.findById(userId, session.topicId)
+	if (!topic) return
+	const results = await tryScore(topic, session.explanation)
+	if (results.length > 0) await classStore.saveConceptResults(classId, results)
+}
+
 /** The class to go back to on this topic, if one was left with hands still up. */
 export async function openClass(userId: string, topicId: string) {
 	const session = await classStore.findOpen(userId, topicId)
@@ -183,12 +213,7 @@ export async function startClass(userId: string, topicId: string, explanation: s
 	if (!topic) throw notFound()
 	const conceptResults = isLocalDemoUser(userId)
 		? scoreDemoExplanation(explanation, topic.concepts)
-		: await scoreExplanation({
-				topicId: topic.id,
-				segments: topic.segments,
-				concepts: topic.concepts,
-				explanation
-			})
+		: await tryScore(topic, explanation)
 	const session = await classStore.create(topicId, explanation, conceptResults)
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	// One at a time, so a student who saw the video can steer clear of the question before theirs.
@@ -225,6 +250,7 @@ export async function answerTurn(
 		const raised = await classStore.find(userId, classId)
 		if (raised) await rethinkWaiting(userId, topic, raised, students, speaker.id)
 	}
+	await scoreIfMissed(userId, classId)
 	return toWireClass(userId, classId)
 }
 
@@ -256,5 +282,6 @@ export async function endClass(userId: string, classId: string) {
 	const session = await classStore.find(userId, classId)
 	if (!session) throw notFound()
 	await classStore.dropOpenTurns(classId)
+	await scoreIfMissed(userId, classId)
 	return toWireClass(userId, classId)
 }
