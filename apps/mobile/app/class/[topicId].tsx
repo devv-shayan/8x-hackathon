@@ -337,8 +337,7 @@ export default function ClassScreen() {
 	})
 	const cachedTopic = useQuery({
 		queryKey: topicQueryKey(topicId),
-		queryFn: async ({ client }) =>
-			client.getQueryData<Video>(topicQueryKey(topicId)) ?? null,
+		queryFn: async ({ client }) => client.getQueryData<Video>(topicQueryKey(topicId)) ?? null,
 		staleTime: Infinity
 	})
 	const topic = useQuery({
@@ -357,12 +356,14 @@ export default function ClassScreen() {
 		if (resumedId) track('class_resumed')
 	}, [resumedId])
 
+	const sessionId = session?.id
+	const classFinished = Boolean(session?.finished)
 	// Keep the active tab on the stage that just unlocked.
 	useEffect(() => {
-		if (session?.finished) setTab('gaps')
-		else if (session) setTab('teach')
+		if (classFinished) setTab('gaps')
+		else if (sessionId) setTab('teach')
 		else setTab('explain')
-	}, [session?.id, session?.finished])
+	}, [sessionId, classFinished])
 
 	const start = useMutation({
 		mutationFn: (explanation: string) =>
@@ -436,8 +437,7 @@ export default function ClassScreen() {
 							segments={SESSION_TABS.map((item) => ({
 								...item,
 								disabled:
-									(item.value === 'teach' && !canTeach) ||
-									(item.value === 'gaps' && !canSeeGaps)
+									(item.value === 'teach' && !canTeach) || (item.value === 'gaps' && !canSeeGaps)
 							}))}
 						/>
 					) : null}
@@ -451,8 +451,7 @@ export default function ClassScreen() {
 									</Text>
 								) : null}
 								<Text variant="lead" tone="secondary">
-									You already explained this. Switch to Teach for the class, or Gaps when it
-									ends.
+									You already explained this. Switch to Teach for the class, or Gaps when it ends.
 								</Text>
 								{canTeach ? (
 									<Button label="Back to Teach" fullWidth onPress={() => setTab('teach')} />
@@ -503,9 +502,7 @@ export default function ClassScreen() {
 										value={answer}
 										onChangeText={setAnswer}
 										error={
-											reply.isError || end.isError
-												? errorMessage(reply.error ?? end.error)
-												: null
+											reply.isError || end.isError ? errorMessage(reply.error ?? end.error) : null
 										}
 									/>
 									<Button
@@ -513,9 +510,7 @@ export default function ClassScreen() {
 										loading={reply.isPending}
 										disabled={!answer.trim() || busy}
 										fullWidth
-										onPress={() =>
-											reply.mutate({ turn: openTurn, outcome: 'answered' })
-										}
+										onPress={() => reply.mutate({ turn: openTurn, outcome: 'answered' })}
 									/>
 									<Button
 										label="I’ll be back: check the video"
@@ -534,9 +529,7 @@ export default function ClassScreen() {
 										variant="ghost"
 										disabled={busy}
 										fullWidth
-										onPress={() =>
-											reply.mutate({ turn: openTurn, outcome: 'skipped' })
-										}
+										onPress={() => reply.mutate({ turn: openTurn, outcome: 'skipped' })}
 									/>
 									<Button
 										label={end.isPending ? 'Ending the class…' : 'End class'}
