@@ -32,6 +32,7 @@
 		"check:template": "node scripts/check-template-clean.mjs",
 		"logs:backfill": "python3 .claude/log-session.py --backfill",
 		"db:migrate": "npm run db:migrate --workspace=@app/web",
+		"db:seed-due-gap": "npm run db:seed-due-gap --workspace=@app/web --",
 		"db:reset": "supabase db reset && npm run db:migrate",
 		"db:run-once": "node scripts/run-once-sql.mjs",
 		"prepare": "git config core.hooksPath .githooks || true"

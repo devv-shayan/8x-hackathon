@@ -74,6 +74,9 @@ cd apps/mobile && npx expo start --web
 The README has the full setup. Get env values from your teammate privately, and never commit them.
 For Supabase, use the pooler addresses and URL-encode the password (see `apps/web/.env.example`).
 
+A warm-up is due two days after a gap is found. To demo one before then, sign in once and run
+`npm run db:seed-due-gap -- <user-id>`. It writes a past class with a gap that is already due.
+
 ## Adding a feature
 
 1. Register events first (`apps/mobile/lib/analytics.ts`), as `AGENTS.md` requires.
