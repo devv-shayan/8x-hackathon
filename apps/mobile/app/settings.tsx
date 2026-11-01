@@ -1,17 +1,8 @@
 import { useState } from 'react'
-import { Linking, Platform, StyleSheet } from 'react-native'
+import { Platform, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import Constants from 'expo-constants'
-import {
-	CreditCard,
-	FileText,
-	Moon,
-	ShieldCheck,
-	Sun,
-	SunMoon,
-	Trash2,
-	Vibrate
-} from 'lucide-react-native'
+import { FileText, Moon, ShieldCheck, Sun, SunMoon, Trash2, Vibrate } from 'lucide-react-native'
 import { AlertModal } from '@/components/ui/AppModal'
 import { ListRow, Section } from '@/components/ui/List'
 import { PageHeader, ScreenTitle } from '@/components/ui/PageHeader'
@@ -25,16 +16,12 @@ import { AccountDeletionError, deleteAccount } from '@/lib/account'
 import { track } from '@/lib/analytics'
 import { APP_NAME } from '@/lib/constants'
 import { hapticsPreference, saveHapticsPref } from '@/lib/haptics'
-import { logoutRevenueCat, MANAGE_SUBSCRIPTIONS_URL } from '@/lib/purchases'
+import { logoutRevenueCat } from '@/lib/purchases'
 import { supabase } from '@/lib/supabase'
-
-const STORE_NAME = Platform.OS === 'ios' ? 'the App Store' : 'Google Play'
 
 const DELETE_ACCOUNT_MESSAGE =
 	'This permanently deletes your account and everything in it: your profile, videos, ' +
-	"classes and answers. It can't be undone.\n\n" +
-	`Deleting your account does not cancel a subscription bought through ${STORE_NAME}. ` +
-	"Cancel it there first, or you'll keep being charged."
+	"classes and answers. It can't be undone."
 
 export default function SettingsScreen() {
 	const { pref, setPref } = useTheme()
@@ -140,15 +127,6 @@ export default function SettingsScreen() {
 				</Section>
 			)}
 
-			<Section title="Subscription">
-				<ListRow
-					icon={CreditCard}
-					title="Manage subscription"
-					subtitle={`Change or cancel in ${STORE_NAME}`}
-					onPress={() => Linking.openURL(MANAGE_SUBSCRIPTIONS_URL)}
-				/>
-			</Section>
-
 			<Section title="Legal">
 				<ListRow icon={FileText} title="Privacy Policy" onPress={() => router.push('/privacy')} />
 				<ListRow
@@ -178,7 +156,6 @@ export default function SettingsScreen() {
 				title="Delete your account?"
 				message={DELETE_ACCOUNT_MESSAGE}
 				buttons={[
-					{ text: 'Manage subscription', onPress: () => Linking.openURL(MANAGE_SUBSCRIPTIONS_URL) },
 					{ text: 'Delete account', style: 'destructive', onPress: handleDeleteConfirmed },
 					{ text: 'Cancel', style: 'cancel' }
 				]}
