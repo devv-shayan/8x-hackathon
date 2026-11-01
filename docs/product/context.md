@@ -45,7 +45,8 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | Key concepts    | `apps/web/src/server/video/find-key-concepts.ts`, `key-concepts.ts` |
 | Saved videos    | `apps/web/src/server/db/topics.ts`                                  |
 | Schema          | `apps/web/prisma/schema/learning.prisma`                            |
-| Home screen     | `apps/mobile/app/(tabs)/index.tsx`                                  |
+| Home screen     | `apps/mobile/app/(tabs)/index.tsx` (link box, due warm-ups)         |
+| Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`  |
 
 In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't
 read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
@@ -53,9 +54,10 @@ The limit is 90
 minutes with captions and 30 without. Key concepts keep only quotes found in the transcript, and
 the timestamp comes from the transcript, not the model.
 
-The learning tables (`students`, `classes`, `class_turns`, `gaps`, `warm_ups`) have no stores or
-routes yet. Explore, Activity and the items, tasks and notifications code are template demos: don't
-build on them.
+Students, classes and warm-ups have stores and `/api/app/v1` routes. A warm-up updates the gap
+schedule when it is judged (`apps/web/src/server/gaps/schedule.ts`). Nothing creates a gap from a
+class yet, so the due list stays empty until that exists. Explore, Activity and the items, tasks
+and notifications code are template demos: don't build on them.
 
 ## Run it
 

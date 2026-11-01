@@ -15,6 +15,14 @@ import { createTaskBody, listTasksQuery, listTasksResponse, taskResponse } from 
 import { createUploadBody, createUploadResponse } from './uploads'
 import { readVideoBody, readVideoResponse } from './videos'
 import {
+	answerWarmUpBody,
+	answerWarmUpResponse,
+	dueWarmUpsResponse,
+	startWarmUpBody,
+	warmUpParams,
+	warmUpResponse
+} from './warm-ups'
+import {
 	answerTurnBody,
 	classHelpBody,
 	classHelpResponse,
@@ -191,6 +199,30 @@ export const endpoints = {
 		body: createUploadBody,
 		response: createUploadResponse,
 		status: 201
+	},
+	listDueWarmUps: {
+		method: 'GET',
+		path: '/api/app/v1/warm-ups/due',
+		auth: 'user',
+		response: dueWarmUpsResponse,
+		status: 200
+	},
+	startWarmUp: {
+		method: 'POST',
+		path: '/api/app/v1/warm-ups',
+		auth: 'user',
+		body: startWarmUpBody,
+		response: warmUpResponse,
+		status: 201
+	},
+	answerWarmUp: {
+		method: 'POST',
+		path: '/api/app/v1/warm-ups/:id/answer',
+		auth: 'user',
+		params: warmUpParams,
+		body: answerWarmUpBody,
+		response: answerWarmUpResponse,
+		status: 200
 	}
 } as const satisfies Record<string, Endpoint>
 
