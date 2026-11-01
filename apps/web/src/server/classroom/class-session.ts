@@ -227,10 +227,14 @@ async function scoreFinishedClass(userId: string, classId: string) {
 	if (session.conceptResults.some(({ resultAfterClass }) => resultAfterClass)) return
 	const topic = await topicStore.findById(userId, session.topicId)
 	if (!topic) return
-	const results = await tryScore(topic, session.explanation)
-	if (results.length === 0) return
+	const hadScore = session.conceptResults.length > 0
+	const first = hadScore ? session.conceptResults : await tryScore(topic, session.explanation)
+	if (first.length === 0) return
+	const afterClass = await tryScoreAfterClass(topic, session)
+	const results = afterClass.length > 0 ? withResultsAfterClass(first, afterClass) : first
 	await classStore.saveConceptResults(classId, results)
-	await rememberGaps({ userId, topic, results })
+	// A class scored at the start already saved its gaps. Saving again would open a second set.
+	if (!hadScore) await rememberGaps({ userId, topic, results: first })
 }
 
 /** A missed or wrong concept becomes a gap, due two days later. */
