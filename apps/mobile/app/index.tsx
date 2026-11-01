@@ -151,13 +151,13 @@ function DealtCards() {
 		>
 			<DealtCard index={0}>
 				<Text variant="eyebrow" tone="tertiary">
-					This week
+					Your last class
 				</Text>
 				<Text variant="number" style={s.bigNumber}>
-					24
+					6 of 8
 				</Text>
 				<Text variant="caption" tone="secondary">
-					items moved forward
+					key ideas explained
 				</Text>
 			</DealtCard>
 			<DealtCard index={1}>
@@ -166,9 +166,9 @@ function DealtCards() {
 						<Check size={16} color={c.successText} strokeWidth={2.4} />
 					</View>
 					<View style={s.flex}>
-						<Text variant="label">Morning review</Text>
+						<Text variant="label">Maya has a question</Text>
 						<Text variant="caption" tone="secondary">
-							Done · 8:40
+							Hand up
 						</Text>
 					</View>
 				</View>
@@ -179,9 +179,9 @@ function DealtCards() {
 						<Sparkles size={16} color={c.brandInk} strokeWidth={2} />
 					</View>
 					<View style={s.flex}>
-						<Text variant="label">Your first project</Text>
+						<Text variant="label">Warm-up due</Text>
 						<Text variant="caption" tone="secondary">
-							3 of 5 steps
+							About a minute
 						</Text>
 					</View>
 				</View>

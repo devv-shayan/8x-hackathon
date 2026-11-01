@@ -8,16 +8,10 @@ export const metadata: Metadata = {
 	description: 'Get help, report a bug, or send feedback.'
 }
 
-// 🎨 REPLACE: your support address, and the questions your users actually ask.
-const SUPPORT_EMAIL = 'support@example.com'
 const QUESTIONS = [
 	{
 		q: 'How do I sign in on a new phone?',
 		a: 'Install the app, enter the email on your account, and type in the six-digit code we send you.'
-	},
-	{
-		q: 'How do I cancel my subscription?',
-		a: 'In your App Store or Google Play account settings, under Subscriptions.'
 	},
 	{
 		q: 'How do I delete my account?',
@@ -29,18 +23,7 @@ export default function SupportPage() {
 	return (
 		<PageShell>
 			<Container className="pb-28 sm:pb-36">
-				<PageHeader
-					title="How can we help?"
-					lead={
-						<>
-							Write to{' '}
-							<a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-brand-ink underline">
-								{SUPPORT_EMAIL}
-							</a>{' '}
-							or use the form, and we will reply by email.
-						</>
-					}
-				/>
+				<PageHeader title="How can we help?" lead="Use the form, and we will reply by email." />
 
 				<div className="mt-14 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
 					<section className="pane p-7 sm:p-9" aria-labelledby="message-heading">

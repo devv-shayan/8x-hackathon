@@ -17,12 +17,6 @@ export const APP_NAME = brandConfig.appName
 /** URL scheme matching expo.scheme in app.json — used for OAuth deep link callbacks. */
 export const APP_SCHEME = 'chalkback'
 
-/** Support email shown on the Support screen. */
-export const APP_SUPPORT_EMAIL = 'support@example.com'
-
-/** Documentation URL shown on the Support screen. */
-export const APP_DOCS_URL = 'https://example.com/docs'
-
 /** One-liner shown on the landing page below the app name. */
 export const APP_TAGLINE = 'Teach it. The class talks back.'
 

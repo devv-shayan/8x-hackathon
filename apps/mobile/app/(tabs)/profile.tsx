@@ -1,22 +1,14 @@
 import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
-import {
-	BadgeCheck,
-	FileText,
-	LifeBuoy,
-	LogOut,
-	Settings,
-	ShieldCheck,
-	Sparkles
-} from 'lucide-react-native'
+import { BadgeCheck, FileText, LifeBuoy, LogOut, Settings, ShieldCheck } from 'lucide-react-native'
 import { FadeSlideIn } from '@/components/motion/FadeSlideIn'
 import { InlineQueryError } from '@/components/QueryError'
 import { AlertModal } from '@/components/ui/AppModal'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { ListRow, Section } from '@/components/ui/List'
-import { Avatar, Glow } from '@/components/ui/Marks'
+import { Avatar } from '@/components/ui/Marks'
 import { Screen } from '@/components/ui/Screen'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Text } from '@/components/ui/Text'
@@ -120,25 +112,7 @@ export default function ProfileScreen() {
 							/>
 						</View>
 					</Card>
-				) : (
-					<Card tier="hero" padding="spacious" style={s.upsell}>
-						<Glow size={260} style={s.glow} strength={1.4} />
-						<Sparkles size={22} color={c.heroBrandInk} strokeWidth={2} />
-						<Text variant="h2" style={{ color: c.heroText }}>
-							Get everything
-						</Text>
-						{/* 🎨 REPLACE: one line on what Premium unlocks in your app. */}
-						<Text variant="bodySm" style={{ color: c.heroTextSecondary }}>
-							Every feature, no limits. Try it free first if a trial is on offer.
-						</Text>
-						<Button
-							label="See plans"
-							size="md"
-							style={s.upsellCta}
-							onPress={() => router.push('/upgrade')}
-						/>
-					</Card>
-				)}
+				) : null}
 			</FadeSlideIn>
 
 			<FadeSlideIn index={2}>
@@ -198,8 +172,5 @@ const s = StyleSheet.create({
 	flex: { flex: 1 },
 	identity: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 	who: { flex: 1, gap: 3 },
-	planRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-	upsell: { gap: 8, overflow: 'hidden' },
-	glow: { position: 'absolute', right: -90, top: -110 },
-	upsellCta: { marginTop: 10 }
+	planRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }
 })

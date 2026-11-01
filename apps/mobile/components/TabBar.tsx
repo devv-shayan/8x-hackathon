@@ -43,20 +43,23 @@ export default function TabBar({ state, navigation, descriptors }: BottomTabBarP
 	const insets = useSafeAreaInsets()
 	const { colors: c, elevation, layout, isDark } = useTheme()
 	const [width, setWidth] = useState(0)
-	const count = state.routes.length
+	// A route hidden with `href: null` stays in the state, without an icon.
+	const routes = state.routes.filter(({ key }) => descriptors[key].options.tabBarIcon)
+	const count = routes.length
+	const activeSlot = routes.findIndex(({ key }) => key === state.routes[state.index]?.key)
 	const slot = count > 0 ? width / count : 0
 
 	const lensX = useSharedValue(0)
 	useEffect(() => {
-		if (slot > 0) lensX.value = withSpring(state.index * slot + LENS_INSET, Springs.smooth)
-	}, [state.index, slot, lensX])
+		if (slot > 0) lensX.value = withSpring(activeSlot * slot + LENS_INSET, Springs.smooth)
+	}, [activeSlot, slot, lensX])
 	const lensStyle = useAnimatedStyle(() => ({ transform: [{ translateX: lensX.value }] }))
 
 	function onLayout(e: LayoutChangeEvent) {
 		const w = e.nativeEvent.layout.width
 		setWidth(w)
 		// Place the lens without animating on first layout.
-		lensX.value = state.index * (w / Math.max(count, 1)) + LENS_INSET
+		lensX.value = activeSlot * (w / Math.max(count, 1)) + LENS_INSET
 	}
 
 	function handlePress(routeName: string, key: string, focused: boolean) {
@@ -102,9 +105,9 @@ export default function TabBar({ state, navigation, descriptors }: BottomTabBarP
 					/>
 				) : null}
 
-				{state.routes.map((route, i) => {
+				{routes.map((route, i) => {
 					const { options } = descriptors[route.key]
-					const focused = state.index === i
+					const focused = activeSlot === i
 					const label =
 						typeof options.tabBarLabel === 'string'
 							? options.tabBarLabel

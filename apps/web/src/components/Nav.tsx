@@ -7,19 +7,16 @@ import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { gaEvent } from '@/lib/analytics/client'
 import { FUNNEL_EVENTS } from '@/lib/analytics/events'
-import { IS_LIVE } from '@/lib/stores'
+import { APP_URL } from '@/lib/stores'
 import { BrandMark } from './BrandMark'
 
 // 🎨 REPLACE: your site's sections and pages.
 const LINKS = [
-	{ href: '/#story', label: 'How it works' },
-	{ href: '/#features', label: 'Features' },
-	{ href: '/pricing', label: 'Pricing' },
+	{ href: '/#faq', label: 'Questions' },
 	{ href: '/support', label: 'Support' }
 ]
 
-/** The nav's call to action, true to the launch state (src/lib/stores.ts). */
-const CTA_LABEL = IS_LIVE ? 'Get the app' : 'Join the waitlist'
+const CTA_LABEL = 'Try Chalkback'
 
 /** Scroll distance, px, after which the bar contracts into the capsule. */
 const CONTRACT_AFTER = 24
@@ -129,7 +126,7 @@ export function Nav({ siteName }: { siteName: string }) {
 
 				<div className="flex items-center gap-2">
 					<Link
-						href="/#download"
+						href={APP_URL}
 						onClick={onCta}
 						className="hidden h-10 items-center rounded-pill bg-ink px-4 text-sm font-semibold text-ink-inverse transition-[transform,background-color] duration-fast hover:bg-ink/90 active:scale-[0.96] sm:inline-flex"
 					>
@@ -159,7 +156,7 @@ export function Nav({ siteName }: { siteName: string }) {
 								))}
 							</ul>
 							<Link
-								href="/#download"
+								href={APP_URL}
 								onClick={onCta}
 								className="mt-1 flex h-12 items-center justify-center rounded-row bg-ink text-[15px] font-semibold text-ink-inverse"
 							>

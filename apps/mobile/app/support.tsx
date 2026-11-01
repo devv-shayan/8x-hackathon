@@ -1,43 +1,40 @@
 import { useState } from 'react'
-import { Linking, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Animated, {
 	FadeIn,
 	ReduceMotion,
 	useAnimatedStyle,
 	withTiming
 } from 'react-native-reanimated'
-import { BookOpen, ChevronDown, Mail } from 'lucide-react-native'
+import { ChevronDown } from 'lucide-react-native'
 import { PressableScale } from '@/components/motion/PressableScale'
-import { ListGroup, ListRow, Section } from '@/components/ui/List'
+import { ListGroup, Section } from '@/components/ui/List'
 import { PageHeader, ScreenTitle } from '@/components/ui/PageHeader'
 import { Screen } from '@/components/ui/Screen'
 import { Text } from '@/components/ui/Text'
 import { useColors } from '@/contexts/ThemeContext'
-import { APP_DOCS_URL, APP_SUPPORT_EMAIL } from '@/lib/constants'
 import { Durations, Timings, layoutTransition } from '@/lib/motion'
 
 type FaqItem = { id: string; question: string; answer: string }
 
-// 🎨 REPLACE: your app's real questions and answers. This ships in every build,
-// release included, exactly as written here.
 const FAQ: FaqItem[] = [
 	{
 		id: 'faq-1',
-		question: 'Can I use this template without external services?',
+		question: 'Which videos work?',
 		answer:
-			'Yes. Development builds fill the screens with demo data, so the app works as a full demo before wiring real APIs.'
+			'Public YouTube videos with speech. Private, removed or silent videos can’t be read, and the app will tell you.'
 	},
 	{
 		id: 'faq-2',
-		question: 'How do I swap mock data for real APIs?',
+		question: 'How is my score worked out?',
 		answer:
-			'Point the data hooks at your API adapter methods while keeping screen UI intact. Release builds never show demo data.'
+			'Your explanation is compared with the key ideas in the video. Each one counts as correct, missed or wrong, and you see the result when the class ends.'
 	},
 	{
 		id: 'faq-3',
-		question: 'Where should legal copy live?',
+		question: 'What if I can’t answer a student?',
 		answer:
-			'Use the privacy and terms routes as placeholders until your final policy documents are ready.'
+			'Tap I’ll be back to see that part of the video, then come back and answer. You can also skip the question.'
 	}
 ]
 
@@ -48,24 +45,7 @@ export default function SupportScreen() {
 
 	return (
 		<Screen header={<PageHeader />} gap={26}>
-			<ScreenTitle title="Help & support" subtitle="Questions, problems or ideas: get in touch." />
-
-			<Section title="Contact">
-				<ListRow
-					icon={Mail}
-					tone="brand"
-					title="Email us"
-					subtitle={APP_SUPPORT_EMAIL}
-					onPress={() => Linking.openURL(`mailto:${APP_SUPPORT_EMAIL}`)}
-				/>
-				<ListRow
-					icon={BookOpen}
-					tone="brand"
-					title="Read the guide"
-					subtitle="Answers to the common questions"
-					onPress={() => Linking.openURL(APP_DOCS_URL)}
-				/>
-			</Section>
+			<ScreenTitle title="Help & support" subtitle="Answers to the common questions." />
 
 			<Section title="Frequently asked">
 				<ListGroup inset={false}>
