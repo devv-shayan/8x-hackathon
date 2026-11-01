@@ -2,11 +2,13 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ApiError } from '@/server/api/app-errors'
 import {
+	buildAfterClassPrompt,
 	buildScorePrompt,
 	focusConceptLines,
 	parseExplanationScore,
 	parseStoredConceptResults,
-	scoreResponseJsonSchema
+	scoreResponseJsonSchema,
+	withResultsAfterClass
 } from './score-explanation'
 
 const CONCEPTS = [
@@ -102,6 +104,63 @@ test('the response schema only allows the stored titles', () => {
 	assert.deepEqual(
 		concept.enum,
 		CONCEPTS.map(({ title }) => title)
+	)
+})
+
+test('the class can only raise a result', () => {
+	const merged = withResultsAfterClass(
+		[
+			{ concept: 'Xylem', result: 'correct' },
+			{ concept: 'Stomata', result: 'wrong' },
+			{ concept: 'Splitting water', result: 'missed' }
+		],
+		[
+			{ concept: 'Xylem', result: 'wrong' },
+			{ concept: 'Stomata', result: 'correct' },
+			{ concept: 'Splitting water', result: 'wrong' }
+		]
+	)
+	assert.deepEqual(merged, [
+		{ concept: 'Xylem', result: 'correct', resultAfterClass: 'correct' },
+		{ concept: 'Stomata', result: 'wrong', resultAfterClass: 'correct' },
+		{ concept: 'Splitting water', result: 'missed', resultAfterClass: 'missed' }
+	])
+})
+
+test('the prompt after class carries the answers in order, after the first explanation', () => {
+	const prompt = buildAfterClassPrompt(
+		'Plants drink through tubes.',
+		[
+			{ question: 'How?', answer: 'Through xylem.' },
+			{ question: 'And gas?', answer: 'Through stomata.' }
+		],
+		CONCEPTS,
+		'Water moves through xylem.'
+	)
+	const order = [
+		'Plants drink through tubes.',
+		'Asked: How?\nThe teacher said: Through xylem.',
+		'Asked: And gas?\nThe teacher said: Through stomata.',
+		'Xylem: "water moves through xylem"',
+		'Water moves through xylem.'
+	].map((part) => prompt.indexOf(part))
+	assert.ok(order.every((at) => at >= 0))
+	assert.deepEqual(
+		order,
+		[...order].sort((a, b) => a - b)
+	)
+})
+
+test('stored results without a score after class still parse', () => {
+	assert.deepEqual(
+		parseStoredConceptResults([
+			{ concept: 'Xylem', result: 'missed' },
+			{ concept: 'Stomata', result: 'wrong', resultAfterClass: 'correct' }
+		]),
+		[
+			{ concept: 'Xylem', result: 'missed' },
+			{ concept: 'Stomata', result: 'wrong', resultAfterClass: 'correct' }
+		]
 	)
 })
 

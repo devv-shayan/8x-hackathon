@@ -41,7 +41,7 @@ model Class {
   id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   topicId        String      @map("topic_id") @db.Uuid
   explanation    String
-  /// [{ concept, result: 'correct' | 'missed' | 'wrong' }]
+  /// [{ concept, result, resultAfterClass? }], each 'correct' | 'missed' | 'wrong'.
   conceptResults Json        @map("concept_results")
   /// [{ studentId, text }], written when the class ends.
   reactions      Json?

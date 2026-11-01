@@ -36,7 +36,10 @@ export const classTurnSchema = z.object({
 export const CONCEPT_RESULTS = ['correct', 'missed', 'wrong'] as const
 export const conceptResultSchema = z.object({
 	concept: z.string(),
+	/** From the first explanation alone. */
 	result: z.enum(CONCEPT_RESULTS),
+	/** Counting what the person said in class. Null if nothing was answered or it couldn't be scored. */
+	result_after_class: z.enum(CONCEPT_RESULTS).nullable().default(null),
 	/** From the stored key concept; null only if that concept no longer has a timestamp. */
 	start_seconds: z.number().int().nonnegative().nullable()
 })

@@ -18,7 +18,9 @@ The app is called Chalkback: you're at the chalkboard, and the class talks back.
 3. Explain the video in your own words. Scoring stays hidden until the class ends.
 4. Teach the class: up to 4 student questions, aimed at what was missed or wrong.
 5. "I'll be back": a private help panel, as a bottom sheet, when stuck.
-6. Assessment: "6 of 8" concepts, gaps with timestamps, how each question went.
+6. Assessment: the first score and the end-of-class score, side by side ("2 of 5", "4 of 5"), what
+   was fixed in class, what is left with timestamps, how each question went. Gaps come from the
+   first score, so a concept fixed in class still comes back as a warm-up.
 
 Gap schedule: due 2 days after it's found. Right: due again 5 days later. Right again: closed.
 Wrong: due again in 2 days.
