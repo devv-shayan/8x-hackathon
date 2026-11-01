@@ -1,5 +1,8 @@
 import { PageShell } from '@/components/PageShell'
 import { Hero } from '@/components/landing/Hero'
+import { Features } from '@/components/landing/Features'
+import { Remember } from '@/components/landing/Remember'
+import { Students } from '@/components/landing/Students'
 import { FaqSection } from '@/components/landing/FaqSection'
 import { TrackEvent } from '@/components/TrackEvent'
 import { FUNNEL_EVENTS } from '@/lib/analytics/events'
@@ -11,6 +14,9 @@ export default function HomePage() {
           this as its denominator, so it fires for guests too. */}
 			<TrackEvent name={FUNNEL_EVENTS.landingView} />
 			<Hero />
+			<Features />
+			<Remember />
+			<Students />
 			<FaqSection />
 		</PageShell>
 	)

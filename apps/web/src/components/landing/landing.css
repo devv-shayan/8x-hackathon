@@ -1,0 +1,80 @@
+/*
+ * The marketing site's own look: white paper, black ink, a lime highlight, thin rules and
+ * small mono labels. Channels, so Tailwind's arbitrary values can add opacity:
+ * bg-[rgb(var(--l-lime))], border-[rgb(var(--l-hair))].
+ *
+ * The app keeps its colours in packages/brand. These belong to the website only; move them
+ * into the brand package if the app adopts this look.
+ */
+:root {
+	--l-ink: 11 11 11;
+	--l-paper: 255 255 255;
+	--l-wash: 246 246 243;
+	--l-hair: 229 229 229;
+	--l-hair-soft: 240 240 240;
+	--l-muted: 85 85 85;
+	--l-faint: 107 107 107;
+	--l-lime: 247 254 98;
+	--l-lime-soft: 251 253 208;
+	--l-lime-tick: 201 211 0;
+	--l-gold: 253 230 138;
+	--l-peach: 253 207 168;
+	--l-maya: 212 103 31;
+	--l-omar: 109 79 224;
+	--l-moss: 91 107 0;
+	--l-ochre: 138 98 0;
+	--l-rust: 180 71 30;
+	--l-fixed: 30 122 60;
+	--l-fixed-bg: 230 246 234;
+	--l-danger: 190 32 38;
+}
+
+/* The whole website sits on white, so nothing of the app's own ground shows between sections. */
+body {
+	background: rgb(var(--l-paper));
+}
+
+.l-sans,
+.l-sans :is(h1, h2, h3) {
+	font-family: var(--font-inter-tight), var(--font-inter), system-ui, sans-serif;
+}
+
+/* The small uppercase labels: section bands, feature names, timestamps. */
+.l-mono {
+	font-family: var(--font-jetbrains), ui-monospace, monospace;
+	font-size: 11px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: rgb(var(--l-faint));
+}
+
+/* A highlighter stroke behind a word. */
+.l-hl {
+	background: rgb(var(--l-lime));
+	padding: 0 0.18em;
+	box-decoration-break: clone;
+	-webkit-box-decoration-break: clone;
+}
+
+.pixelated {
+	image-rendering: pixelated;
+}
+
+/* The hero's dotted ground, drifting slowly. */
+.l-dots {
+	background-image: radial-gradient(rgb(var(--l-hair)) 1px, transparent 1px);
+	background-size: 16px 16px;
+	animation: l-dots-drift 40s linear infinite;
+}
+
+@keyframes l-dots-drift {
+	to {
+		background-position: 160px 160px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.l-dots {
+		animation: none;
+	}
+}

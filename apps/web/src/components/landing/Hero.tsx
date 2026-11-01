@@ -1,67 +1,50 @@
-import { APP_URL } from '@/lib/stores'
-import type { CssVars } from '@/lib/utils'
 import { Container } from '../Container'
-import { DeviceFrame } from '../device/DeviceFrame'
-import { WelcomeScreen } from '../device/screens/WelcomeScreen'
-import { WordRise } from '../motion/WordRise'
-import { HeroDevice } from './HeroDevice'
+import { GreyLink, StartLink } from './parts'
+import { PixelStudents } from './pixel/PixelStudents'
 
-const HEADLINE = ['Teach it.', 'The class', 'talks back.']
-const PROMISE =
-	'Paste a YouTube video, explain it, and teach AI students who ask about what you missed, so it sticks.'
+const SUBJECTS = ['Biology', 'Psychology', 'History', 'Physics', 'Economics', 'Any lecture']
 
-/** Entrance timings, ms: the words rise first, then the action and the phone. */
-const ACTIONS_AT = 480
-const DEVICE_AT = 180
-
-/** The first viewport: the headline, the way in, and the app's welcome screen on a phone. */
+/** The first viewport: the promise on the left, Maya and Omar waiting on the right. */
 export function Hero() {
 	return (
-		<section className="relative isolate overflow-hidden bg-bg">
-			<span aria-hidden="true" className="grain -z-10" />
-			<span aria-hidden="true" className="atmosphere absolute inset-0 -z-20 daylight:hidden" />
-
-			<Container className="grid min-h-[100svh] items-center gap-14 pb-20 pt-28 sm:pt-32 lg:grid-cols-[1.12fr_0.88fr] lg:gap-6 lg:pb-16 lg:pt-28">
-				<div className="relative">
-					<WordRise as="h1" lines={HEADLINE} className="t-hero" />
-					{/* No entrance: the promise is the largest text block on a phone, so it
-					    paints at once and LCP never waits on an animation. */}
-					<p className="t-lead mt-7 max-w-[36ch] text-pretty text-ink-secondary">{PROMISE}</p>
-					<div className="enter mt-9" style={{ '--enter-delay': `${ACTIONS_AT}ms` } as CssVars}>
-						<a
-							href={APP_URL}
-							className="inline-flex h-12 items-center rounded-pill bg-brand px-6 font-semibold text-on-brand transition-transform duration-fast active:scale-[0.96]"
-						>
-							Try Chalkback
-						</a>
+		<section className="l-sans relative overflow-hidden bg-[rgb(var(--l-paper))] pt-14 text-[rgb(var(--l-ink))]">
+			<div aria-hidden="true" className="l-dots absolute inset-y-0 right-0 w-full lg:w-1/2" />
+			<Container className="relative grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-[1fr_1.05fr] lg:gap-12">
+				<div className="bg-[rgb(var(--l-paper))] lg:pr-6">
+					<p className="inline-flex flex-wrap gap-x-3 bg-[rgb(var(--l-lime-soft))] px-3 py-1.5 text-[13px]">
+						<span>Learning that sticks:</span>
+						<span>paste a video, teach it back &gt;</span>
+					</p>
+					<h1 className="mt-6 text-balance text-[clamp(2.6rem,5.4vw,4.3rem)] font-medium leading-[1.04] tracking-[-0.035em]">
+						Don&rsquo;t just watch it.
+						<br />
+						<span className="l-hl">Teach</span> it <span className="l-hl">back</span>.
+					</h1>
+					<p className="mt-6 max-w-[40ch] text-[17px] leading-relaxed text-[rgb(var(--l-muted))]">
+						Paste any YouTube video, explain it in your own words, and teach two AI students who ask
+						about what you missed. Gaps come back until they stick.
+					</p>
+					<div className="mt-8 flex flex-wrap gap-2">
+						<StartLink placement="hero" />
+						<GreyLink href="#how">See how it works</GreyLink>
 					</div>
 				</div>
 
-				<div
-					className="enter relative flex justify-center lg:justify-end"
-					style={{ '--enter-delay': `${DEVICE_AT}ms` } as CssVars}
-				>
-					{/* Dusk: the accent as light, off-centre and wide, never a halo on the phone. */}
-					<span
-						aria-hidden="true"
-						className="act-light absolute -inset-x-[40%] -inset-y-[15%] -z-10 daylight:hidden"
-						style={{ '--act-x': '40%', '--act-y': '38%', '--act-a': 1 } as CssVars}
-					/>
-					{/* Daylight: the marigold field the phone stands on. */}
-					<span
-						aria-hidden="true"
-						className="absolute left-1/2 top-[22%] -z-10 hidden h-[64%] w-[100vw] -translate-x-1/2 bg-brand daylight:block lg:left-[6%] lg:top-[14%] lg:h-[72%] lg:w-[60vw] lg:translate-x-0 lg:rounded-l-4xl"
-					/>
-					<HeroDevice>
-						<DeviceFrame
-							label="The app's welcome screen"
-							className="[--screen:258] sm:[--screen:292] lg:[--screen:300] xl:[--screen:320]"
-						>
-							<WelcomeScreen />
-						</DeviceFrame>
-					</HeroDevice>
+				<div className="relative">
+					<PixelStudents className="aspect-[4/3] w-full border border-[rgb(var(--l-hair))]" />
+					<p className="l-mono mt-3">Point at or tap a student to call on them</p>
 				</div>
 			</Container>
+
+			<div className="border-t border-[rgb(var(--l-hair-soft))]">
+				<ul className="mx-auto flex max-w-content flex-wrap justify-around gap-x-6 gap-y-2 px-5 py-4 sm:px-8">
+					{SUBJECTS.map((subject) => (
+						<li key={subject} className="l-mono">
+							{subject}
+						</li>
+					))}
+				</ul>
+			</div>
 		</section>
 	)
 }

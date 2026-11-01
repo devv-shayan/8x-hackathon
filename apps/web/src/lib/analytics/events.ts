@@ -59,16 +59,16 @@ export const FUNNEL_EVENTS = {
 
 	/**
 	 * An in-page call to action was clicked. metadata: { cta }
-	 * `cta` is the discriminator: 'nav' (the capsule nav's "Get the app") or
-	 * 'pricing_teaser' (the landing pricing section's link to /pricing). Compare
-	 * each against `store_badge_clicked` to see whether the nav or the page is
-	 * doing the sending.
+	 * `cta` is the discriminator: 'nav' (the nav's "Try it free"), 'hero', 'loop'
+	 * (the "How it works" intro), 'final' (the closing lime band), or
+	 * 'pricing_teaser' (the pricing section's link to /pricing). Compare each
+	 * against the others to see which part of the page does the sending.
 	 */
 	ctaClicked: 'cta_clicked',
 	/**
-	 * The scene-scroll story on the landing page came into view (once per page view).
-	 * Its share of `landing_view` is how many visitors get past the first
-	 * viewport; if it is low, the hero is the problem, not the story.
+	 * The "How it works" section, the first one under the hero, came into view
+	 * (once per page view). Its share of `landing_view` is how many visitors get
+	 * past the first viewport; if it is low, the hero is the problem.
 	 */
 	storyView: 'story_view',
 	/**

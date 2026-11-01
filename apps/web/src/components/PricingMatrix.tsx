@@ -2,16 +2,21 @@
 
 import Link from 'next/link'
 import { plans } from '@/lib/pricing'
-import { cn } from '@/lib/utils'
+import { APP_URL } from '@/lib/stores'
 import { gaEvent } from '@/lib/analytics/client'
 import { FUNNEL_EVENTS } from '@/lib/analytics/events'
+import { cn } from '@/lib/utils'
 import { PlanCard } from './PlanCard'
+import { PRIMARY_BUTTON } from './formStyles'
 
 export function PricingMatrix() {
 	return (
-		<ol className="grid gap-5 lg:grid-cols-3">
+		<ol className="grid border border-[rgb(var(--l-hair))] lg:grid-cols-3">
 			{plans.map((plan) => (
-				<li key={plan.id}>
+				<li
+					key={plan.id}
+					className="border-b border-[rgb(var(--l-hair))] last:border-b-0 lg:border-b-0 lg:border-r lg:last:border-r-0"
+				>
 					<PlanCard plan={plan}>
 						{/* `plan` is this event's declared discriminator, so each tier gets
                 its own row. Without it every tier after the first click of the
@@ -19,15 +24,16 @@ export function PricingMatrix() {
                 whichever one people happened to click first. */}
 						<div className="mt-auto pt-8">
 							<Link
-								href="/#download"
+								href={APP_URL}
 								onClick={() => gaEvent(FUNNEL_EVENTS.planSelected, { plan: plan.id })}
 								className={cn(
-									'flex min-h-12 items-center justify-center rounded-button px-5 font-semibold transition-[transform,background-color] duration-fast active:scale-[0.96]',
+									'w-full',
 									plan.featured
-										? 'bg-brand text-on-brand hover:bg-brand-hover daylight:bg-ink daylight:text-ink-inverse daylight:hover:bg-ink/90'
-										: 'border border-line-active text-ink hover:bg-surface2'
+										? PRIMARY_BUTTON
+										: 'inline-flex min-h-11 items-center justify-center gap-2 border border-[rgb(var(--l-ink))] px-5 text-sm font-medium transition-colors duration-fast hover:bg-[rgb(var(--l-wash))]'
 								)}
 							>
+								<span aria-hidden="true">&gt;</span>
 								{plan.cta}
 							</Link>
 						</div>

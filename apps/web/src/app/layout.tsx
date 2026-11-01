@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from 'next'
-import { Bricolage_Grotesque, Inter, Source_Serif_4 } from 'next/font/google'
+import {
+	Bricolage_Grotesque,
+	Inter,
+	Inter_Tight,
+	JetBrains_Mono,
+	Source_Serif_4
+} from 'next/font/google'
 import { Suspense } from 'react'
 import { Analytics } from '@vercel/analytics/next'
 import { brandConfig, brandCss, palette, theme } from '@app/brand'
 import { PostHogProvider } from '@/components/PostHogProvider'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import './globals.css'
+import '@/components/landing/landing.css'
 
 // Fonts. Inter is the text face for both presets; the display face is picked
 // by the preset through --font-display (packages/brand/src/css.ts): Source
@@ -34,9 +41,27 @@ const bricolage = Bricolage_Grotesque({
 	preload: false
 })
 
+// The website's own faces (src/components/landing/landing.css): Inter Tight for text and
+// headlines, JetBrains Mono for the small uppercase labels.
+const interTight = Inter_Tight({
+	subsets: ['latin'],
+	variable: '--font-inter-tight',
+	display: 'swap'
+})
+
+const jetbrainsMono = JetBrains_Mono({
+	subsets: ['latin'],
+	variable: '--font-jetbrains',
+	display: 'swap'
+})
+
 // Every colour, radius, shadow and easing as CSS variables, generated from the
 // same TS source the mobile app reads — no second copy to drift.
 const BRAND_CSS = brandCss(theme)
+
+// The website is light, whatever the app's own opening scheme: the brand's light
+// scheme for shared components, under the website's white and lime.
+const WEB_SCHEME = 'light'
 
 const SITE_NAME = brandConfig.siteName
 
@@ -44,12 +69,10 @@ const SITE_NAME = brandConfig.siteName
 // first child so it survives the build and anyone can read it in view-source.
 // React cannot emit a bare comment, so it rides inside an inert, hidden div.
 const DIRECTION_CONTRACT = `<!--
-THESIS: The first viewport is the product: the app's home screen, drawn from brand tokens on a real-proportion phone beside the headline and store buttons. Refuses a centred headline over a screenshot slot.
-OWN-WORLD: One structure, two worlds. dusk: midnight ladder, Source Serif 4 at 600, film grain, blur dissolves; the accent as glow for atmosphere, as ink for interactive text and the one primary fill. daylight: stone paper, Bricolage Grotesque 800 tracked tight, marigold fields under graphite ink, crisp rises. Ink store pills, glass capsule nav.
-STORY: See the app work; watch four acts dealt onto one pinned phone; see features shown, not claimed; tap a store or join the waitlist.
-FIRST VIEWPORT: Capsule nav above. Left 55%: word-rise headline to 6rem, promise, store buttons above the fold at 1440x900 and 390x844. Right: 320pt phone on its glow or field.
-FORM: brief-pinned to the two presets PRODUCT.md names; no roll, no seed.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+THESIS: White paper, black ink, one lime highlight. The first viewport is the class itself: Maya and Omar drawn live in pixels, raising a hand when called on.
+WORLD: Inter Tight headlines tracked tight, JetBrains Mono labels in caps, hairline rules around every grid, square buttons that open with ">". Each product section sits on its own generated, dithered background (src/components/landing/pixel): voice waves, gold drift, warm-up ripples, a lime tunnel, lime edges.
+STORY: Meet the class; how it works; explain, teach, see what stuck; why gaps come back; why teaching works; the students; questions; start a class.
+MOTION: Every background is generated, pauses off screen, and holds one still frame for reduced motion.
 -->`
 
 // Replace with your real domain. Falls back to NEXT_PUBLIC_SITE_URL in env.
@@ -82,8 +105,8 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-	themeColor: palette().bg,
-	colorScheme: theme.primaryScheme,
+	themeColor: palette(WEB_SCHEME).bg,
+	colorScheme: WEB_SCHEME,
 	width: 'device-width',
 	initialScale: 1
 }
@@ -93,8 +116,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 		<html
 			lang="en"
 			data-preset={theme.preset}
-			data-scheme={theme.primaryScheme}
-			className={`${inter.variable} ${sourceSerif.variable} ${bricolage.variable}`}
+			data-scheme={WEB_SCHEME}
+			className={`${inter.variable} ${sourceSerif.variable} ${bricolage.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
 		>
 			<head>
 				<style id="brand-tokens" dangerouslySetInnerHTML={{ __html: BRAND_CSS }} />
