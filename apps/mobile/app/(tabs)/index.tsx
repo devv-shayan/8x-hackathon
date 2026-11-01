@@ -1,40 +1,22 @@
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { KeyConcept, Video } from '@app/contract'
+import type { Video } from '@app/contract'
 import { DueWarmUps } from '@/components/DueWarmUps'
 import { FadeSlideIn } from '@/components/motion/FadeSlideIn'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { Screen } from '@/components/ui/Screen'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
-import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
 import { topicQueryKey } from '@/lib/topicQuery'
 
 // Reading a long video can take a minute or more, far past the API default.
 const READ_VIDEO_TIMEOUT_MS = 5 * 60 * 1000
-
-function ConceptCard({ concept }: { concept: KeyConcept }) {
-	return (
-		<Card>
-			<View style={s.concept}>
-				<Eyebrow tone="muted">{formatTimestamp(concept.start_seconds)}</Eyebrow>
-				<Text variant="body" style={{ fontWeight: '600' }}>
-					{concept.title}
-				</Text>
-				<Text variant="caption" tone="secondary">
-					“{concept.quote}”
-				</Text>
-			</View>
-		</Card>
-	)
-}
 
 export default function HomeScreen() {
 	const queryClient = useQueryClient()
@@ -83,11 +65,8 @@ export default function HomeScreen() {
 
 			{video ? (
 				<FadeSlideIn index={2} style={s.results}>
-					<Eyebrow tone="muted">{`${video.concepts.length} key concepts`}</Eyebrow>
+					<Eyebrow tone="muted">Ready to teach</Eyebrow>
 					<Text variant="h1">{video.title}</Text>
-					{video.concepts.map((concept) => (
-						<ConceptCard key={concept.quote} concept={concept} />
-					))}
 					<Button
 						label="Teach this to the class"
 						fullWidth
@@ -102,6 +81,5 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
 	masthead: { gap: 4, paddingTop: 8 },
 	form: { gap: 12 },
-	results: { gap: 12, paddingTop: 8 },
-	concept: { gap: 6 }
+	results: { gap: 12, paddingTop: 8 }
 })

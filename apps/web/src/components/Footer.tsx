@@ -1,25 +1,19 @@
+import { APP_URL } from '@/lib/stores'
 import Link from 'next/link'
 import { brandConfig } from '@app/brand'
 import { BrandMark } from './BrandMark'
 import { Container } from './Container'
 
-// 🎨 REPLACE: your pages, your contact address, your one-liner.
 const COLUMNS = [
 	{
 		title: 'Product',
-		links: [
-			{ href: '/#story', label: 'How it works' },
-			{ href: '/#features', label: 'Features' },
-			{ href: '/pricing', label: 'Pricing' },
-			{ href: '/#download', label: 'Download' }
-		]
+		links: [{ href: APP_URL, label: 'Open the app' }]
 	},
 	{
 		title: 'Help',
 		links: [
 			{ href: '/support', label: 'Support' },
-			{ href: '/#faq', label: 'Questions' },
-			{ href: 'mailto:hello@example.com', label: 'Contact' }
+			{ href: '/#faq', label: 'Questions' }
 		]
 	},
 	{
@@ -32,7 +26,7 @@ const COLUMNS = [
 	}
 ]
 
-const TAGLINE = 'A calmer way to get things done, on iPhone and Android.'
+const TAGLINE = 'Teach it. The class talks back.'
 
 export function Footer() {
 	const { siteName } = brandConfig
@@ -72,7 +66,6 @@ export function Footer() {
 					<p>
 						© {year} {siteName}. All rights reserved.
 					</p>
-					<p>Built on the app template.</p>
 				</div>
 			</Container>
 		</footer>

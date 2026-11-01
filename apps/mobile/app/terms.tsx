@@ -1,28 +1,23 @@
 import { LegalDocument, type LegalSection } from '@/components/LegalDocument'
 
-// 🎨 REPLACE: your terms of service, reviewed by counsel, and the date they took effect.
-const UPDATED = '[effective date]'
+const UPDATED = 'November 1, 2026'
 
 const SECTIONS: LegalSection[] = [
 	{
-		heading: 'Use of the template',
-		body: 'This project is distributed as starter software. You are responsible for customizing business logic, legal content, and service configurations before publishing to production environments.'
+		heading: 'Acceptance of terms',
+		body: 'By using Chalkback you agree to these terms. If you don’t agree, don’t use the app.'
 	},
 	{
-		heading: 'Accounts and access',
-		body: 'If authentication is enabled, users are responsible for maintaining the security of their login methods and for activity performed under their account.'
+		heading: 'Your account',
+		body: 'You are responsible for what happens under your account. Add only videos you are allowed to use, and don’t misuse the service.'
 	},
 	{
-		heading: 'Subscriptions',
-		body: 'Any billing and entitlement behavior depends on your configured payment provider. Ensure your pricing, cancellation terms, and renewal terms are clearly disclosed in your final app copy.'
+		heading: 'AI content',
+		body: 'Students, scores and explanations are written by AI and can be wrong. Check anything important against the video.'
 	},
 	{
-		heading: 'Service availability',
-		body: 'Template components are provided without uptime guarantees. Integrations may be unavailable due to network conditions, external providers, or platform maintenance windows.'
-	},
-	{
-		heading: 'Liability and compliance',
-		body: 'Replace this document with jurisdiction-appropriate legal terms reviewed by qualified counsel. This sample text is informational and not legal advice.'
+		heading: 'Availability',
+		body: 'Chalkback is provided as is, and may change or be unavailable at times. It depends on outside services, including YouTube.'
 	}
 ]
 

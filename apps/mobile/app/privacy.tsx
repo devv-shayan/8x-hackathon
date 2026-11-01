@@ -1,28 +1,27 @@
 import { LegalDocument, type LegalSection } from '@/components/LegalDocument'
 
-// 🎨 REPLACE: your privacy policy, reviewed by counsel, and the date it took effect.
-const UPDATED = '[effective date]'
+const UPDATED = 'November 1, 2026'
 
 const SECTIONS: LegalSection[] = [
 	{
 		heading: 'Overview',
-		body: 'This template application is provided for demonstration purposes. Data shown across the app can be mock data, sample analytics, or developer-provided environment values.'
+		body: 'Chalkback helps you remember what you watch by teaching it to AI students. This page says what it keeps and why.'
 	},
 	{
-		heading: 'Data we may process',
-		body: 'Depending on how you configure this template, your production app may process account identifiers, product usage events, subscription status, and support inquiries.'
+		heading: 'What we keep',
+		body: 'Your email and profile, the YouTube links you add with their transcripts, what you write in class, your scores, and how you use the app.'
 	},
 	{
-		heading: 'How data is used',
-		body: 'Typical use cases include account authentication, feature personalization, billing state checks, and improving product quality through aggregate analytics.'
+		heading: 'How we use it',
+		body: 'To sign you in, run your classes, bring back what you missed, and improve the app. We do not sell your data.'
 	},
 	{
-		heading: 'Third-party services',
-		body: "This starter may integrate with providers like authentication backends, subscription platforms, analytics services, and app update delivery. Review each provider's privacy policy before publishing."
+		heading: 'Who processes it',
+		body: 'Supabase stores your account and data, Vercel hosts the service, and Google Gemini and Supadata read videos and write the students. PostHog, Sentry and Expo handle analytics, errors and app updates.'
 	},
 	{
-		heading: 'Your responsibility before launch',
-		body: 'Replace this document with your legal policy, verify regional compliance requirements, and keep your final policy URL available inside app settings.'
+		heading: 'Deleting your data',
+		body: 'Open Settings and tap Delete account. That removes your account, videos, classes and answers.'
 	}
 ]
 

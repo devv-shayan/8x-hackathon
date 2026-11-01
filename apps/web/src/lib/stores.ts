@@ -17,3 +17,6 @@ export const PLAY_STORE_URL: string = ''
 
 /** True once at least one store listing is set. */
 export const IS_LIVE = APP_STORE_URL !== '' || PLAY_STORE_URL !== ''
+
+/** The app on the web, until it is in the stores. */
+export const APP_URL = 'https://chalkback-app.vercel.app'

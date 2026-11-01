@@ -63,11 +63,11 @@ export function WelcomeScreen() {
 			<div className="absolute inset-x-0 top-[150px] h-[250px]">
 				<DealtCard index={0}>
 					<span className="text-ink-tertiary" style={type('eyebrow')}>
-						This week
+						Your last class
 					</span>
-					<span style={{ ...type('number'), marginTop: -2 }}>24</span>
+					<span style={{ ...type('number'), marginTop: -2 }}>6 of 8</span>
 					<span className="text-ink-secondary" style={type('caption')}>
-						items moved forward
+						key ideas explained
 					</span>
 				</DealtCard>
 				<DealtCard index={1}>
@@ -76,9 +76,9 @@ export function WelcomeScreen() {
 							<Check size={16} strokeWidth={2.4} />
 						</span>
 						<span className="flex flex-col">
-							<span style={type('label')}>Morning review</span>
+							<span style={type('label')}>Maya has a question</span>
 							<span className="text-ink-secondary" style={type('caption')}>
-								Done · 8:40
+								Hand up
 							</span>
 						</span>
 					</span>
@@ -89,9 +89,9 @@ export function WelcomeScreen() {
 							<Sparkles size={16} strokeWidth={2} />
 						</span>
 						<span className="flex flex-col">
-							<span style={type('label')}>Your first project</span>
+							<span style={type('label')}>Warm-up due</span>
 							<span className="text-ink-secondary" style={type('caption')}>
-								3 of 5 steps
+								About a minute
 							</span>
 						</span>
 					</span>

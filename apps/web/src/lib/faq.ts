@@ -2,10 +2,6 @@
  * The questions answered on the landing page and on /pricing. `id` is the
  * `question` discriminator on `faq_opened`, so keep ids stable once live:
  * renaming one splits its history in two.
- *
- * 🎨 REPLACE: every answer here is true of the template as shipped (store
- * billing, code sign-in, both platforms, in-app deletion). Rewrite them for
- * your app, and put your real trial terms in `trial`.
  */
 export interface Faq {
 	id: string
@@ -15,10 +11,10 @@ export interface Faq {
 
 export const faqs: Faq[] = [
 	{
-		id: 'devices',
-		question: 'Which phones does it work on?',
+		id: 'videos',
+		question: 'Which videos work?',
 		answer:
-			'iPhone and Android. Your account works on both, so you can change phones without starting over.'
+			'Public YouTube videos with speech. Private, removed or silent videos can’t be read, and the app will tell you.'
 	},
 	{
 		id: 'sign_in',
@@ -26,22 +22,16 @@ export const faqs: Faq[] = [
 		answer: 'No. You sign in with your email and a six-digit code that we send you each time.'
 	},
 	{
-		id: 'trial',
-		question: 'Is there a free trial?',
+		id: 'score',
+		question: 'How is my score worked out?',
 		answer:
-			'Pro starts with a free trial. Its length and what happens when it ends are shown on the upgrade screen before you confirm anything.'
+			'Your explanation is compared with the key ideas in the video. Each one counts as correct, missed or wrong, and you see the result when the class ends.'
 	},
 	{
-		id: 'cancel',
-		question: 'Can I cancel any time?',
+		id: 'stuck',
+		question: 'What if I can’t answer a student?',
 		answer:
-			'Yes. Subscriptions are managed by the App Store or Google Play, and you can cancel in your store account settings whenever you like.'
-	},
-	{
-		id: 'refunds',
-		question: 'How do refunds work?',
-		answer:
-			'Payments go through Apple or Google, so refunds follow their policies. If you need a hand, write to us from the support page.'
+			'Tap I’ll be back to see that part of the video, then come back and answer. You can also skip the question.'
 	},
 	{
 		id: 'delete',

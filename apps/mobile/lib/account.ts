@@ -1,5 +1,4 @@
 import { api, ApiError } from './api'
-import { APP_SUPPORT_EMAIL } from './constants'
 
 /**
  * Delete the signed-in person's account, from inside the app, through
@@ -51,7 +50,7 @@ function deletionError(error: unknown): AccountDeletionError {
 		case 'not_configured':
 			return new AccountDeletionError(
 				'not_configured',
-				`Account deletion isn't set up in this version of the app. Email ${APP_SUPPORT_EMAIL} and we'll delete your account for you.`
+				"Account deletion isn't set up in this version of the app. Use the delete account page on chalkback.vercel.app and we'll delete it for you."
 			)
 		case 'signed_out':
 			return new AccountDeletionError(
@@ -74,7 +73,7 @@ function deletionError(error: unknown): AccountDeletionError {
 		default:
 			return new AccountDeletionError(
 				'server',
-				`Something went wrong on our side, so your account was not deleted. Try again in a few minutes, or email ${APP_SUPPORT_EMAIL}.`
+				'Something went wrong on our side, so your account was not deleted. Try again in a few minutes, or use the delete account page on chalkback.vercel.app.'
 			)
 	}
 }

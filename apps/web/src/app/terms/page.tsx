@@ -9,37 +9,34 @@ export const metadata: Metadata = {
 export default function TermsPage() {
 	return (
 		<PageShell>
-			<Prose title="Terms of Service" updated="January 1, 2026">
-				<p>
-					<strong>This is a template.</strong> Replace this with terms reviewed for your product and
-					jurisdiction before launch.
-				</p>
-
+			<Prose title="Terms of Service" updated="November 1, 2026">
 				<h2>1. Acceptance of terms</h2>
 				<p>
-					By using the app you agree to these terms. If you don&apos;t agree, don&apos;t use the
+					By using Chalkback you agree to these terms. If you don&apos;t agree, don&apos;t use the
 					app.
 				</p>
 
-				<h2>2. Subscriptions &amp; billing</h2>
+				<h2>2. Your account</h2>
 				<p>
-					Paid plans are billed through the App Store and Google Play. Renewals, cancellations, and
-					refunds are governed by those platforms&apos; policies. Summarize your trial and renewal
-					terms here.
+					You are responsible for what happens under your account. Add only videos you are allowed
+					to use, and don&apos;t misuse the service.
 				</p>
 
-				<h2>3. Acceptable use</h2>
-				<p>Describe prohibited uses, content rules, and account termination conditions.</p>
-
-				<h2>4. Disclaimers &amp; liability</h2>
+				<h2>3. AI content</h2>
 				<p>
-					The standard &quot;as is&quot;, limitation-of-liability, and governing-law clauses go
-					here.
+					Students, scores and explanations are written by AI and can be wrong. Check anything
+					important against the video.
+				</p>
+
+				<h2>4. Availability</h2>
+				<p>
+					Chalkback is provided as is, and may change or be unavailable at times. It depends on
+					outside services, including YouTube.
 				</p>
 
 				<h2>5. Contact</h2>
 				<p>
-					Questions? Email <a href="mailto:legal@example.com">legal@example.com</a>.
+					Questions? Use the <a href="/support">support page</a>.
 				</p>
 			</Prose>
 		</PageShell>

@@ -30,11 +30,9 @@ import { supabase } from '@/lib/supabase'
 
 const STORE_NAME = Platform.OS === 'ios' ? 'the App Store' : 'Google Play'
 
-// 🎨 REPLACE: say what YOUR app deletes with the account — everything that
-// cascades from auth.users(id) (see supabase/migrations). Keep it plain.
 const DELETE_ACCOUNT_MESSAGE =
-	'This permanently deletes your account and everything in it: your profile, items, tasks, ' +
-	"activity and notifications. It can't be undone.\n\n" +
+	'This permanently deletes your account and everything in it: your profile, videos, ' +
+	"classes and answers. It can't be undone.\n\n" +
 	`Deleting your account does not cancel a subscription bought through ${STORE_NAME}. ` +
 	"Cancel it there first, or you'll keep being charged."
 
