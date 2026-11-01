@@ -54,10 +54,11 @@ The limit is 90
 minutes with captions and 30 without. Key concepts keep only quotes found in the transcript, and
 the timestamp comes from the transcript, not the model.
 
-Students, classes and warm-ups have stores and `/api/app/v1` routes. A warm-up updates the gap
-schedule when it is judged (`apps/web/src/server/gaps/schedule.ts`). Nothing creates a gap from a
-class yet, so the due list stays empty until that exists. Explore, Activity and the items, tasks
-and notifications code are template demos: don't build on them.
+Students, classes and warm-ups have stores and `/api/app/v1` routes. Scoring an explanation
+saves a gap for each concept that was missed or wrong, due two days later
+(`apps/web/src/server/db/gaps.ts`). A warm-up updates that gap when it is judged
+(`apps/web/src/server/gaps/schedule.ts`). Explore, Activity and the items, tasks and
+notifications code are template demos: don't build on them.
 
 ## Run it
 

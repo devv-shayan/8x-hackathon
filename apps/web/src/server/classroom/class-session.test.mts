@@ -7,6 +7,7 @@ process.env.GEMINI_API_KEY = 'fake-gemini-key'
 process.env.DATABASE_URL = 'postgresql://user:password@db.test:5432/app'
 
 const { classStore } = await import('@/server/db/classes')
+const { gapStore } = await import('@/server/db/gaps')
 const { topicStore } = await import('@/server/db/topics')
 const { answerTurn, endClass, startClass } = await import('./class-session')
 
@@ -42,6 +43,7 @@ let session: {
 let scoreCalls = 0
 let failedScoreCalls = 0
 let questionPrompts: string[] = []
+let gapSaves: { concept: string; result: 'correct' | 'missed' | 'wrong' }[][] = []
 
 const students = [
 	{ id: 'maya', userId: USER, name: 'Maya', persona: 'Beginner', createdAt: new Date() },
@@ -93,6 +95,14 @@ Object.assign(classStore, {
 	}
 })
 
+Object.assign(gapStore, {
+	saveFromResults: async (input: {
+		results: { concept: string; result: 'correct' | 'missed' | 'wrong' }[]
+	}) => {
+		gapSaves.push(input.results)
+	}
+})
+
 function geminiReply(text: unknown): Response {
 	const candidates = [
 		{ content: { parts: [{ text: JSON.stringify(text) }] }, finishReason: 'STOP' }
@@ -118,6 +128,7 @@ beforeEach(() => {
 	scoreCalls = 0
 	failedScoreCalls = 0
 	questionPrompts = []
+	gapSaves = []
 })
 
 test('a class scored at the start asks about what was missed or wrong', async () => {
@@ -125,6 +136,12 @@ test('a class scored at the start asks about what was missed or wrong', async ()
 	assert.equal(started.turns.length, 2)
 	assert.equal(scoreCalls, 1)
 	assert.ok(questionPrompts.some((prompt) => prompt.includes('Xylem')))
+	assert.deepEqual(gapSaves, [
+		[
+			{ concept: 'Xylem', result: 'wrong' },
+			{ concept: 'Stomata', result: 'missed' }
+		]
+	])
 })
 
 test('a scoring failure still starts the class, about every concept', async () => {
@@ -132,6 +149,7 @@ test('a scoring failure still starts the class, about every concept', async () =
 	const started = await startClass(USER, TOPIC, 'Plants drink.')
 	assert.equal(started.turns.length, 2)
 	assert.equal(session.conceptResults.length, 0)
+	assert.deepEqual(gapSaves, [])
 	const omar = questionPrompts.find((prompt) => prompt.includes('Focus concepts'))
 	assert.ok(omar?.includes('Xylem') && omar.includes('Stomata'))
 })
@@ -150,6 +168,7 @@ test('ending a class that failed to score scores it', async () => {
 			['Stomata', 'missed']
 		]
 	)
+	assert.equal(gapSaves.length, 1)
 })
 
 test('a class that still cannot be scored ends without a score', async () => {
@@ -182,4 +201,5 @@ test('a class that already has a score is not scored again', async () => {
 	await startClass(USER, TOPIC, 'Plants drink.')
 	await endClass(USER, CLASS)
 	assert.equal(scoreCalls, 1)
+	assert.equal(gapSaves.length, 1)
 })
