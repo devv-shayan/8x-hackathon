@@ -3,6 +3,7 @@ import { MAX_CLASS_QUESTIONS, type ClassSession } from '@app/contract'
 import { notFound } from '@/server/api/app-route'
 import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
+import { gapStore } from '@/server/db/gaps'
 import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
 import { isLocalDemoUser } from '@/server/demo/local-demo'
@@ -226,16 +227,30 @@ async function scoreFinishedClass(userId: string, classId: string) {
 	if (session.conceptResults.some(({ resultAfterClass }) => resultAfterClass)) return
 	const topic = await topicStore.findById(userId, session.topicId)
 	if (!topic) return
-	const first =
-		session.conceptResults.length > 0
-			? session.conceptResults
-			: await tryScore(topic, session.explanation)
+	const hadScore = session.conceptResults.length > 0
+	const first = hadScore ? session.conceptResults : await tryScore(topic, session.explanation)
 	if (first.length === 0) return
 	const afterClass = await tryScoreAfterClass(topic, session)
-	await classStore.saveConceptResults(
-		classId,
-		afterClass.length > 0 ? withResultsAfterClass(first, afterClass) : first
-	)
+	const results = afterClass.length > 0 ? withResultsAfterClass(first, afterClass) : first
+	await classStore.saveConceptResults(classId, results)
+	// A class scored at the start already saved its gaps. Saving again would open a second set.
+	if (!hadScore) await rememberGaps({ userId, topic, results: first })
+}
+
+/** A missed or wrong concept becomes a gap, due two days later. */
+async function rememberGaps(input: {
+	userId: string
+	topic: TopicRecord
+	results: StoredClass['conceptResults']
+}) {
+	if (isLocalDemoUser(input.userId) || input.results.length === 0) return
+	await gapStore.saveFromResults({
+		userId: input.userId,
+		topicId: input.topic.id,
+		concepts: input.topic.concepts,
+		results: input.results,
+		foundAt: new Date()
+	})
 }
 
 /** The class to go back to on this topic, if one was left with hands still up. */
@@ -251,6 +266,7 @@ export async function startClass(userId: string, topicId: string, explanation: s
 		? scoreDemoExplanation(explanation, topic.concepts)
 		: await tryScore(topic, explanation)
 	const session = await classStore.create(topicId, explanation, conceptResults)
+	await rememberGaps({ userId, topic, results: conceptResults })
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	// One at a time, so a student who saw the video can steer clear of the question before theirs.
 	for (const student of students) {

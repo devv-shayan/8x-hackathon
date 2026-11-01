@@ -1,8 +1,6 @@
-// When a gap comes back. Pure, so a later issue can create gaps with the same
-// rules this one uses to move them. A day is 24 hours: the due time does not
-// depend on a timezone.
+// When a gap comes back. A day is 24 hours: the due time does not depend on a timezone.
 
-/** Due this long after the gap is found. Creating the gap is a later issue. */
+/** Due this long after the gap is found. */
 export const DAYS_UNTIL_FIRST_DUE = 2
 /** A right answer comes back this many days later. */
 export const DAYS_AFTER_RIGHT = 5
