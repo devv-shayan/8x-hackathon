@@ -142,6 +142,25 @@ export const CHECKOUT_EVENTS = {
 export const CHECKOUT_EVENT_NAMES = Object.values(CHECKOUT_EVENTS)
 
 /**
+ * Warm-ups — the retention loop (a gap due on day 2, and again around day 7).
+ * Judged on whether someone answers a due gap in their own words. Not a money
+ * moment. Not `user_activated`: that aha is not decided.
+ *
+ * `answered` is THE metric. `gap_id` rides in the metadata so two gaps the same
+ * day both count. The start and answer routes record these with dedupe off.
+ * The app fires the same names to PostHog, plus `warm_up_offered` when a due
+ * card is shown. Not Play Events lifecycle names.
+ */
+export const WARM_UP_EVENTS = {
+	/** A question was saved for a due gap. metadata: { gap_id } */
+	started: 'warm_up_started',
+	/** They answered in their own words. metadata: { gap_id, is_right } */
+	answered: 'warm_up_answered'
+} as const
+
+export const WARM_UP_EVENT_NAMES = Object.values(WARM_UP_EVENTS)
+
+/**
  * Every registered web event, flat. This is what the whitelist and the CI check
  * read; adding a group above without spreading it here is the one mistake
  * `npm run check:events` is built to catch.
@@ -149,7 +168,8 @@ export const CHECKOUT_EVENT_NAMES = Object.values(CHECKOUT_EVENTS)
 export const ALL_EVENT_NAMES = [
 	...FUNNEL_EVENT_NAMES,
 	...LIFECYCLE_EVENT_NAMES,
-	...CHECKOUT_EVENT_NAMES
+	...CHECKOUT_EVENT_NAMES,
+	...WARM_UP_EVENT_NAMES
 ] as const
 
 export type AppEvent = (typeof ALL_EVENT_NAMES)[number]

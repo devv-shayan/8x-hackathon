@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { KeyConcept, Video } from '@app/contract'
+import { DueWarmUps } from '@/components/DueWarmUps'
 import { FadeSlideIn } from '@/components/motion/FadeSlideIn'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -77,6 +78,8 @@ export default function HomeScreen() {
 					onPress={() => readVideo.mutate()}
 				/>
 			</FadeSlideIn>
+
+			<DueWarmUps fillingWait={readVideo.isPending} />
 
 			{video ? (
 				<FadeSlideIn index={2} style={s.results}>

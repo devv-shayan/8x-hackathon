@@ -169,6 +169,18 @@ type EventName =
 	// Profile
 	| 'profile_viewed'
 	| 'profile_updated'
+	// Warm-ups — the retention loop (a gap due on day 2, and again around day 7).
+	// Judged on whether a due gap gets an answer in the person's own words. Not
+	// a money moment, and not this play's "aha" (`user_activated` is not decided).
+	//
+	// warm_up_answered is THE metric: they answered in their own words.
+	// gap_id discriminates, so two gaps the same day both count.
+	//   warm_up_offered   a due gap is shown. metadata: { gap_id }
+	//   warm_up_started   the question is on screen. metadata: { gap_id }
+	//   warm_up_answered  they answered. metadata: { gap_id, is_right }
+	| 'warm_up_offered'
+	| 'warm_up_started'
+	| 'warm_up_answered'
 // TODO: add your app-specific events here
 
 /** Track an event. No-ops silently when PostHog is unconfigured. */
