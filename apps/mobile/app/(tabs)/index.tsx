@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
-import { useMutation } from '@tanstack/react-query'
-import type { KeyConcept } from '@app/contract'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { KeyConcept, Video } from '@app/contract'
 import { DueWarmUps } from '@/components/DueWarmUps'
 import { FadeSlideIn } from '@/components/motion/FadeSlideIn'
 import { Button } from '@/components/ui/Button'
@@ -15,6 +15,7 @@ import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
 import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
+import { topicQueryKey } from '@/lib/topicQuery'
 
 // Reading a long video can take a minute or more, far past the API default.
 const READ_VIDEO_TIMEOUT_MS = 5 * 60 * 1000
@@ -36,11 +37,13 @@ function ConceptCard({ concept }: { concept: KeyConcept }) {
 }
 
 export default function HomeScreen() {
+	const queryClient = useQueryClient()
 	const [url, setUrl] = useState('')
 	const readVideo = useMutation({
 		mutationFn: () =>
 			api('readVideo', { body: { url }, timeoutMs: READ_VIDEO_TIMEOUT_MS }).then((r) => r.video),
-		onSuccess: (video) => {
+		onSuccess: (video: Video) => {
+			queryClient.setQueryData(topicQueryKey(video.id), video)
 			haptic.success()
 			track('video_read', { concept_count: video.concepts.length })
 		},

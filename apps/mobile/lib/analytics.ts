@@ -26,10 +26,16 @@ type EventName =
 	// Reading a video — judged on how many readers go on to teach it. Metadata:
 	//   { concept_count: number }
 	| 'video_read'
+	// Explain — the loop step is finishing an explanation in your own words (brief.md).
+	// THE metric is still class_started: "I'm done" that starts the class. explain_viewed
+	// answers who reached Explain but never finished (video_read → explain_viewed → class_started).
+	// Metadata: explain_viewed { topic_id: string }
+	| 'explain_viewed'
 	// The class — judged on how many who start finish, and how often they needed help.
 	// Metadata: class_answered { outcome: 'answered' | 'needed_help' | 'skipped' },
 	// class_finished { question_count: number, ended_early: boolean },
 	// class_hand_picked { student: string } (the student's name, shows who gets picked).
+	// class_started is also the Explain aha: a long-enough explanation was submitted.
 	| 'class_started'
 	| 'class_resumed'
 	| 'class_hand_picked'

@@ -4,16 +4,19 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
 	MAX_CLASS_QUESTIONS,
+	MIN_EXPLANATION_LENGTH,
 	type ClassSession,
 	type ClassTurn,
 	type ConceptResult,
-	type TurnOutcome
+	type TurnOutcome,
+	type Video
 } from '@app/contract'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Screen } from '@/components/ui/Screen'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { Sheet } from '@/components/ui/Sheet'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
@@ -22,9 +25,24 @@ import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
 import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
+import { topicQueryKey } from '@/lib/topicQuery'
 
 // A student's next question is an AI call, so it takes longer than the API default.
 const CLASS_TIMEOUT_MS = 60 * 1000
+
+type SessionTab = 'explain' | 'teach' | 'gaps'
+
+const SESSION_TABS: { value: SessionTab; label: string }[] = [
+	{ value: 'explain', label: 'Explain' },
+	{ value: 'teach', label: 'Teach' },
+	{ value: 'gaps', label: 'Gaps' }
+]
+
+function tabTitle(tab: SessionTab) {
+	if (tab === 'explain') return 'Explain'
+	if (tab === 'teach') return 'Teach'
+	return 'Gaps'
+}
 
 function studentName(session: ClassSession, turn: ClassTurn) {
 	return session.students.find(({ id }) => id === turn.student_id)?.name ?? 'A student'
@@ -249,36 +267,57 @@ function HelpSheet({
 }
 
 function ExplainStep({
+	topicId,
+	title,
 	onStart,
 	pending,
 	error
 }: {
+	topicId: string
+	title: string | null
 	onStart: (explanation: string) => void
 	pending: boolean
 	error: string | null
 }) {
 	const [explanation, setExplanation] = useState('')
+	const ready = explanation.trim().length >= MIN_EXPLANATION_LENGTH
+
+	useEffect(() => {
+		track('explain_viewed', { topic_id: topicId })
+	}, [topicId])
+
 	return (
-		<>
+		<View style={s.explain}>
+			{title ? (
+				<Text variant="h1" accessibilityRole="header">
+					{title}
+				</Text>
+			) : null}
 			<Text variant="lead" tone="secondary">
-				Explain the video in your own words. Your students will ask about it next.
+				The source stays hidden. Your score stays hidden until the class ends.
 			</Text>
 			<TextInputField
 				label="Your explanation"
+				placeholder="What’s the main idea, and how does it work?"
 				multiline
 				numberOfLines={8}
 				value={explanation}
 				onChangeText={setExplanation}
 				error={error}
+				hint={
+					!ready && explanation.trim().length > 0
+						? `A few more words — at least ${MIN_EXPLANATION_LENGTH} characters.`
+						: undefined
+				}
 			/>
 			<Button
-				label={pending ? 'Students are thinking…' : 'Start the class'}
+				label={pending ? 'Students are thinking…' : 'I’m done'}
 				loading={pending}
-				disabled={!explanation.trim() || pending}
+				disabled={!ready || pending}
 				fullWidth
 				onPress={() => onStart(explanation)}
 			/>
-		</>
+		</View>
 	)
 }
 
@@ -288,6 +327,7 @@ export default function ClassScreen() {
 	const [answer, setAnswer] = useState('')
 	const [pickedId, setPickedId] = useState<string | null>(null)
 	const [helpOpen, setHelpOpen] = useState(false)
+	const [tab, setTab] = useState<SessionTab>('explain')
 
 	// Leaving mid-class doesn't lose it: the same hands are up when the person comes back.
 	const open = useQuery({
@@ -295,12 +335,35 @@ export default function ClassScreen() {
 		queryFn: () => api('openClass', { query: { topic_id: topicId } }),
 		gcTime: 0
 	})
+	const cachedTopic = useQuery({
+		queryKey: topicQueryKey(topicId),
+		queryFn: async ({ client }) => client.getQueryData<Video>(topicQueryKey(topicId)) ?? null,
+		staleTime: Infinity
+	})
+	const topic = useQuery({
+		queryKey: ['topic-summary', topicId],
+		queryFn: () => api('getTopic', { params: { id: topicId } }).then((r) => r.topic),
+		enabled: Boolean(topicId) && !cachedTopic.data?.title,
+		staleTime: Infinity
+	})
+	const videoTitle = cachedTopic.data?.title ?? topic.data?.title ?? null
 	const session = current ?? open.data?.class ?? null
 	const resumedId = open.data?.class?.id
+	const canTeach = Boolean(session)
+	const canSeeGaps = Boolean(session?.finished)
 
 	useEffect(() => {
 		if (resumedId) track('class_resumed')
 	}, [resumedId])
+
+	const sessionId = session?.id
+	const classFinished = Boolean(session?.finished)
+	// Keep the active tab on the stage that just unlocked.
+	useEffect(() => {
+		if (classFinished) setTab('gaps')
+		else if (sessionId) setTab('teach')
+		else setTab('explain')
+	}, [sessionId, classFinished])
 
 	const start = useMutation({
 		mutationFn: (explanation: string) =>
@@ -312,6 +375,7 @@ export default function ClassScreen() {
 			haptic.success()
 			track('class_started')
 			setSession(started)
+			setTab('teach')
 		},
 		onError: () => haptic.error()
 	})
@@ -323,6 +387,7 @@ export default function ClassScreen() {
 	function finishClass(finished: ClassSession, endedEarly: boolean) {
 		track('class_finished', { question_count: finished.turns.length, ended_early: endedEarly })
 		setSession(finished)
+		setTab('gaps')
 	}
 	const reply = useMutation({
 		mutationFn: ({ turn, outcome }: { turn: ClassTurn; outcome: TurnOutcome }) =>
@@ -349,8 +414,10 @@ export default function ClassScreen() {
 	})
 
 	const busy = reply.isPending || end.isPending
+	const showTabs = !open.isPending && !open.isError
+
 	return (
-		<Screen header={<PageHeader title="Class" onBack={leaveClass} />} gap={14}>
+		<Screen header={<PageHeader title={tabTitle(tab)} onBack={leaveClass} />} gap={14}>
 			{open.isPending ? (
 				<Text variant="body" tone="secondary">
 					Checking for your class…
@@ -360,90 +427,133 @@ export default function ClassScreen() {
 					<Text variant="body">{errorMessage(open.error)}</Text>
 					<Button label="Try again" fullWidth onPress={() => open.refetch()} />
 				</>
-			) : !session ? (
-				<ExplainStep
-					onStart={(explanation) => start.mutate(explanation)}
-					pending={start.isPending}
-					error={start.isError ? errorMessage(start.error) : null}
-				/>
 			) : (
 				<>
-					{openTurn ? (
-						<>
-							<Text variant="caption" tone="secondary">
-								{`Question ${answered.length + 1} of ${MAX_CLASS_QUESTIONS}`}
-							</Text>
-							<RaisedHands
-								session={session}
-								hands={hands}
-								picked={openTurn}
-								onPick={(turn) => {
-									track('class_hand_picked', { student: studentName(session, turn) })
-									setPickedId(turn.id)
-								}}
+					{showTabs ? (
+						<SegmentedControl<SessionTab>
+							accessibilityLabel="Session stage"
+							value={tab}
+							onChange={setTab}
+							segments={SESSION_TABS.map((item) => ({
+								...item,
+								disabled:
+									(item.value === 'teach' && !canTeach) || (item.value === 'gaps' && !canSeeGaps)
+							}))}
+						/>
+					) : null}
+
+					{tab === 'explain' ? (
+						session ? (
+							<View style={s.explain}>
+								{videoTitle ? (
+									<Text variant="h1" accessibilityRole="header">
+										{videoTitle}
+									</Text>
+								) : null}
+								<Text variant="lead" tone="secondary">
+									You already explained this. Switch to Teach for the class, or Gaps when it ends.
+								</Text>
+								{canTeach ? (
+									<Button label="Back to Teach" fullWidth onPress={() => setTab('teach')} />
+								) : null}
+							</View>
+						) : (
+							<ExplainStep
+								topicId={topicId}
+								title={videoTitle}
+								onStart={(explanation) => start.mutate(explanation)}
+								pending={start.isPending}
+								error={start.isError ? errorMessage(start.error) : null}
 							/>
+						)
+					) : null}
+
+					{tab === 'teach' && session && !session.finished ? (
+						<>
+							{openTurn ? (
+								<>
+									<Text variant="caption" tone="secondary">
+										{`Question ${answered.length + 1} of ${MAX_CLASS_QUESTIONS}`}
+									</Text>
+									<RaisedHands
+										session={session}
+										hands={hands}
+										picked={openTurn}
+										onPick={(turn) => {
+											track('class_hand_picked', {
+												student: studentName(session, turn)
+											})
+											setPickedId(turn.id)
+										}}
+									/>
+								</>
+							) : null}
+
+							{answered.map((turn) => (
+								<TurnCard key={turn.id} session={session} turn={turn} />
+							))}
+
+							{openTurn ? (
+								<View style={s.composer}>
+									<TurnCard session={session} turn={openTurn} />
+									<TextInputField
+										label={`Answer ${studentName(session, openTurn)}`}
+										multiline
+										value={answer}
+										onChangeText={setAnswer}
+										error={
+											reply.isError || end.isError ? errorMessage(reply.error ?? end.error) : null
+										}
+									/>
+									<Button
+										label={reply.isPending ? 'Waiting for the class…' : 'Answer'}
+										loading={reply.isPending}
+										disabled={!answer.trim() || busy}
+										fullWidth
+										onPress={() => reply.mutate({ turn: openTurn, outcome: 'answered' })}
+									/>
+									<Button
+										label="I’ll be back: check the video"
+										variant="secondary"
+										disabled={busy}
+										fullWidth
+										onPress={() => {
+											track('class_help_opened', {
+												student: studentName(session, openTurn)
+											})
+											setHelpOpen(true)
+										}}
+									/>
+									<Button
+										label="Skip this one"
+										variant="ghost"
+										disabled={busy}
+										fullWidth
+										onPress={() => reply.mutate({ turn: openTurn, outcome: 'skipped' })}
+									/>
+									<Button
+										label={end.isPending ? 'Ending the class…' : 'End class'}
+										variant="secondary"
+										loading={end.isPending}
+										disabled={busy}
+										fullWidth
+										onPress={() => end.mutate()}
+									/>
+								</View>
+							) : null}
+
+							{openTurn ? (
+								<HelpSheet
+									session={session}
+									turn={openTurn}
+									open={helpOpen}
+									onClose={() => setHelpOpen(false)}
+								/>
+							) : null}
 						</>
 					) : null}
 
-					{answered.map((turn) => (
-						<TurnCard key={turn.id} session={session} turn={turn} />
-					))}
-
-					{openTurn ? (
-						<View style={s.composer}>
-							<TurnCard session={session} turn={openTurn} />
-							<TextInputField
-								label={`Answer ${studentName(session, openTurn)}`}
-								multiline
-								value={answer}
-								onChangeText={setAnswer}
-								error={reply.isError || end.isError ? errorMessage(reply.error ?? end.error) : null}
-							/>
-							<Button
-								label={reply.isPending ? 'Waiting for the class…' : 'Answer'}
-								loading={reply.isPending}
-								disabled={!answer.trim() || busy}
-								fullWidth
-								onPress={() => reply.mutate({ turn: openTurn, outcome: 'answered' })}
-							/>
-							<Button
-								label="I’ll be back: check the video"
-								variant="secondary"
-								disabled={busy}
-								fullWidth
-								onPress={() => {
-									track('class_help_opened', { student: studentName(session, openTurn) })
-									setHelpOpen(true)
-								}}
-							/>
-							<Button
-								label="Skip this one"
-								variant="ghost"
-								disabled={busy}
-								fullWidth
-								onPress={() => reply.mutate({ turn: openTurn, outcome: 'skipped' })}
-							/>
-							<Button
-								label={end.isPending ? 'Ending the class…' : 'End class'}
-								variant="secondary"
-								loading={end.isPending}
-								disabled={busy}
-								fullWidth
-								onPress={() => end.mutate()}
-							/>
-						</View>
-					) : (
-						<Assessment session={session} />
-					)}
-
-					{openTurn ? (
-						<HelpSheet
-							session={session}
-							turn={openTurn}
-							open={helpOpen}
-							onClose={() => setHelpOpen(false)}
-						/>
-					) : null}
+					{tab === 'gaps' && session?.finished ? <Assessment session={session} /> : null}
 				</>
 			)}
 		</Screen>
@@ -463,5 +573,6 @@ const s = StyleSheet.create({
 	chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
 	assessment: { gap: 14, paddingTop: 4 },
 	section: { gap: 10 },
-	conceptRow: { gap: 6 }
+	conceptRow: { gap: 6 },
+	explain: { gap: 14 }
 })
