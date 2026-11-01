@@ -33,5 +33,14 @@ export const readVideoBody = z.object({ url: z.string().trim().min(1).max(500) }
 
 export const readVideoResponse = z.object({ video: videoSchema })
 
+/** Title (and id) for Explain — no transcript, so the source stays off the screen. */
+export const topicParams = z.object({ id: uuid })
+export const topicSummarySchema = z.object({
+	id: uuid,
+	title: z.string()
+})
+export const getTopicResponse = z.object({ topic: topicSummarySchema })
+
 export type Video = z.infer<typeof videoSchema>
 export type KeyConcept = z.infer<typeof keyConceptSchema>
+export type TopicSummary = z.infer<typeof topicSummarySchema>

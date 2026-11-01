@@ -14,6 +14,8 @@ export interface Segment<T extends string> {
 	label: string
 	/** Receives the colour to draw in. */
 	icon?: (color: string) => ReactNode
+	/** Still shown; presses do nothing. */
+	disabled?: boolean
 }
 
 /**
@@ -76,7 +78,8 @@ export function SegmentedControl<T extends string>({
 			) : null}
 			{segments.map((seg) => {
 				const active = seg.value === value
-				const color = active ? c.textPrimary : c.textSecondary
+				const disabled = Boolean(seg.disabled)
+				const color = disabled ? c.textTertiary : active ? c.textPrimary : c.textSecondary
 				return (
 					<PressableScale
 						key={seg.value}
@@ -84,9 +87,10 @@ export function SegmentedControl<T extends string>({
 						scaleTo={0.97}
 						accessibilityRole="tab"
 						accessibilityLabel={seg.label}
-						accessibilityState={{ selected: active }}
+						accessibilityState={{ selected: active, disabled }}
+						disabled={disabled}
 						onPress={() => {
-							if (active) return
+							if (active || disabled) return
 							haptic.select()
 							onChange(seg.value)
 						}}
