@@ -37,6 +37,9 @@ type EventName =
 	| 'class_help_opened'
 	| 'class_answered'
 	| 'class_finished'
+	// Assessment — judged on whether people who finish a class see what they missed.
+	// Metadata: assessment_viewed { correct_count: number, concept_count: number }
+	| 'assessment_viewed'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:
 	//   { method: 'email' | 'apple' | 'google' }

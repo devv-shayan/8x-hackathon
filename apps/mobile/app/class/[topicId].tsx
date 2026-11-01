@@ -6,6 +6,7 @@ import {
 	MAX_CLASS_QUESTIONS,
 	type ClassSession,
 	type ClassTurn,
+	type ConceptResult,
 	type TurnOutcome
 } from '@app/contract'
 import { Button } from '@/components/ui/Button'
@@ -58,10 +59,89 @@ function leaveClass() {
 	else router.replace('/(tabs)')
 }
 
-function finishedMessage(turns: ClassTurn[]) {
-	const count = turns.filter(({ outcome }) => outcome !== 'skipped').length
-	if (count === 0) return 'Class ended. You didn’t answer any questions.'
-	return `Class finished. You answered ${count} ${count === 1 ? 'question' : 'questions'}.`
+function resultLabel(result: ConceptResult['result']) {
+	if (result === 'correct') return 'Correct'
+	if (result === 'missed') return 'Missed'
+	return 'Wrong'
+}
+
+function outcomeLabel(outcome: TurnOutcome) {
+	if (outcome === 'answered') return 'Answered'
+	if (outcome === 'needed_help') return 'Needed help'
+	return 'Skipped'
+}
+
+function Assessment({ session }: { session: ClassSession }) {
+	const results = session.concept_results ?? []
+	const correct = results.filter(({ result }) => result === 'correct').length
+	const gaps = results.filter(({ result }) => result !== 'correct')
+	const answered = session.turns.filter(({ outcome }) => outcome !== null)
+
+	useEffect(() => {
+		if (results.length === 0) return
+		track('assessment_viewed', {
+			correct_count: correct,
+			concept_count: results.length
+		})
+	}, [correct, results.length])
+
+	return (
+		<View style={s.assessment}>
+			<Text variant="h1" accessibilityRole="header">
+				{results.length > 0 ? `${correct} of ${results.length}` : 'Class finished'}
+			</Text>
+			<Text variant="lead" tone="secondary">
+				{results.length > 0
+					? 'How your explanation scored, and how the class went.'
+					: 'Your explanation score isn’t available for this class.'}
+			</Text>
+
+			{gaps.length > 0 ? (
+				<View style={s.section}>
+					<Eyebrow tone="muted">Missed or wrong</Eyebrow>
+					{gaps.map((item) => (
+						<Card key={item.concept}>
+							<View style={s.conceptRow}>
+								<Eyebrow tone="muted">
+									{item.start_seconds != null
+										? formatTimestamp(item.start_seconds)
+										: resultLabel(item.result)}
+								</Eyebrow>
+								<Text variant="body" style={{ fontWeight: '600' }}>
+									{item.concept}
+								</Text>
+								<Text variant="caption" tone="secondary">
+									{resultLabel(item.result)}
+								</Text>
+							</View>
+						</Card>
+					))}
+				</View>
+			) : null}
+
+			{answered.length > 0 ? (
+				<View style={s.section}>
+					<Eyebrow tone="muted">How each question went</Eyebrow>
+					{answered.map((turn) => (
+						<Card key={turn.id}>
+							<View style={s.conceptRow}>
+								<Eyebrow tone="muted">
+									{`${studentName(session, turn)} · ${outcomeLabel(turn.outcome!)}`}
+								</Eyebrow>
+								<Text variant="body">{turn.question}</Text>
+							</View>
+						</Card>
+					))}
+				</View>
+			) : (
+				<Text variant="body" tone="secondary">
+					You didn’t answer any questions this time.
+				</Text>
+			)}
+
+			<Button label="Back to home" fullWidth onPress={leaveClass} />
+		</View>
+	)
 }
 
 function RaisedHands({
@@ -353,10 +433,7 @@ export default function ClassScreen() {
 							/>
 						</View>
 					) : (
-						<View style={s.composer}>
-							<Text variant="body">{finishedMessage(answered)}</Text>
-							<Button label="Back to home" fullWidth onPress={leaveClass} />
-						</View>
+						<Assessment session={session} />
 					)}
 
 					{openTurn ? (
@@ -383,5 +460,8 @@ const s = StyleSheet.create({
 	composer: { gap: 10, paddingTop: 8 },
 	help: { gap: 12 },
 	helpMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-	chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }
+	chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+	assessment: { gap: 14, paddingTop: 4 },
+	section: { gap: 10 },
+	conceptRow: { gap: 6 }
 })

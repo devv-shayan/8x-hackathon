@@ -3,6 +3,7 @@ module.exports = {
 	// packages/brand has no runner of its own: its tests (the palette contrast
 	// suite) run here, so `npm run mobile:test` — and CI — covers them.
 	roots: ['<rootDir>', '<rootDir>/../../packages/brand'],
+	setupFiles: ['<rootDir>/jest.setup.js'],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/$1'
 	},
