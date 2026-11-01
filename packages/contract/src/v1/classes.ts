@@ -13,6 +13,9 @@ import { uuid } from './common'
 
 export const MAX_CLASS_QUESTIONS = 4
 
+/** Short enough that "hi" cannot start a class; long enough for a few sentences. */
+export const MIN_EXPLANATION_LENGTH = 40
+
 export const TURN_OUTCOMES = ['answered', 'needed_help', 'skipped'] as const
 export const turnOutcomeSchema = z.enum(TURN_OUTCOMES)
 
@@ -57,7 +60,10 @@ export const openClassQuery = z.object({ topic_id: uuid })
 export const openClassResponse = z.object({ class: classSchema.nullable() })
 
 export const startClassBody = z
-	.object({ topic_id: uuid, explanation: z.string().trim().min(1).max(20000) })
+	.object({
+		topic_id: uuid,
+		explanation: z.string().trim().min(MIN_EXPLANATION_LENGTH).max(20000)
+	})
 	.strict()
 
 export const classParams = z.object({ id: uuid })
