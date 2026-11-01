@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { BrandMark } from '@/components/BrandMark'
+import { ERROR_NOTE, FIELD, PRIMARY_BUTTON } from '@/components/formStyles'
 import { createBrowserSupabaseClient } from '@/lib/supabase/browser'
 
 export default function AdminLoginPage() {
@@ -27,21 +29,28 @@ export default function AdminLoginPage() {
 		}
 	}
 
-	const field =
-		'w-full rounded-xl border border-border-active bg-surface px-4 py-3 text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none'
-
 	return (
-		<div className="grid min-h-screen place-items-center px-5">
+		<div className="l-sans grid min-h-screen place-items-center bg-[rgb(var(--l-paper))] px-5 text-[rgb(var(--l-ink))]">
 			<div className="w-full max-w-sm">
-				<div className="mb-8 text-center">
-					<span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-accent text-background">
-						A
-					</span>
-					<h1 className="mt-4 text-2xl font-bold">Admin sign in</h1>
-					<p className="mt-1 text-sm text-ink-mute">Restricted to accounts with admin access.</p>
+				<div className="mb-8">
+					<p className="flex items-center gap-2 text-[17px] font-semibold">
+						<BrandMark />
+						chalkback
+					</p>
+					<p className="l-mono mt-8 flex items-center gap-2.5">
+						<span aria-hidden="true" className="h-3 w-0.5 bg-[rgb(var(--l-lime-tick))]" />
+						Admin
+					</p>
+					<h1 className="mt-3 text-3xl font-medium tracking-[-0.03em]">Admin sign in</h1>
+					<p className="mt-2 text-sm text-[rgb(var(--l-muted))]">
+						Restricted to accounts with admin access.
+					</p>
 				</div>
 
-				<form onSubmit={onSubmit} className="card space-y-4 p-7">
+				<form
+					onSubmit={onSubmit}
+					className="space-y-3 border border-[rgb(var(--l-hair))] p-6 sm:p-7"
+				>
 					<input
 						type="email"
 						required
@@ -49,7 +58,7 @@ export default function AdminLoginPage() {
 						onChange={(e) => setEmail(e.target.value)}
 						placeholder="you@email.com"
 						aria-label="Email"
-						className={field}
+						className={FIELD}
 					/>
 					<input
 						type="password"
@@ -58,14 +67,15 @@ export default function AdminLoginPage() {
 						onChange={(e) => setPassword(e.target.value)}
 						placeholder="Password"
 						aria-label="Password"
-						className={field}
+						className={FIELD}
 					/>
-					{error && <p className="text-sm text-danger">{error}</p>}
-					<button
-						type="submit"
-						disabled={loading}
-						className="btn-primary w-full disabled:opacity-60"
-					>
+					{error && (
+						<p role="alert" className={ERROR_NOTE}>
+							{error}
+						</p>
+					)}
+					<button type="submit" disabled={loading} className={`${PRIMARY_BUTTON} w-full`}>
+						<span aria-hidden="true">&gt;</span>
 						{loading ? 'Signing in…' : 'Sign in'}
 					</button>
 				</form>

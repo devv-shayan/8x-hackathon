@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Check } from 'lucide-react'
+import { DANGER_BUTTON, ERROR_NOTE, FIELD, SENT_NOTE } from './formStyles'
 
 type Status = 'idle' | 'loading' | 'done' | 'error'
 
@@ -36,30 +37,32 @@ export function DeleteAccountForm() {
 
 	if (status === 'done') {
 		return (
-			<p className="flex items-center gap-2 rounded-input border border-brand-border bg-brand-dim px-5 py-4 text-sm font-medium text-ink">
-				<Check className="h-4 w-4 text-brand-ink" /> {message}
+			<p role="status" className={SENT_NOTE}>
+				<Check className="h-4 w-4" aria-hidden="true" /> {message}
 			</p>
 		)
 	}
 
 	return (
-		<form onSubmit={onSubmit} className="flex w-full max-w-md flex-col gap-3 sm:flex-row">
-			<input
-				name="email"
-				type="email"
-				required
-				placeholder="Email on your account"
-				aria-label="Email"
-				className="min-h-12 flex-1 rounded-input border border-line-soft bg-well px-4 py-3 text-ink transition-colors duration-fast hover:border-line-active focus-visible:border-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-line-focus/40"
-			/>
-			<button
-				type="submit"
-				disabled={status === 'loading'}
-				className="inline-flex min-h-12 items-center justify-center rounded-button bg-error px-5 py-3 font-semibold text-on-error transition-[transform,opacity] duration-fast hover:opacity-90 active:scale-[0.96] disabled:opacity-60"
-			>
-				{status === 'loading' ? 'Submitting…' : 'Request deletion'}
-			</button>
-			{status === 'error' && <p className="text-sm text-error-text sm:hidden">{message}</p>}
+		<form onSubmit={onSubmit} className="flex w-full flex-col gap-3">
+			<div className="flex flex-col gap-3 sm:flex-row">
+				<input
+					name="email"
+					type="email"
+					required
+					placeholder="Email on your account"
+					aria-label="Email"
+					className={`${FIELD} min-h-11 flex-1`}
+				/>
+				<button type="submit" disabled={status === 'loading'} className={DANGER_BUTTON}>
+					{status === 'loading' ? 'Submitting…' : 'Request deletion'}
+				</button>
+			</div>
+			{status === 'error' && (
+				<p role="alert" className={ERROR_NOTE}>
+					{message}
+				</p>
+			)}
 		</form>
 	)
 }
