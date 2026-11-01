@@ -170,7 +170,7 @@ test('an error body parses a code the app does not know yet', () => {
 test('every endpoint: under /api/app/v1, one per method and path, a body only on writes', () => {
 	const seen = new Set<string>()
 	for (const [name, endpoint] of Object.entries(endpoints)) {
-		assert.match(endpoint.path, /^\/api\/app\/v1\/[a-z/:]+$/, name)
+		assert.match(endpoint.path, /^\/api\/app\/v1\/[a-z/:/-]+$/, name)
 		const key = `${endpoint.method} ${endpoint.path}`
 		assert.equal(seen.has(key), false, key)
 		seen.add(key)
