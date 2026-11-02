@@ -8,6 +8,7 @@ import { uuid } from './common'
 // POST classes/{id}/turns/{turn} → answer or skip a question; that student raises a hand
 //                                    again, until the class is finished
 // POST classes/{id}/turns/{turn}/help → a private explanation of that question from the video
+// GET classes/{id}                → one class as it stands now, open or finished
 // GET classes/open?topic_id=       → the class left unfinished on a topic, or null
 // POST classes/{id}/end            → end the class, dropping the questions nobody picked
 

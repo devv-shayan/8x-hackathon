@@ -5,7 +5,12 @@ import type { ClassSession, ClassTurn, TurnOutcome, Video } from '@app/contract'
 import { ClassStep } from '@/components/class/ClassStep'
 import { ExplainStep } from '@/components/class/ExplainStep'
 import { ResultsStep } from '@/components/class/ResultsStep'
-import { CLASS_TIMEOUT_MS, leaveClass, studentName } from '@/components/class/shared'
+import {
+	answerOrCatchUp,
+	CLASS_TIMEOUT_MS,
+	leaveClass,
+	studentName
+} from '@/components/class/shared'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Screen } from '@/components/ui/Screen'
@@ -78,11 +83,11 @@ export default function ClassScreen() {
 	}
 	const reply = useMutation({
 		mutationFn: ({ turn, outcome }: { turn: ClassTurn; outcome: TurnOutcome }) =>
-			api('answerTurn', {
-				params: { id: session?.id ?? '', turn: turn.id },
-				body: outcome === 'skipped' ? { outcome } : { outcome, answer },
-				timeoutMs: CLASS_TIMEOUT_MS
-			}),
+			answerOrCatchUp(
+				session?.id ?? '',
+				turn.id,
+				outcome === 'skipped' ? { outcome } : { outcome, answer }
+			),
 		onSuccess: ({ class: updated }, { turn }) => {
 			// The server decides needed_help, from whether help was given on this question.
 			const saved = updated.turns.find(({ id }) => id === turn.id)

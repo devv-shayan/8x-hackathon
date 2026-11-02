@@ -15,6 +15,7 @@ jest.mock('@/components/class/HelpSheet', () => ({ HelpSheet: () => null }))
 jest.mock('@/components/motion/PressableScale', () => ({
 	PressableScale: jest.requireActual('react-native').Pressable
 }))
+jest.mock('@/lib/api', () => ({ api: jest.fn(), ApiError: Error }))
 jest.mock('@/hooks/useQuestionVoice', () => ({
 	usePrefetchQuestionVoices: () => {},
 	useQuestionVoice: () => ({ state: 'off', replay: () => {} })
