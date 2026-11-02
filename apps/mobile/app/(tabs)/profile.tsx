@@ -120,7 +120,7 @@ export default function ProfileScreen() {
 					<ListRow
 						icon={Settings}
 						title="Settings"
-						subtitle="Appearance, haptics, your account"
+						subtitle="Haptics, legal, your account"
 						onPress={() => router.push('/settings')}
 					/>
 					<ListRow icon={LifeBuoy} title="Help & support" onPress={() => router.push('/support')} />

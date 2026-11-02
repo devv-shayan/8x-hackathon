@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useLocalSearchParams } from 'expo-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ClassSession, ClassTurn, ListedTopic, TurnOutcome, Video } from '@app/contract'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import type { ClassSession, ClassTurn, TurnOutcome, Video } from '@app/contract'
 import { ClassStep } from '@/components/class/ClassStep'
 import { ExplainStep } from '@/components/class/ExplainStep'
 import { ResultsStep } from '@/components/class/ResultsStep'
-import { topicsQueryKey } from '@/components/RecentTopics'
 import { CLASS_TIMEOUT_MS, leaveClass, studentName } from '@/components/class/shared'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -46,11 +45,7 @@ export default function ClassScreen() {
 		staleTime: Infinity
 	})
 	const videoTitle = cachedTopic.data?.title ?? topic.data?.title ?? null
-	// The video, from the read that just happened or Home's list, for its thumbnail.
-	const listed = useQueryClient()
-		.getQueryData<ListedTopic[]>(topicsQueryKey)
-		?.find(({ id }) => id === topicId)
-	const youtubeId = cachedTopic.data?.youtube_id ?? listed?.youtube_id ?? null
+	const youtubeId = cachedTopic.data?.youtube_id ?? topic.data?.youtube_id ?? null
 	const session = current ?? open.data?.class ?? null
 	const resumedId = open.data?.class?.id
 

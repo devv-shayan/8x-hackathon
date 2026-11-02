@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import { useIsMutating, useMutationState } from '@tanstack/react-query'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MAX_WARM_UP_ANSWER_CHARS, type AnswerWarmUpResult, type Video } from '@app/contract'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
+import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
@@ -50,10 +52,7 @@ export default function WarmUpScreen() {
 	const answer = useAnswerWarmUp()
 	const [text, setText] = useState('')
 	const [result, setResult] = useState<AnswerWarmUpResult | null>(null)
-	const [screenHeight, setScreenHeight] = useState(0)
-	const [sheetTop, setSheetTop] = useState(0)
-	// The student stands on the sheet's top edge, wherever a long question pushes it.
-	const floor = screenHeight && sheetTop ? sheetTop / screenHeight : null
+	const { floor, onScreenLayout, onSheetLayout } = useSheetFloor()
 	const started = useRef(false)
 
 	// The read home started, if there is one: still going, or the video it produced.
@@ -101,7 +100,8 @@ export default function WarmUpScreen() {
 	const raised = result ? {} : { [student === 'Omar' ? 'Omar' : 'Maya']: 1 }
 
 	return (
-		<View style={s.fill} onLayout={(e) => setScreenHeight(e.nativeEvent.layout.height)}>
+		<View style={[s.fill, { backgroundColor: c.hero }]} onLayout={onScreenLayout}>
+			<StatusBar style="light" />
 			<PixelBackdrop scene={scene} raised={raised} floor={floor} />
 			<View style={[s.bar, { top: insets.top + 8 }]} pointerEvents="box-none">
 				<PressableScale
@@ -130,7 +130,7 @@ export default function WarmUpScreen() {
 			<View style={s.fill} pointerEvents="none" />
 			<KeyboardAvoidingView
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-				onLayout={(e) => setSheetTop(e.nativeEvent.layout.y)}
+				onLayout={onSheetLayout}
 			>
 				<SheetCard>
 					<MonoLabel>

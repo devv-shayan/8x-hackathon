@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native'
 import { Play } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -7,6 +6,7 @@ import type { Raised, StudentName } from '@app/pixel'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { StudentTargets } from '@/components/pixel/StudentTargets'
+import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
@@ -73,10 +73,7 @@ export function ClassStep({
 	const { colors: c, elevation } = useTheme()
 	const insets = useSafeAreaInsets()
 	const busy = answering || ending
-	const [screenHeight, setScreenHeight] = useState(0)
-	const [sheetTop, setSheetTop] = useState(0)
-	// Students stand on the sheet's top edge, wherever a long question pushes it.
-	const floor = screenHeight && sheetTop ? sheetTop / screenHeight : null
+	const { floor, onScreenLayout, onSheetLayout } = useSheetFloor()
 	const raised: Raised = {}
 	for (const turn of hands) raised[figureFor(session, turn.student_id)] = 1
 	const name = openTurn ? studentName(session, openTurn) : null
@@ -88,7 +85,7 @@ export function ClassStep({
 	}
 
 	return (
-		<View style={s.fill} onLayout={(e) => setScreenHeight(e.nativeEvent.layout.height)}>
+		<View style={s.fill} onLayout={onScreenLayout}>
 			<PixelBackdrop scene="classroom" raised={raised} floor={floor} />
 			<StudentTargets scene="classroom" raised={raised} floor={floor} onPick={pick} />
 			<View style={[s.bar, { top: insets.top + 8 }]} pointerEvents="box-none">
@@ -121,7 +118,7 @@ export function ClassStep({
 			<View style={s.fill} pointerEvents="none" />
 			<KeyboardAvoidingView
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-				onLayout={(e) => setSheetTop(e.nativeEvent.layout.y)}
+				onLayout={onSheetLayout}
 			>
 				<SheetCard>
 					{openTurn && name ? (
