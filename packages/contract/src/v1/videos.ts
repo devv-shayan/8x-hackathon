@@ -41,6 +41,22 @@ export const topicSummarySchema = z.object({
 })
 export const getTopicResponse = z.object({ topic: topicSummarySchema })
 
+/**
+ * A row on Home's recent-topics list. No transcript or concepts — those stay
+ * off Home until the class ends. `open_class_id` is the unfinished class on
+ * this topic, when there is one (so the app never calls openClass once per row).
+ */
+export const listedTopicSchema = z.object({
+	id: uuid,
+	youtube_id: z.string(),
+	title: z.string(),
+	open_class_id: uuid.nullable()
+})
+export const listTopicsResponse = z.object({
+	topics: z.array(listedTopicSchema)
+})
+
 export type Video = z.infer<typeof videoSchema>
 export type KeyConcept = z.infer<typeof keyConceptSchema>
 export type TopicSummary = z.infer<typeof topicSummarySchema>
+export type ListedTopic = z.infer<typeof listedTopicSchema>

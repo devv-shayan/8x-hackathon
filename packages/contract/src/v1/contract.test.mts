@@ -12,6 +12,7 @@ import {
 	errorBodySchema,
 	itemSchema,
 	listItemsResponse,
+	listTopicsResponse,
 	MAX_AVATAR_BYTES,
 	pageQuery,
 	profileResponse,
@@ -165,6 +166,28 @@ test('pages: limit from the query string, bounded', () => {
 test('an error body parses a code the app does not know yet', () => {
 	const body = { error: { code: 'rate_limited', message: 'Slow down.' } }
 	assert.deepEqual(errorBodySchema.parse(body), body)
+})
+
+test('listTopics: title and youtube id, open class optional, no transcript', () => {
+	const topic = {
+		id: ID,
+		youtube_id: 'dQw4w9WgXcQ',
+		title: 'How memory works',
+		open_class_id: null
+	}
+	assert.deepEqual(listTopicsResponse.parse({ topics: [topic] }), { topics: [topic] })
+	assert.deepEqual(
+		listTopicsResponse.parse({
+			topics: [{ ...topic, open_class_id: ID, segments: [], concepts: [] }]
+		}),
+		{ topics: [{ ...topic, open_class_id: ID }] }
+	)
+	assert.equal(
+		listTopicsResponse.safeParse({
+			topics: [{ id: ID, youtube_id: 'x', title: 'y' }]
+		}).success,
+		false
+	)
 })
 
 test('every endpoint: under /api/app/v1, one per method and path, a body only on writes', () => {

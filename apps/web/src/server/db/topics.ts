@@ -20,6 +20,15 @@ export type NewTopic = {
 
 export type TopicRecord = NewTopic & { id: string }
 
+/** Home's recent list: no transcript or concepts. */
+export type TopicListItem = {
+	id: string
+	youtubeId: string
+	title: string
+}
+
+const RECENT_TOPICS_LIMIT = 20
+
 const storedContentSchema = z.object({
 	segments: z.array(transcriptSegmentSchema),
 	concepts: z.array(keyConceptSchema)
@@ -31,6 +40,12 @@ const TOPIC = {
 	title: true,
 	segments: true,
 	concepts: true
+} as const
+
+const TOPIC_LIST = {
+	id: true,
+	youtubeId: true,
+	title: true
 } as const
 
 type TopicRow = {
@@ -62,6 +77,17 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 			if (isLocalDemoUser(userId)) return demoMemory.findTopicById(userId, id)
 			const row = await client.topic.findFirst({ where: { id, userId }, select: TOPIC })
 			return row ? toRecord(row) : null
+		},
+
+		/** Newest topics first. Title and youtube id only — no transcript. */
+		async list(userId: string): Promise<TopicListItem[]> {
+			if (isLocalDemoUser(userId)) return demoMemory.listTopics(userId, RECENT_TOPICS_LIMIT)
+			return client.topic.findMany({
+				where: { userId },
+				orderBy: { createdAt: 'desc' },
+				take: RECENT_TOPICS_LIMIT,
+				select: TOPIC_LIST
+			})
 		},
 
 		/** Saves a topic. If two reads of one video raced, the first one saved wins. */

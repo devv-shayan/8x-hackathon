@@ -13,7 +13,13 @@ import { listNotificationsQuery, listNotificationsResponse } from './notificatio
 import { profileResponse, updateProfileBody } from './profile'
 import { createTaskBody, listTasksQuery, listTasksResponse, taskResponse } from './tasks'
 import { createUploadBody, createUploadResponse } from './uploads'
-import { getTopicResponse, readVideoBody, readVideoResponse, topicParams } from './videos'
+import {
+	getTopicResponse,
+	listTopicsResponse,
+	readVideoBody,
+	readVideoResponse,
+	topicParams
+} from './videos'
 import {
 	answerWarmUpBody,
 	answerWarmUpResponse,
@@ -105,6 +111,13 @@ export const endpoints = {
 		auth: 'user',
 		body: readVideoBody,
 		response: readVideoResponse,
+		status: 200
+	},
+	listTopics: {
+		method: 'GET',
+		path: '/api/app/v1/topics',
+		auth: 'user',
+		response: listTopicsResponse,
 		status: 200
 	},
 	getTopic: {

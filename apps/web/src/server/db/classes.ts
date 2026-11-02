@@ -70,6 +70,35 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			return row && withResults(row)
 		},
 
+		/**
+		 * Newest unfinished class id per topic, for Home's recent list.
+		 * One query for the whole list — never N× findOpen.
+		 */
+		async findOpenIdsForTopics(userId: string, topicIds: string[]): Promise<Map<string, string>> {
+			const open = new Map<string, string>()
+			if (topicIds.length === 0) return open
+			if (isLocalDemoUser(userId)) {
+				for (const topicId of topicIds) {
+					const row = demoMemory.findOpenClass(userId, topicId)
+					if (row) open.set(topicId, row.id)
+				}
+				return open
+			}
+			const rows = await client.class.findMany({
+				where: {
+					topicId: { in: topicIds },
+					topic: { userId },
+					turns: { some: { outcome: null } }
+				},
+				orderBy: { createdAt: 'desc' },
+				select: { id: true, topicId: true }
+			})
+			for (const row of rows) {
+				if (!open.has(row.topicId)) open.set(row.topicId, row.id)
+			}
+			return open
+		},
+
 		addTurn(classId: string, studentId: string, question: string) {
 			if (demoMemory.hasClass(classId)) {
 				demoMemory.addTurn(classId, studentId, question)

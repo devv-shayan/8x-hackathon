@@ -26,6 +26,16 @@ type EventName =
 	// Reading a video — judged on how many readers go on to teach it. Metadata:
 	//   { concept_count: number }
 	| 'video_read'
+	// Home — judged on whether people come back to a recent topic or unfinished class.
+	// THE metric for return visits is continue_opened: they picked up where they left off.
+	// recent_topic_opened answers who re-opens a past topic to teach again.
+	// home_viewed answers who reached Home at all (drop-off before either action).
+	// Metadata: home_viewed { topic_count: number },
+	// recent_topic_opened { topic_id }, continue_opened { topic_id }.
+	// topic_id discriminates so two topics the same day both count.
+	| 'home_viewed'
+	| 'recent_topic_opened'
+	| 'continue_opened'
 	// Explain — the loop step is finishing an explanation in your own words (brief.md).
 	// THE metric is still class_started: "I'm done" that starts the class. explain_viewed
 	// answers who reached Explain but never finished (video_read → explain_viewed → class_started).
