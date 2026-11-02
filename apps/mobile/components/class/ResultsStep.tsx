@@ -1,21 +1,26 @@
 import { useEffect } from 'react'
-import { Linking, StyleSheet, View } from 'react-native'
+import { Linking, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Check } from 'lucide-react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { ClassSession, ConceptResult, TurnOutcome } from '@app/contract'
+import { PressableScale } from '@/components/motion/PressableScale'
+import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Eyebrow } from '@/components/ui/Eyebrow'
+import { Highlight } from '@/components/ui/Highlight'
+import { MonoLabel } from '@/components/ui/MonoLabel'
+import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
+import { useTheme } from '@/contexts/ThemeContext'
 import { track } from '@/lib/analytics'
 import { finalResult, summarizeResults } from '@/lib/assessment'
 import { formatTimestamp } from '@/lib/formatTimestamp'
 import { youtubeWatchUrl } from '@/lib/youtubeWatch'
 import { leaveClass, studentName } from './shared'
 
-function resultLabel(result: ConceptResult['result']) {
-	if (result === 'correct') return 'Correct'
-	if (result === 'missed') return 'Missed'
-	return 'Wrong'
-}
+/** A missed idea comes back as a warm-up two days later (the gap schedule, brief.md). */
+const WARM_UP_AFTER_DAYS = 2
+/** How much of the screen the students on the ripples get above the sheet. */
+const ROOM_SHARE = 0.34
 
 function outcomeLabel(outcome: TurnOutcome) {
 	if (outcome === 'answered') return 'Answered'
@@ -23,16 +28,36 @@ function outcomeLabel(outcome: TurnOutcome) {
 	return 'Skipped'
 }
 
-function ConceptCard({
+function warmUpDay() {
+	const day = new Date()
+	day.setDate(day.getDate() + WARM_UP_AFTER_DAYS)
+	return day.toLocaleDateString(undefined, { weekday: 'long' })
+}
+
+type IdeaState = 'explained' | 'fixed' | 'missed'
+
+function stateOf(item: ConceptResult, fixed: ConceptResult[]): IdeaState {
+	if (fixed.includes(item)) return 'fixed'
+	return finalResult(item) === 'correct' ? 'explained' : 'missed'
+}
+
+function IdeaRow({
 	item,
-	label,
+	state,
 	youtubeId
 }: {
 	item: ConceptResult
-	label: string
+	state: IdeaState
 	youtubeId: string | null
 }) {
+	const { colors: c } = useTheme()
 	const canOpen = Boolean(youtubeId)
+	const note =
+		state === 'fixed'
+			? 'Fixed in class'
+			: state === 'missed'
+				? `${finalResult(item) === 'wrong' ? 'Wrong' : 'Missed'} · warm-up on ${warmUpDay()}`
+				: null
 
 	function openClip() {
 		if (!youtubeId) return
@@ -41,56 +66,68 @@ function ConceptCard({
 	}
 
 	return (
-		<Card
-			onPress={canOpen ? openClip : undefined}
-			accessibilityLabel={
-				canOpen
-					? `Open video for ${item.concept}${item.start_seconds != null ? ` at ${formatTimestamp(item.start_seconds)}` : ''}`
-					: undefined
-			}
+		<PressableScale
+			scaleTo="card"
+			disabled={!canOpen}
+			onPress={openClip}
+			accessibilityRole={canOpen ? 'button' : 'text'}
+			accessibilityLabel={`${item.concept}${note ? `, ${note}` : ''}${canOpen ? ', open in YouTube' : ''}`}
+			style={[s.idea, { borderTopColor: c.borderHairline }]}
 		>
-			<View style={s.conceptRow}>
-				<Eyebrow tone="muted">
-					{item.start_seconds != null ? formatTimestamp(item.start_seconds) : label}
-				</Eyebrow>
-				<Text variant="body" style={{ fontWeight: '600' }}>
+			<View
+				style={[
+					s.mark,
+					state === 'explained' && { backgroundColor: c.textPrimary },
+					state === 'fixed' && { backgroundColor: c.brandFill, borderColor: c.borderActive },
+					state === 'missed' && { borderColor: c.borderActive }
+				]}
+			>
+				{state === 'missed' ? null : (
+					<Check size={13} strokeWidth={3} color={state === 'explained' ? c.surface : c.onBrand} />
+				)}
+			</View>
+			<View style={s.ideaCopy}>
+				<Text
+					variant="label"
+					style={[s.ideaTitle, state === 'missed' && { color: c.textSecondary }]}
+				>
 					{item.concept}
 				</Text>
-				{item.quote ? (
-					<Text variant="bodySm" tone="secondary">
+				{note ? (
+					<Text variant="caption" tone="secondary">
+						{note}
+					</Text>
+				) : null}
+				{state === 'missed' && item.quote ? (
+					<Text variant="caption" tone="tertiary" numberOfLines={2}>
 						{`“${item.quote}”`}
 					</Text>
 				) : null}
-				<Text variant="caption" tone="secondary">
-					{canOpen ? `${label} · Open in YouTube` : label}
-				</Text>
 			</View>
-		</Card>
+			{item.start_seconds != null ? (
+				<Text variant="eyebrow" tone="secondary">
+					{formatTimestamp(item.start_seconds)}
+				</Text>
+			) : null}
+		</PressableScale>
 	)
 }
 
-function ScoreCard({ score, label }: { score: string; label: string }) {
-	return (
-		<View style={s.scoreCard}>
-			<Card>
-				<View style={s.conceptRow}>
-					<Text variant="h1">{score}</Text>
-					<Text variant="caption" tone="secondary">
-						{label}
-					</Text>
-				</View>
-			</Card>
-		</View>
-	)
-}
-
-/** What the class taught: the scores, each idea with its moment in the video, each question. */
-export function ResultsStep({ session }: { session: ClassSession }) {
+/**
+ * What the class taught, on See what stuck's red ripples: the score after class as the hero,
+ * every idea with its moment in the video and what happens next, how each question went,
+ * and what the students said.
+ */
+export function ResultsStep({ session, title }: { session: ClassSession; title: string | null }) {
+	const { colors: c } = useTheme()
+	const insets = useSafeAreaInsets()
+	const { height } = useWindowDimensions()
 	const results = session.concept_results ?? []
 	const reactions = session.reactions ?? []
-	const { correct, finalCorrect, scoredAfterClass, fixed, gaps } = summarizeResults(results)
+	const { correct, finalCorrect, scoredAfterClass, fixed } = summarizeResults(results)
 	const answered = session.turns.filter(({ outcome }) => outcome !== null)
 	const youtubeId = session.youtube_id
+	const shown = scoredAfterClass ? finalCorrect : correct
 
 	useEffect(() => {
 		if (results.length === 0) return
@@ -103,105 +140,125 @@ export function ResultsStep({ session }: { session: ClassSession }) {
 	}, [correct, finalCorrect, fixed.length, results.length])
 
 	return (
-		<View style={s.assessment}>
-			{scoredAfterClass ? (
-				<View style={s.scores} accessibilityRole="header">
-					<ScoreCard score={`${correct} of ${results.length}`} label="In your first explanation" />
-					<ScoreCard score={`${finalCorrect} of ${results.length}`} label="By the end of class" />
-				</View>
-			) : (
-				<>
-					<Text variant="h1" accessibilityRole="header">
-						{results.length > 0 ? `${correct} of ${results.length}` : 'Class finished'}
-					</Text>
-					<Text variant="lead" tone="secondary">
-						{results.length > 0
-							? 'How your explanation scored, and how the class went.'
-							: 'Your explanation score isn’t available for this class.'}
-					</Text>
-				</>
-			)}
-
-			{fixed.length > 0 ? (
-				<View style={s.section}>
-					<Eyebrow tone="muted">Fixed in class</Eyebrow>
-					<Text variant="bodySm" tone="secondary">
-						You got these while teaching. They’ll come back in a warm-up to check they stuck.
-					</Text>
-					{fixed.map((item) => (
-						<ConceptCard
-							key={item.concept}
-							item={item}
-							label={`${resultLabel(item.result)} at first`}
-							youtubeId={youtubeId}
-						/>
-					))}
-				</View>
-			) : null}
-
-			{gaps.length > 0 ? (
-				<View style={s.section}>
-					<Eyebrow tone="muted">
-						{scoredAfterClass ? 'Still missed or wrong' : 'Missed or wrong'}
-					</Eyebrow>
-					{gaps.map((item) => (
-						<ConceptCard
-							key={item.concept}
-							item={item}
-							label={resultLabel(finalResult(item))}
-							youtubeId={youtubeId}
-						/>
-					))}
-				</View>
-			) : null}
-
-			{answered.length > 0 ? (
-				<View style={s.section}>
-					<Eyebrow tone="muted">How each question went</Eyebrow>
-					{answered.map((turn) => (
-						<Card key={turn.id}>
-							<View style={s.conceptRow}>
-								<Eyebrow tone="muted">
-									{`${studentName(session, turn)} · ${outcomeLabel(turn.outcome!)}`}
-								</Eyebrow>
-								<Text variant="body">{turn.question}</Text>
+		<View style={s.fill}>
+			<PixelBackdrop scene="results" />
+			<ScrollView
+				style={s.fill}
+				contentContainerStyle={{ paddingTop: height * ROOM_SHARE }}
+				showsVerticalScrollIndicator={false}
+			>
+				<SheetCard>
+					<MonoLabel>{title ? `Results · ${title}` : 'Results'}</MonoLabel>
+					{results.length > 0 ? (
+						<>
+							<View style={s.score} accessibilityRole="header">
+								<Text variant="displayHero" tabular style={s.number}>
+									{String(shown)}
+								</Text>
+								<Text variant="h2">
+									{`of ${results.length} ideas `}
+									<Highlight>taught</Highlight>
+								</Text>
 							</View>
-						</Card>
-					))}
-				</View>
-			) : (
-				<Text variant="body" tone="secondary">
-					You didn’t answer any questions this time.
-				</Text>
-			)}
+							<Text variant="bodySm" tone="secondary" style={s.lede}>
+								{scoredAfterClass
+									? `${correct} ${correct === 1 ? 'was' : 'were'} in your explanation. You fixed ${fixed.length} in class.`
+									: 'How your explanation scored. Missed ideas come back as warm-ups.'}
+							</Text>
+							<View style={s.list}>
+								{results.map((item) => (
+									<IdeaRow
+										key={item.concept}
+										item={item}
+										state={stateOf(item, fixed)}
+										youtubeId={youtubeId}
+									/>
+								))}
+							</View>
+						</>
+					) : (
+						<>
+							<Text variant="question" style={s.lede}>
+								Class finished
+							</Text>
+							<Text variant="bodySm" tone="secondary" style={s.lede}>
+								Your explanation score isn’t available for this class.
+							</Text>
+						</>
+					)}
 
-			{reactions.length > 0 ? (
-				<View style={s.section}>
-					<Eyebrow tone="muted">From the class</Eyebrow>
-					{reactions.map((reaction) => {
-						const who =
-							session.students.find(({ id }) => id === reaction.student_id)?.name ?? 'A student'
-						return (
-							<Card key={reaction.student_id}>
-								<View style={s.conceptRow}>
-									<Eyebrow tone="muted">{who}</Eyebrow>
-									<Text variant="body">{reaction.text}</Text>
+					<MonoLabel style={s.section}>How each question went</MonoLabel>
+					{answered.length > 0 ? (
+						answered.map((turn) => (
+							<View key={turn.id} style={[s.turn, { borderTopColor: c.borderHairline }]}>
+								<MonoLabel>{`${studentName(session, turn)} · ${outcomeLabel(turn.outcome!)}`}</MonoLabel>
+								<Text variant="bodySm">{turn.question}</Text>
+							</View>
+						))
+					) : (
+						<Text variant="bodySm" tone="secondary" style={s.lede}>
+							You didn’t answer any questions this time.
+						</Text>
+					)}
+
+					{reactions.length > 0 ? (
+						<>
+							<MonoLabel style={s.section}>From the class</MonoLabel>
+							{reactions.map((reaction) => (
+								<View
+									key={reaction.student_id}
+									style={[s.turn, { borderTopColor: c.borderHairline }]}
+								>
+									<MonoLabel>
+										{session.students.find(({ id }) => id === reaction.student_id)?.name ??
+											'A student'}
+									</MonoLabel>
+									<Text variant="bodySm">{`“${reaction.text}”`}</Text>
 								</View>
-							</Card>
-						)
-					})}
-				</View>
-			) : null}
+							))}
+						</>
+					) : null}
 
-			<Button label="Back to home" fullWidth onPress={leaveClass} />
+					<Button
+						label="Back to home"
+						variant="ink"
+						size="lg"
+						fullWidth
+						onPress={leaveClass}
+						style={s.cta}
+					/>
+				</SheetCard>
+				<View style={{ height: insets.bottom }} />
+			</ScrollView>
 		</View>
 	)
 }
 
 const s = StyleSheet.create({
-	assessment: { gap: 14, paddingTop: 4 },
-	scores: { flexDirection: 'row', gap: 10 },
-	scoreCard: { flex: 1 },
-	section: { gap: 10 },
-	conceptRow: { gap: 6 }
+	fill: { flex: 1 },
+	score: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 10, flexWrap: 'wrap' },
+	number: { fontSize: 96, lineHeight: 96 },
+	lede: { marginTop: 10 },
+	list: { marginTop: 14 },
+	idea: {
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+		gap: 12,
+		paddingVertical: 12,
+		borderTopWidth: StyleSheet.hairlineWidth
+	},
+	mark: {
+		width: 22,
+		height: 22,
+		marginTop: 1,
+		borderWidth: 1.5,
+		borderColor: 'transparent',
+		alignItems: 'center',
+		justifyContent: 'center'
+	},
+	ideaCopy: { flex: 1, gap: 2 },
+	ideaTitle: { fontSize: 15, lineHeight: 20 },
+	section: { marginTop: 28, marginBottom: 6 },
+	turn: { gap: 4, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth },
+	cta: { marginTop: 24 }
 })
