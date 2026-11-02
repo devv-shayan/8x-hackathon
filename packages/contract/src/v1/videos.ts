@@ -55,7 +55,9 @@ export const pasteTextBody = z
 export const topicParams = z.object({ id: uuid })
 export const topicSummarySchema = z.object({
 	id: uuid,
-	title: z.string()
+	title: z.string(),
+	/** The video, for its thumbnail on Explain. */
+	youtube_id: z.string().optional()
 })
 export const getTopicResponse = z.object({ topic: topicSummarySchema })
 
