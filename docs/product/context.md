@@ -50,6 +50,7 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | Home screen     | `apps/mobile/app/(tabs)/index.tsx` (link box, ready, warm-ups, recent topics) |
 | List topics     | `GET /api/app/v1/topics` (title + open class id, no transcript)               |
 | Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`            |
+| Voice (web)     | `apps/web/src/app/api/app/v1/speech/`, `apps/mobile/components/voice/`        |
 
 In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't
 read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
@@ -64,6 +65,11 @@ saves a gap for each concept that was missed or wrong, due two days later
 (`apps/web/src/server/db/gaps.ts`). A warm-up updates that gap when it is judged
 (`apps/web/src/server/gaps/schedule.ts`). Explore, Activity and the items, tasks and
 notifications code are template demos: don't build on them.
+
+Voice runs on the web build only (docs/voice-requirements.md): the students say their questions
+(Groq Orpheus), and people hold to answer and explain out loud, written down as they speak (Groq
+Whisper). In the class, nobody asks until the person calls on a student. Phones keep typing until
+a store build adds recording; see `docs/memory/groq-voice.md` for limits and traps.
 
 ## Run it
 
@@ -108,3 +114,5 @@ For a new table, change `apps/web/prisma/schema/`, then add the RLS migration th
   any error.
 - Hosted sign-in codes need custom SMTP. Until then, emailed-code sign-in only works on local Supabase.
 - `next build` breaks a running dev server: restart it afterwards.
+- Orpheus allows 100 voice requests a day on Groq's free tier; after that the students use the
+  browser's voice.
