@@ -14,6 +14,7 @@ import { profileResponse, updateProfileBody } from './profile'
 import { createTaskBody, listTasksQuery, listTasksResponse, taskResponse } from './tasks'
 import { createUploadBody, createUploadResponse } from './uploads'
 import {
+	getTopicGapsResponse,
 	getTopicResponse,
 	listTopicsResponse,
 	pasteTextBody,
@@ -135,6 +136,14 @@ export const endpoints = {
 		auth: 'user',
 		params: topicParams,
 		response: getTopicResponse,
+		status: 200
+	},
+	getTopicGaps: {
+		method: 'GET',
+		path: '/api/app/v1/topics/:id/gaps',
+		auth: 'user',
+		params: topicParams,
+		response: getTopicGapsResponse,
 		status: 200
 	},
 	getConfig: {
