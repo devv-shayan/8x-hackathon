@@ -40,6 +40,9 @@ const baseSchema = z.object({
 	// Supadata key for src/server/video/supadata.ts. YouTube blocks yt-dlp from cloud servers, so
 	// this is where hosted reads get captions. Unset, those reads fall back to Gemini.
 	SUPADATA_API_KEY: z.string().optional(),
+	// Groq key for src/server/ai/groq.ts: transcribing what people say and the students'
+	// voices. Unset, the speech routes answer 503 and the app offers typing only.
+	GROQ_API_KEY: z.string().optional(),
 
 	// Minimum severity the server logger emits (docs/rules/logging.md).
 	// Validated here so a typo fails the boot loudly, but the logger reads
