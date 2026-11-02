@@ -55,7 +55,10 @@ export const classReactionSchema = z.object({
 export const classSchema = z.object({
 	id: uuid,
 	topic_id: uuid,
-	/** Set on a finished class so Assessment can open the video; null while still teaching. */
+	/**
+	 * The video, so private help can open it mid-class and the results can open each idea's
+	 * moment. Null for a lesson taught from pasted text.
+	 */
 	youtube_id: z.string().nullable(),
 	students: z.array(classStudentSchema),
 	turns: z.array(classTurnSchema),

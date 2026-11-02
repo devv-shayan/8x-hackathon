@@ -165,14 +165,16 @@ async function toWireClass(userId: string, classId: string): Promise<ClassSessio
 async function toWire(userId: string, session: StoredClass): Promise<ClassSession> {
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	const finished = !session.turns.some(isOpen)
-	const topic = finished ? await topicStore.findById(userId, session.topicId) : null
+	// The topic gives the video, which private help opens mid-class; its concepts stay off the
+	// wire until the class ends.
+	const topic = await topicStore.findById(userId, session.topicId)
 	const byTitle = new Map(
-		(topic?.concepts ?? []).map((concept) => [concept.title, concept] as const)
+		(finished ? (topic?.concepts ?? []) : []).map((concept) => [concept.title, concept] as const)
 	)
 	return {
 		id: session.id,
 		topic_id: session.topicId,
-		youtube_id: finished && topic && !isPastedTopic(topic.youtubeId) ? topic.youtubeId : null,
+		youtube_id: topic && !isPastedTopic(topic.youtubeId) ? topic.youtubeId : null,
 		students: students.map(({ id, name, persona }) => ({ id, name, persona })),
 		turns: [...heardTurns(session.turns), ...session.turns.filter(isOpen)].map(
 			({ id, studentId, question, answer, outcome }) => ({
