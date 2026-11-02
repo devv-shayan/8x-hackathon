@@ -14,7 +14,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 )
 jest.mock('expo-router', () => ({
 	router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true },
-	useLocalSearchParams: () => ({ gapId: 'gap' })
+	useLocalSearchParams: () => ({ gapId: 'gap' }),
+	useIsFocused: () => true
 }))
 jest.mock('react-native-safe-area-context', () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })

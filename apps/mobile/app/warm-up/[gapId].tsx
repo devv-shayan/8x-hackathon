@@ -15,10 +15,12 @@ import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
+import { QuestionVoice } from '@/components/voice/QuestionVoice'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { useAnswerWarmUp, useDueWarmUps, useStartWarmUp } from '@/hooks/useWarmUps'
 import { track } from '@/lib/analytics'
 import { errorMessage } from '@/lib/api'
@@ -79,6 +81,13 @@ export default function WarmUpScreen() {
 	const warmUpId = start.data?.id ?? openId ?? null
 	const student = start.data?.student_name ?? gap?.student_name ?? gap?.open_warm_up?.student_name
 	const { mutate } = start
+	const asking = question && warmUpId && !result ? warmUpId : null
+	const voice = useQuestionVoice({
+		surface: 'warm_up',
+		source: asking ? { warm_up_id: asking } : null,
+		text: question,
+		student: student ?? null
+	})
 
 	useEffect(() => {
 		if (!gap || openId || started.current) return
@@ -142,7 +151,13 @@ export default function WarmUpScreen() {
 				onLayout={onSheetLayout}
 			>
 				<SheetCard>
-					<MonoLabel>
+					<MonoLabel
+						right={
+							asking && student ? (
+								<QuestionVoice state={voice.state} student={student} onReplay={voice.replay} />
+							) : undefined
+						}
+					>
 						{gap ? `Warm-up · ${student ?? 'A student'} · ${gap.topic_title}` : 'Warm-up'}
 					</MonoLabel>
 					{!gap ? (

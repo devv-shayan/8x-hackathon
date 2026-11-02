@@ -7,12 +7,14 @@ import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { StudentTargets } from '@/components/pixel/StudentTargets'
 import { useSheetFloor } from '@/components/pixel/useSheetFloor'
+import { QuestionVoice } from '@/components/voice/QuestionVoice'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
+import { usePrefetchQuestionVoices, useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { HelpSheet } from './HelpSheet'
 import { studentName } from './shared'
 
@@ -78,6 +80,14 @@ export function ClassStep({
 	for (const turn of hands) raised[figureFor(session, turn.student_id)] = 1
 	const name = openTurn ? studentName(session, openTurn) : null
 	const others = hands.filter((turn) => turn.id !== openTurn?.id)
+	// Every raised hand's voice is made ahead, so the one picked is usually ready to speak.
+	usePrefetchQuestionVoices(hands.map((turn) => ({ class_id: session.id, turn_id: turn.id })))
+	const voice = useQuestionVoice({
+		surface: 'class',
+		source: openTurn ? { class_id: session.id, turn_id: openTurn.id } : null,
+		text: openTurn?.question ?? null,
+		student: name
+	})
 
 	function pick(figure: StudentName) {
 		const turn = hands.find((t) => figureFor(session, t.student_id) === figure)
@@ -143,7 +153,12 @@ export function ClassStep({
 							<Text variant="question" style={s.question} accessibilityRole="header">
 								{openTurn.question}
 							</Text>
-							<MonoLabel style={s.who}>{`${name} · ${WHO[name] ?? 'In your class'}`}</MonoLabel>
+							<MonoLabel
+								style={s.who}
+								right={<QuestionVoice state={voice.state} student={name} onReplay={voice.replay} />}
+							>
+								{`${name} · ${WHO[name] ?? 'In your class'}`}
+							</MonoLabel>
 							{others.length > 0 ? (
 								<Text variant="caption" tone="secondary" style={s.others}>
 									{`${others.map((t) => studentName(session, t)).join(' and ')} has a hand up too. Tap ${others.length === 1 ? studentName(session, others[0]!) : 'a student'} to take that question instead.`}
