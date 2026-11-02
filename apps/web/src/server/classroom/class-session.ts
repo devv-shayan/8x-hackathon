@@ -364,11 +364,21 @@ export async function answerTurn(
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	const speaker = students.find(({ id }) => id === answered?.studentId)
 	if (updated && speaker) {
-		await raiseHand(userId, topic, updated, students, speaker, answered)
-		const raised = await classStore.find(userId, classId)
-		if (raised) await rethinkWaiting(userId, topic, raised, students, speaker.id)
+		// Both AI calls at once: the reply waits for the slower one, not for both in a row.
+		// Neither sees the other's result, which costs little: the re-check only replaces a
+		// waiting question that was just answered, and the new question already knows the
+		// answer. The reply still carries both, so the app never shows a replaced question.
+		await Promise.all([
+			raiseHand(userId, topic, updated, students, speaker, answered),
+			rethinkWaiting(userId, topic, updated, students, speaker.id)
+		])
 	}
 	return finishClass(userId, classId)
+}
+
+/** One of the person's classes as it stands now, so the app can catch up after a timeout. */
+export async function getClass(userId: string, classId: string) {
+	return toWireClass(userId, classId)
 }
 
 /** Private help for a question still waiting on an answer. The class never sees it. */
