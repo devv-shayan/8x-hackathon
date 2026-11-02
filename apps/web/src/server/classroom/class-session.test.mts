@@ -124,8 +124,7 @@ function geminiReply(text: unknown): Response {
 	return Response.json({ candidates })
 }
 
-globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-	const request = String(init?.body)
+async function answerGemini(request: string) {
 	if (request.includes('by the end of a class')) {
 		afterClassCalls += 1
 		if (afterClassFails) throw new TypeError('fetch failed')
@@ -149,6 +148,21 @@ globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 		return geminiReply({ reason: 'new', status: 'open' })
 	questionPrompts.push(request)
 	return geminiReply({ question: 'What does that mean?' })
+}
+
+// How many Gemini calls run at once: each reply takes a moment, so overlapping calls show.
+let inFlight = 0
+let maxInFlight = 0
+
+globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+	inFlight += 1
+	maxInFlight = Math.max(maxInFlight, inFlight)
+	try {
+		await new Promise((resolve) => setTimeout(resolve, 5))
+		return await answerGemini(String(init?.body))
+	} finally {
+		inFlight -= 1
+	}
 }) as typeof fetch
 
 beforeEach(() => {
@@ -158,6 +172,13 @@ beforeEach(() => {
 	afterClassFails = false
 	questionPrompts = []
 	gapSaves = []
+})
+
+test("an answer's next question and the waiting question's re-check run together", async () => {
+	await startClass(USER, TOPIC, 'Plants drink.')
+	maxInFlight = 0
+	await answerTurn(USER, CLASS, 'turn-0', 'answered', 'Water rises through xylem.')
+	assert.ok(maxInFlight >= 2, `expected overlapping Gemini calls, saw ${maxInFlight} at most`)
 })
 
 async function classWithOneAnswer() {

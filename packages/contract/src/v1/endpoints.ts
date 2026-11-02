@@ -96,6 +96,14 @@ export const endpoints = {
 		response: classHelpResponse,
 		status: 200
 	},
+	getClass: {
+		method: 'GET',
+		path: '/api/app/v1/classes/:id',
+		auth: 'user',
+		params: classParams,
+		response: classResponse,
+		status: 200
+	},
 	openClass: {
 		method: 'GET',
 		path: '/api/app/v1/classes/open',

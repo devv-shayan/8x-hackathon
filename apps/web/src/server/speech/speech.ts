@@ -64,17 +64,17 @@ export async function speakQuestion(
 	const voice = STUDENT_VOICES[found.studentName] ?? DEFAULT_VOICE
 	const pieces = splitForSpeech(found.question, SPEAK_MAX_CHARS)
 	if (pieces.length === 0) throw new ApiError('not_found', "We couldn't find that question.")
-	const clips: Uint8Array[] = []
-	// One at a time: Orpheus allows few requests a minute, and order matters.
-	for (const [i, piece] of pieces.entries()) {
-		clips.push(
-			await deps.speak(
+	// All at once: a long question takes as long as its slowest piece, not their sum. A
+	// question is two pieces at most in practice, well inside Orpheus's per-minute limit.
+	const clips = await Promise.all(
+		pieces.map((piece, i) =>
+			deps.speak(
 				{ feature: 'speak_question', meta: { piece: i + 1, pieces: pieces.length } },
 				piece,
 				voice
 			)
 		)
-	}
+	)
 	const audio = clips.length === 1 ? clips[0]! : joinWavs(clips)
 	return {
 		audio_base64: Buffer.from(audio).toString('base64'),
