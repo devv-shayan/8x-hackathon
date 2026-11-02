@@ -4,7 +4,12 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useIsMutating, useMutationState } from '@tanstack/react-query'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MAX_WARM_UP_ANSWER_CHARS, type AnswerWarmUpResult, type Video } from '@app/contract'
+import {
+	MAX_WARM_UP_ANSWER_CHARS,
+	type AnswerWarmUpResult,
+	type DueWarmUp,
+	type Video
+} from '@app/contract'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { useSheetFloor } from '@/components/pixel/useSheetFloor'
@@ -51,7 +56,10 @@ export default function WarmUpScreen() {
 	const start = useStartWarmUp()
 	const answer = useAnswerWarmUp()
 	const [text, setText] = useState('')
-	const [result, setResult] = useState<AnswerWarmUpResult | null>(null)
+	const [answered, setAnswered] = useState<{ gap: DueWarmUp; result: AnswerWarmUpResult } | null>(
+		null
+	)
+	const result = answered?.result ?? null
 	const { floor, onScreenLayout, onSheetLayout } = useSheetFloor()
 	const started = useRef(false)
 
@@ -64,7 +72,8 @@ export default function WarmUpScreen() {
 	}).at(-1)
 	const ready = wasReading && !reading && read ? read : null
 
-	const gap = due.data?.find((item) => item.gap_id === gapId) ?? null
+	// Answering refetches the due list, which no longer has this gap: keep the answered one.
+	const gap = due.data?.find((item) => item.gap_id === gapId) ?? answered?.gap ?? null
 	const openId = gap?.open_warm_up?.id
 	const question = start.data?.question ?? gap?.open_warm_up?.question ?? null
 	const warmUpId = start.data?.id ?? openId ?? null
@@ -89,7 +98,7 @@ export default function WarmUpScreen() {
 				onSuccess: (judged) => {
 					track('warm_up_answered', { gap_id: gap.gap_id, is_right: judged.is_right })
 					haptic.success()
-					setResult(judged)
+					setAnswered({ gap, result: judged })
 				},
 				onError: () => haptic.error()
 			}
