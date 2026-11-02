@@ -33,6 +33,24 @@ export const readVideoBody = z.object({ url: z.string().trim().min(1).max(500) }
 
 export const readVideoResponse = z.object({ video: videoSchema })
 
+/** Long enough for a few ideas, short of a whole book. */
+export const MAX_PASTE_CHARS = 20_000
+
+/**
+ * A topic saved from pasted text, not a YouTube id. YouTube ids are 11
+ * characters, so this prefix never collides with one, and the same text for
+ * the same person resolves to the same topic.
+ */
+export const PASTE_TOPIC_PREFIX = 'text-'
+
+export function isPastedTopic(youtubeId: string): boolean {
+	return youtubeId.startsWith(PASTE_TOPIC_PREFIX)
+}
+
+export const pasteTextBody = z
+	.object({ text: z.string().trim().min(1).max(MAX_PASTE_CHARS) })
+	.strict()
+
 /** Title (and id) for Explain — no transcript, so the source stays off the screen. */
 export const topicParams = z.object({ id: uuid })
 export const topicSummarySchema = z.object({

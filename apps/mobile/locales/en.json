@@ -27,6 +27,13 @@
 		"home": "Home",
 		"profile": "Profile"
 	},
+	"Home": {
+		"pasteLabel": "Paste the text",
+		"pastePlaceholder": "The words from the video, or your notes",
+		"pasteHint": "We couldn't read the video. Paste the text and we'll teach from that.",
+		"pasteButton": "Use this text",
+		"pasteButtonBusy": "Reading the text…"
+	},
 	"Auth": {
 		"signInTitle": "Sign in",
 		"signInSub": "We'll send a one-time code. No password required.",

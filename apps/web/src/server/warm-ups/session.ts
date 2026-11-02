@@ -45,7 +45,8 @@ export async function listDueWarmUps(userId: string, now = new Date()): Promise<
 		gap_id: gap.id,
 		topic_title: gap.topicTitle,
 		concept_title: gap.concept.title,
-		start_seconds: gap.concept.startSeconds,
+		start_seconds: gap.concept.startSeconds ?? 0,
+		has_timestamp: gap.concept.startSeconds != null,
 		open_warm_up: gap.openWarmUp
 			? {
 					id: gap.openWarmUp.id,

@@ -20,6 +20,11 @@ type Finished = {
 	result: AnswerWarmUpResult
 }
 
+function topicLine(gap: DueWarmUp): string {
+	if (gap.has_timestamp === false) return gap.topic_title
+	return `${gap.topic_title} · ${formatTimestamp(gap.start_seconds)}`
+}
+
 function dueLine(result: AnswerWarmUpResult): string {
 	if (result.closed) return 'Two right in a row. This gap is closed.'
 	const when = result.next_due_at
@@ -100,7 +105,7 @@ function WarmUpSession({
 				<Eyebrow tone="muted">{studentName ?? 'Warm-up'}</Eyebrow>
 				<Text variant="h3">{gap.concept_title}</Text>
 				<Text variant="caption" tone="secondary">
-					{`${gap.topic_title} · ${formatTimestamp(gap.start_seconds)}`}
+					{topicLine(gap)}
 				</Text>
 				{question ? (
 					<Text
@@ -173,7 +178,7 @@ function WarmUpCard({
 		<Card>
 			<View style={s.copy}>
 				<Text variant="caption" tone="secondary">
-					{`${gap.topic_title} · ${formatTimestamp(gap.start_seconds)}`}
+					{topicLine(gap)}
 				</Text>
 				<Text variant="body" style={s.concept}>
 					{gap.concept_title}

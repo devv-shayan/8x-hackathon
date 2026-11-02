@@ -20,6 +20,8 @@ export const dueWarmUpSchema = z.object({
 	topic_title: z.string(),
 	concept_title: z.string(),
 	start_seconds: z.number().int().nonnegative(),
+	/** False when the idea came from pasted text and has no moment in a video. */
+	has_timestamp: z.boolean().optional(),
 	/** Set when a question was already saved and is still unanswered. */
 	open_warm_up: openWarmUpSchema.nullable()
 })

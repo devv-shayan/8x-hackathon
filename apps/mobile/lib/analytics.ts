@@ -26,6 +26,11 @@ type EventName =
 	// Reading a video — judged on how many readers go on to teach it. Metadata:
 	//   { concept_count: number }
 	| 'video_read'
+	// Paste fallback — judged on whether a failed read still becomes a lesson.
+	// text_paste_offered fires when the box appears after a video we can't read
+	// (not a bad link, and not a busy retry). Submitting it fires video_read,
+	// the same "ready to teach" moment as a video that read.
+	| 'text_paste_offered'
 	// Home — judged on whether people come back to a recent topic or unfinished class.
 	// THE metric for return visits is continue_opened: they picked up where they left off.
 	// recent_topic_opened answers who re-opens a past topic to teach again.

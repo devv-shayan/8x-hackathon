@@ -55,7 +55,9 @@ In production, reading a video goes to Gemini first, then Supadata's captions if
 read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
 The limit is 90
 minutes with captions and 30 without. Key concepts keep only quotes found in the transcript, and
-the timestamp comes from the transcript, not the model.
+the timestamp comes from the transcript, not the model. When a video can't be read (not a bad
+link, and not a busy retry), Home offers a box to paste the text. That lesson is stored as a
+topic whose id starts with `text-`, and its concepts have no timestamp.
 
 Students, classes and warm-ups have stores and `/api/app/v1` routes. Scoring an explanation
 saves a gap for each concept that was missed or wrong, due two days later

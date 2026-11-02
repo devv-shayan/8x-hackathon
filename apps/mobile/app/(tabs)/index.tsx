@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Video } from '@app/contract'
+import { useTranslation } from 'react-i18next'
+import { isPastedTopic, type Video } from '@app/contract'
 import { DueWarmUps } from '@/components/DueWarmUps'
 import { RecentTopics, topicsQueryKey } from '@/components/RecentTopics'
 import { FadeSlideIn } from '@/components/motion/FadeSlideIn'
@@ -14,7 +15,7 @@ import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
 import { track } from '@/lib/analytics'
-import { api, errorMessage } from '@/lib/api'
+import { api, errorCode, errorMessage } from '@/lib/api'
 import { haptic } from '@/lib/haptics'
 import { topicQueryKey } from '@/lib/topicQuery'
 import { youtubeThumbnailUrl } from '@/lib/youtubeThumb'
@@ -24,16 +25,19 @@ const READ_VIDEO_TIMEOUT_MS = 5 * 60 * 1000
 
 function ReadyToTeach({ video }: { video: Video }) {
 	const { radii } = useTheme()
+	const pasted = isPastedTopic(video.youtube_id)
 	return (
 		<FadeSlideIn index={2} style={s.results}>
 			<Eyebrow tone="muted">Ready to teach</Eyebrow>
-			<Image
-				source={{ uri: youtubeThumbnailUrl(video.youtube_id) }}
-				style={[s.readyThumb, { borderRadius: radii.md }]}
-				contentFit="cover"
-				accessibilityIgnoresInvertColors
-				accessibilityLabel={`Thumbnail for ${video.title}`}
-			/>
+			{pasted ? null : (
+				<Image
+					source={{ uri: youtubeThumbnailUrl(video.youtube_id) }}
+					style={[s.readyThumb, { borderRadius: radii.md }]}
+					contentFit="cover"
+					accessibilityIgnoresInvertColors
+					accessibilityLabel={`Thumbnail for ${video.title}`}
+				/>
+			)}
 			<Text variant="h1">{video.title}</Text>
 			<Button
 				label="Teach this to the class"
@@ -45,8 +49,11 @@ function ReadyToTeach({ video }: { video: Video }) {
 }
 
 export default function HomeScreen() {
+	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const [url, setUrl] = useState('')
+	const [paste, setPaste] = useState('')
+	const offered = useRef(false)
 	const readVideo = useMutation({
 		mutationFn: () =>
 			api('readVideo', { body: { url }, timeoutMs: READ_VIDEO_TIMEOUT_MS }).then((r) => r.video),
@@ -58,7 +65,27 @@ export default function HomeScreen() {
 		},
 		onError: () => haptic.error()
 	})
-	const video = readVideo.data
+	const pasteText = useMutation({
+		mutationFn: () =>
+			api('pasteText', { body: { text: paste }, timeoutMs: READ_VIDEO_TIMEOUT_MS }).then(
+				(r) => r.video
+			),
+		onSuccess: (video: Video) => {
+			queryClient.setQueryData(topicQueryKey(video.id), video)
+			void queryClient.invalidateQueries({ queryKey: topicsQueryKey })
+			haptic.success()
+			track('video_read', { concept_count: video.concepts.length })
+		},
+		onError: () => haptic.error()
+	})
+	const video = readVideo.data ?? pasteText.data
+	const offerPaste = errorCode(readVideo.error) === 'video_unreadable' && !readVideo.isPending
+
+	useEffect(() => {
+		if (!offerPaste || offered.current) return
+		offered.current = true
+		track('text_paste_offered')
+	}, [offerPaste])
 
 	return (
 		<Screen tabs gap={14}>
@@ -86,6 +113,30 @@ export default function HomeScreen() {
 					fullWidth
 					onPress={() => readVideo.mutate()}
 				/>
+				{offerPaste ? (
+					<>
+						<Text variant="bodySm" tone="secondary">
+							{t('Home.pasteHint')}
+						</Text>
+						<TextInputField
+							label={t('Home.pasteLabel')}
+							placeholder={t('Home.pastePlaceholder')}
+							value={paste}
+							onChangeText={setPaste}
+							multiline
+							numberOfLines={6}
+							textAlignVertical="top"
+							error={pasteText.isError ? errorMessage(pasteText.error) : null}
+						/>
+						<Button
+							label={pasteText.isPending ? t('Home.pasteButtonBusy') : t('Home.pasteButton')}
+							loading={pasteText.isPending}
+							disabled={!paste.trim() || pasteText.isPending}
+							fullWidth
+							onPress={() => pasteText.mutate()}
+						/>
+					</>
+				) : null}
 			</FadeSlideIn>
 
 			{/* Ready sits above warm-ups so a fresh read isn't pushed down by "Nothing due". */}
