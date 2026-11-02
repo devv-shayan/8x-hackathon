@@ -65,7 +65,11 @@ describe('the warm-up screen', () => {
 		fireEvent.press(await screen.findByText('I don’t remember'))
 
 		expect(await screen.findByText(/^Not quite\. It comes back /)).toBeTruthy()
-		expect(track).toHaveBeenCalledWith('warm_up_answered', { gap_id: 'gap', is_right: false })
+		expect(track).toHaveBeenCalledWith('warm_up_answered', {
+			gap_id: 'gap',
+			is_right: false,
+			method: 'typed'
+		})
 		// The due list has refetched without the gap; the result must still be what shows.
 		await waitFor(() =>
 			expect(

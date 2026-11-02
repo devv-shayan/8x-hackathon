@@ -8,11 +8,11 @@ import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { StudentTargets } from '@/components/pixel/StudentTargets'
 import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { QuestionVoice } from '@/components/voice/QuestionVoice'
+import { VoiceAnswer, type AnswerMeta } from '@/components/voice/VoiceAnswer'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
-import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
 import { usePrefetchQuestionVoices, useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { HelpSheet } from './HelpSheet'
@@ -63,7 +63,7 @@ export function ClassStep({
 	answer: string
 	onAnswerChange: (text: string) => void
 	onPick: (turn: ClassTurn) => void
-	onAnswer: () => void
+	onAnswer: (text: string, meta: AnswerMeta) => void
 	onSkip: () => void
 	onEnd: () => void
 	answering: boolean
@@ -166,32 +166,16 @@ export function ClassStep({
 									{`${others.map((t) => studentName(session, t)).join(' and ')} has a hand up too. Tap ${others.length === 1 ? studentName(session, others[0]!) : 'a student'} to take that question instead.`}
 								</Text>
 							) : null}
-							<View style={s.input}>
-								<TextInputField
-									accessibilityLabel={`Answer ${name}`}
-									placeholder={`Answer ${name} in your own words`}
-									multiline
-									value={answer}
-									onChangeText={onAnswerChange}
-									error={error}
-								/>
-							</View>
-							<Button
-								label={answering ? 'Waiting for the class…' : 'Answer'}
-								variant="ink"
-								size="lg"
-								fullWidth
-								loading={answering}
-								disabled={!answer.trim() || busy}
-								onPress={onAnswer}
-								style={s.cta}
-							/>
-							<Button
-								label="Skip this one"
-								variant="ghost"
-								fullWidth
-								disabled={busy}
-								onPress={onSkip}
+							<VoiceAnswer
+								key={openTurn.id}
+								surface="class"
+								student={name}
+								typed={answer}
+								onTypedChange={onAnswerChange}
+								onSend={onAnswer}
+								sending={answering}
+								error={error}
+								secondary={{ label: 'Skip this one', onPress: onSkip, disabled: busy }}
 							/>
 							<HelpSheet session={session} turn={openTurn} open={helpOpen} onClose={onCloseHelp} />
 						</>
@@ -269,6 +253,5 @@ const s = StyleSheet.create({
 	question: { marginTop: 14 },
 	who: { marginTop: 14 },
 	others: { marginTop: 8 },
-	input: { marginTop: 14 },
 	cta: { marginTop: 14 }
 })

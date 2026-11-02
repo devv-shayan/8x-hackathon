@@ -16,9 +16,9 @@ import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { QuestionVoice } from '@/components/voice/QuestionVoice'
+import { VoiceAnswer, type AnswerMeta } from '@/components/voice/VoiceAnswer'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
-import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { useAnswerWarmUp, useDueWarmUps, useStartWarmUp } from '@/hooks/useWarmUps'
@@ -99,13 +99,13 @@ export default function WarmUpScreen() {
 		if (question && gap) track('warm_up_started', { gap_id: gap.gap_id })
 	}, [question, gap])
 
-	function send(words: string) {
+	function send(words: string, meta: AnswerMeta) {
 		if (!warmUpId || !gap || answer.isPending) return
 		answer.mutate(
 			{ id: warmUpId, answer: words },
 			{
 				onSuccess: (judged) => {
-					track('warm_up_answered', { gap_id: gap.gap_id, is_right: judged.is_right })
+					track('warm_up_answered', { gap_id: gap.gap_id, is_right: judged.is_right, ...meta })
 					haptic.success()
 					setAnswered({ gap, result: judged })
 				},
@@ -212,33 +212,21 @@ export default function WarmUpScreen() {
 									? `You missed this one: ${gap.concept_title}.`
 									: `You missed this one at ${formatTimestamp(gap.start_seconds)}: ${gap.concept_title}.`}
 							</Text>
-							<View style={s.cta}>
-								<TextInputField
-									accessibilityLabel={`Answer ${student ?? 'the student'}`}
-									placeholder="Answer in your own words"
-									value={text}
-									onChangeText={setText}
-									multiline
-									maxLength={MAX_WARM_UP_ANSWER_CHARS}
-									error={answer.isError ? errorMessage(answer.error) : null}
-								/>
-							</View>
-							<Button
-								label={answer.isPending ? 'Checking…' : 'Answer'}
-								variant="ink"
-								size="lg"
-								fullWidth
-								loading={answer.isPending}
-								disabled={!text.trim()}
-								onPress={() => send(text.trim())}
-								style={s.cta}
-							/>
-							<Button
-								label="I don’t remember"
-								variant="ghost"
-								fullWidth
-								disabled={answer.isPending}
-								onPress={() => send('I don’t remember.')}
+							<VoiceAnswer
+								key={warmUpId}
+								surface="warm_up"
+								student={student ?? 'the student'}
+								typed={text}
+								onTypedChange={setText}
+								onSend={send}
+								sending={answer.isPending}
+								sendingLabel="Checking…"
+								maxLength={MAX_WARM_UP_ANSWER_CHARS}
+								error={answer.isError ? errorMessage(answer.error) : null}
+								secondary={{
+									label: 'I don’t remember',
+									onPress: () => send('I don’t remember.', { method: 'typed' })
+								}}
 							/>
 						</>
 					) : start.isError ? (
