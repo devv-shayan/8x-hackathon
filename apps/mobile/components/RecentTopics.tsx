@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { isPastedTopic, type ListedTopic } from '@app/contract'
 import { QueryErrorState } from '@/components/QueryError'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { CardSkeleton } from '@/components/ui/Skeleton'
@@ -51,6 +52,12 @@ function TopicRow({ topic }: { topic: ListedTopic }) {
 							Teach again
 						</Text>
 					)}
+					<Button
+						label="Gaps"
+						variant="secondary"
+						onPress={() => router.push(`/topic/${topic.id}`)}
+						accessibilityLabel={`Gaps for ${topic.title}`}
+					/>
 				</View>
 			</View>
 		</Card>

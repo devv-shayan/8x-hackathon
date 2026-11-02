@@ -201,6 +201,11 @@ type EventName =
 	| 'warm_up_offered'
 	| 'warm_up_started'
 	| 'warm_up_answered'
+	// Topic gaps — the "seeing progress" screen for one video.
+	// THE metric is topic_gaps_viewed with closed_count above zero: a gap actually closed.
+	// topic_id discriminates so two topics the same day both count.
+	// Metadata: { topic_id, open_count, closed_count }
+	| 'topic_gaps_viewed'
 // TODO: add your app-specific events here
 
 /** Track an event. No-ops silently when PostHog is unconfigured. */

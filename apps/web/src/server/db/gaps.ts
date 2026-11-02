@@ -9,6 +9,20 @@ import { db } from './client'
 
 export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 	return {
+		/** Every gap on this topic, open and closed, with its warm-ups. Scoped by the owner. */
+		async listForTopic(userId: string, topicId: string) {
+			return client.gap.findMany({
+				where: { userId, topicId },
+				orderBy: { createdAt: 'asc' },
+				include: {
+					warmUps: {
+						orderBy: { createdAt: 'asc' },
+						include: { student: { select: { name: true } } }
+					}
+				}
+			})
+		},
+
 		/** One open gap per missed or wrong concept. Due two days after it is found. */
 		async saveFromResults(input: {
 			userId: string

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { uuid } from './common'
+import { isoDateTime, uuid } from './common'
 
 // /api/app/v1/videos: reading a YouTube video.
 //
@@ -58,6 +58,40 @@ export const topicSummarySchema = z.object({
 	title: z.string()
 })
 export const getTopicResponse = z.object({ topic: topicSummarySchema })
+
+/**
+ * One video's gaps and the warm-ups on them. Not part of GET /topics/:id,
+ * which stays title-only.
+ */
+export const topicGapWarmUpSchema = z.object({
+	id: uuid,
+	student_name: z.string(),
+	question: z.string(),
+	answer: z.string().nullable(),
+	is_right: z.boolean().nullable(),
+	created_at: isoDateTime
+})
+
+export const topicGapSchema = z.object({
+	id: uuid,
+	concept_title: z.string(),
+	quote: z.string(),
+	start_seconds: z.number().int().nonnegative().nullable(),
+	right_streak: z.number().int().nonnegative(),
+	next_due_at: isoDateTime,
+	closed_at: isoDateTime.nullable(),
+	warm_ups: z.array(topicGapWarmUpSchema)
+})
+
+export const topicGapsResponse = z.object({
+	title: z.string(),
+	open_count: z.number().int().nonnegative(),
+	closed_count: z.number().int().nonnegative(),
+	gaps: z.array(topicGapSchema)
+})
+
+export type TopicGap = z.infer<typeof topicGapSchema>
+export type TopicGaps = z.infer<typeof topicGapsResponse>
 
 /**
  * A row on Home's recent-topics list. No transcript or concepts — those stay

@@ -13,6 +13,7 @@ import {
 	itemSchema,
 	listItemsResponse,
 	listTopicsResponse,
+	topicGapsResponse,
 	MAX_AVATAR_BYTES,
 	pageQuery,
 	profileResponse,
@@ -188,6 +189,37 @@ test('listTopics: title and youtube id, open class optional, no transcript', () 
 		}).success,
 		false
 	)
+})
+
+test('topic gaps: counts, a closed gap, and no transcript', () => {
+	const body = {
+		title: 'Plants',
+		open_count: 1,
+		closed_count: 0,
+		gaps: [
+			{
+				id: ID,
+				concept_title: 'Xylem',
+				quote: 'water moves through xylem',
+				start_seconds: 12,
+				right_streak: 0,
+				next_due_at: NOW,
+				closed_at: null,
+				warm_ups: [
+					{
+						id: ID,
+						student_name: 'Maya',
+						question: 'Where does the water go?',
+						answer: null,
+						is_right: null,
+						created_at: NOW
+					}
+				]
+			}
+		]
+	}
+	assert.deepEqual(topicGapsResponse.parse({ ...body, segments: [] }), body)
+	assert.equal(topicGapsResponse.safeParse({ ...body, open_count: -1 }).success, false)
 })
 
 test('every endpoint: under /api/app/v1, one per method and path, a body only on writes', () => {

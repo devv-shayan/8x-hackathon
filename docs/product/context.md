@@ -49,6 +49,7 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | Schema          | `apps/web/prisma/schema/learning.prisma`                                      |
 | Home screen     | `apps/mobile/app/(tabs)/index.tsx` (link box, ready, warm-ups, recent topics) |
 | List topics     | `GET /api/app/v1/topics` (title + open class id, no transcript)               |
+| Topic gaps      | `GET /api/app/v1/topics/:id/gaps`, `apps/mobile/app/topic/[topicId].tsx`      |
 | Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`            |
 
 In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't

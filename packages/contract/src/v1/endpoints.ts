@@ -19,6 +19,7 @@ import {
 	pasteTextBody,
 	readVideoBody,
 	readVideoResponse,
+	topicGapsResponse,
 	topicParams
 } from './videos'
 import {
@@ -135,6 +136,14 @@ export const endpoints = {
 		auth: 'user',
 		params: topicParams,
 		response: getTopicResponse,
+		status: 200
+	},
+	listTopicGaps: {
+		method: 'GET',
+		path: '/api/app/v1/topics/:id/gaps',
+		auth: 'user',
+		params: topicParams,
+		response: topicGapsResponse,
 		status: 200
 	},
 	getConfig: {
