@@ -6,7 +6,13 @@ function concept(
 	result: ConceptResult['result'],
 	resultAfterClass: ConceptResult['result'] | null
 ): ConceptResult {
-	return { concept: name, result, result_after_class: resultAfterClass, start_seconds: 10 }
+	return {
+		concept: name,
+		result,
+		result_after_class: resultAfterClass,
+		start_seconds: 10,
+		quote: `${name} quote`
+	}
 }
 
 const names = (items: ConceptResult[]) => items.map(({ concept: name }) => name)

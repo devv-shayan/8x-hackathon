@@ -8,6 +8,7 @@ import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
 import { isLocalDemoUser } from '@/server/demo/local-demo'
 import { demoStudentQuestion, scoreDemoExplanation } from '@/server/demo/score-demo-explanation'
+import { findStudentReactions } from './find-reactions'
 import { explainFromVideo } from './help'
 import { scoreAfterClass, scoreExplanation } from './find-explanation-score'
 import { checkWaitingQuestion, nextQuestion } from './next-question'
@@ -165,12 +166,13 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	const finished = !session.turns.some(isOpen)
 	const topic = finished ? await topicStore.findById(userId, session.topicId) : null
-	const starts = new Map(
-		(topic?.concepts ?? []).map(({ title, startSeconds }) => [title, startSeconds])
+	const byTitle = new Map(
+		(topic?.concepts ?? []).map((concept) => [concept.title, concept] as const)
 	)
 	return {
 		id: session.id,
 		topic_id: session.topicId,
+		youtube_id: finished ? (topic?.youtubeId ?? null) : null,
 		students: students.map(({ id, name, persona }) => ({ id, name, persona })),
 		turns: [...heardTurns(session.turns), ...session.turns.filter(isOpen)].map(
 			({ id, studentId, question, answer, outcome }) => ({
@@ -184,11 +186,21 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 		finished,
 		// Scoring stays off the wire until the class ends (docs/product/context.md).
 		concept_results: finished
-			? session.conceptResults.map(({ concept, result, resultAfterClass }) => ({
-					concept,
-					result,
-					result_after_class: resultAfterClass ?? null,
-					start_seconds: starts.get(concept) ?? null
+			? session.conceptResults.map(({ concept, result, resultAfterClass }) => {
+					const stored = byTitle.get(concept)
+					return {
+						concept,
+						result,
+						result_after_class: resultAfterClass ?? null,
+						start_seconds: stored?.startSeconds ?? null,
+						quote: stored?.quote ?? null
+					}
+				})
+			: null,
+		reactions: finished
+			? (session.reactions ?? []).map(({ studentId, text }) => ({
+					student_id: studentId,
+					text
 				}))
 			: null
 	}
@@ -235,6 +247,58 @@ async function scoreFinishedClass(userId: string, classId: string) {
 	await classStore.saveConceptResults(classId, results)
 	// A class scored at the start already saved its gaps. Saving again would open a second set.
 	if (!hadScore) await rememberGaps({ userId, topic, results: first })
+}
+
+/** Best effort: a failure still returns the scored results with an empty reactions list. */
+async function writeReactions(userId: string, classId: string) {
+	const session = await classStore.find(userId, classId)
+	if (!session || session.turns.some(isOpen) || session.reactions != null) return
+	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
+	const heard = heardTurns(session.turns)
+	const speakers = students.filter(({ id }) => heard.some((turn) => turn.studentId === id))
+	if (speakers.length === 0) {
+		await classStore.saveReactions(classId, [])
+		return
+	}
+	if (isLocalDemoUser(userId)) {
+		await classStore.saveReactions(
+			classId,
+			speakers.map(({ id, name }) => ({
+				studentId: id,
+				text:
+					name === 'Omar'
+						? 'That cleared up the bit I was unsure about.'
+						: 'I think I get it now — thanks for walking me through it.'
+			}))
+		)
+		return
+	}
+	try {
+		const reactions = await findStudentReactions({
+			classId,
+			students: speakers.map(({ id, name, persona }) => ({ id, name, persona })),
+			turns: heard.map(({ studentId, question, answer, outcome }) => ({
+				studentId,
+				question,
+				answer,
+				outcome
+			}))
+		})
+		await classStore.saveReactions(classId, reactions)
+	} catch (error) {
+		log.warn('could not write class reactions', {
+			source: 'classroom/class-session',
+			class_id: classId,
+			error: error instanceof Error ? error.message : String(error)
+		})
+		await classStore.saveReactions(classId, [])
+	}
+}
+
+async function finishClass(userId: string, classId: string) {
+	await scoreFinishedClass(userId, classId)
+	await writeReactions(userId, classId)
+	return toWireClass(userId, classId)
 }
 
 /** A missed or wrong concept becomes a gap, due two days later. */
@@ -302,8 +366,7 @@ export async function answerTurn(
 		const raised = await classStore.find(userId, classId)
 		if (raised) await rethinkWaiting(userId, topic, raised, students, speaker.id)
 	}
-	await scoreFinishedClass(userId, classId)
-	return toWireClass(userId, classId)
+	return finishClass(userId, classId)
 }
 
 /** Private help for a question still waiting on an answer. The class never sees it. */
@@ -334,6 +397,5 @@ export async function endClass(userId: string, classId: string) {
 	const session = await classStore.find(userId, classId)
 	if (!session) throw notFound()
 	await classStore.dropOpenTurns(classId)
-	await scoreFinishedClass(userId, classId)
-	return toWireClass(userId, classId)
+	return finishClass(userId, classId)
 }

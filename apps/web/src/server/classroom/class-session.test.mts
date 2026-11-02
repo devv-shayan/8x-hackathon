@@ -37,6 +37,7 @@ let session: {
 	topicId: string
 	explanation: string
 	conceptResults: { concept: string; result: 'correct' | 'missed' | 'wrong' }[]
+	reactions: { studentId: string; text: string }[] | null
 	turns: Turn[]
 	createdAt: Date
 }
@@ -66,7 +67,15 @@ Object.assign(classStore, {
 	studentsFor: async () => students,
 	pastTurns: async () => [],
 	create: async (topicId: string, explanation: string, conceptResults: never[]) => {
-		session = { id: CLASS, topicId, explanation, conceptResults, turns: [], createdAt: new Date() }
+		session = {
+			id: CLASS,
+			topicId,
+			explanation,
+			conceptResults,
+			reactions: null,
+			turns: [],
+			createdAt: new Date()
+		}
 		return structuredClone(session)
 	},
 	find: async () => structuredClone(session),
@@ -94,6 +103,9 @@ Object.assign(classStore, {
 	},
 	saveConceptResults: async (_classId: string, results: typeof session.conceptResults) => {
 		session.conceptResults = results
+	},
+	saveReactions: async (_classId: string, reactions: NonNullable<typeof session.reactions>) => {
+		if (session.reactions == null) session.reactions = reactions
 	}
 })
 
@@ -123,6 +135,14 @@ globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 		scoreCalls += 1
 		if (scoreCalls <= failedScoreCalls) throw new TypeError('fetch failed')
 		return geminiReply({ results: [{ concept: 'Xylem', result: 'wrong' }] })
+	}
+	if (request.includes('closing lines from students') || request.includes('Write one reaction')) {
+		return geminiReply({
+			reactions: students.map(({ id, name }) => ({
+				student_id: id,
+				text: `${name} learned something.`
+			}))
+		})
 	}
 	if (request.includes('follow_up')) return geminiReply({ follow_up: false })
 	if (request.includes('has a question ready'))
@@ -175,14 +195,27 @@ test('ending a class that failed to score scores it', async () => {
 	scoreCalls = 0
 	const ended = await endClass(USER, CLASS)
 	assert.equal(ended.finished, true)
+	assert.equal(ended.youtube_id, 'video')
 	assert.deepEqual(
-		ended.concept_results?.map(({ concept, result }) => [concept, result]),
+		ended.concept_results?.map(({ concept, result, quote, start_seconds }) => [
+			concept,
+			result,
+			quote,
+			start_seconds
+		]),
 		[
-			['Xylem', 'wrong'],
-			['Stomata', 'missed']
+			['Xylem', 'wrong', 'water moves through xylem', 10],
+			['Stomata', 'missed', 'gas enters through stomata', 40]
 		]
 	)
 	assert.equal(gapSaves.length, 1)
+})
+
+test('ending a class writes reactions, and a failed reaction call still returns results', async () => {
+	await classWithOneAnswer()
+	const ended = await endClass(USER, CLASS)
+	assert.ok((ended.reactions?.length ?? 0) > 0)
+	assert.equal(ended.reactions?.[0]?.student_id, 'maya')
 })
 
 test('a class that still cannot be scored ends without a score', async () => {
