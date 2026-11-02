@@ -5,6 +5,7 @@ import { WARM_UP_EVENTS } from '@/lib/analytics/events'
 import { ApiError } from '@/server/api/app-errors'
 import { notFound } from '@/server/api/app-route'
 import { DEFAULT_STUDENTS } from '@/server/classroom/student-turn'
+import { toDueWarmUp } from './due'
 import { classStore } from '@/server/db/classes'
 import { warmUpStore, type StoredWarmUp } from '@/server/db/warm-ups'
 import { isLocalDemoUser } from '@/server/demo/local-demo'
@@ -41,20 +42,11 @@ async function studentFor(userId: string, topicId: string) {
 export async function listDueWarmUps(userId: string, now = new Date()): Promise<DueWarmUp[]> {
 	if (isLocalDemoUser(userId)) return []
 	const gaps = await warmUpStore.listDue(userId, now)
-	return gaps.map((gap) => ({
-		gap_id: gap.id,
-		topic_title: gap.topicTitle,
-		concept_title: gap.concept.title,
-		start_seconds: gap.concept.startSeconds ?? 0,
-		has_timestamp: gap.concept.startSeconds != null,
-		open_warm_up: gap.openWarmUp
-			? {
-					id: gap.openWarmUp.id,
-					question: gap.openWarmUp.question,
-					student_name: gap.openWarmUp.studentName
-				}
-			: null
-	}))
+	return Promise.all(
+		gaps.map(async (gap) =>
+			toDueWarmUp(gap, gap.openWarmUp ? '' : (await studentFor(userId, gap.topicId)).name)
+		)
+	)
 }
 
 /** The question already saved for this gap, or a new one. `created` is false when it already existed. */
