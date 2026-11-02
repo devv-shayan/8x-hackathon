@@ -36,15 +36,35 @@ const BOTH: readonly SceneStudent[] = [
 export const SCENES = {
 	/** Onboarding's ground, behind the two student cards. */
 	meet: { field: 'tunnel', students: [], headY: 0, scale: 0, halo: null },
-	/** The cards on "Meet your class": each student on their own colour. */
+	/** The first screen: both students on the tunnel, taking turns with a hand up. */
+	welcome: { field: 'tunnel', students: BOTH, headY: 0.32, scale: 0.44, halo: null },
+	/**
+	 * The cards on "Meet your class": each student on their own colour. The cards are tall and
+	 * narrow, so the students are small enough for a raised hand to fit across one.
+	 */
 	mayaCard: {
+		field: 'maya',
+		students: [{ name: 'Maya', at: 0.5 }],
+		headY: 0.62,
+		scale: 0.62,
+		halo: 0.99
+	},
+	omarCard: {
+		field: 'omar',
+		students: [{ name: 'Omar', at: 0.5 }],
+		headY: 0.62,
+		scale: 0.62,
+		halo: 0.99
+	},
+	/** A small square portrait, as on Home's warm-up card: head and shoulders. */
+	mayaPortrait: {
 		field: 'maya',
 		students: [{ name: 'Maya', at: 0.5 }],
 		headY: 0.48,
 		scale: 0.9,
 		halo: 0.99
 	},
-	omarCard: {
+	omarPortrait: {
 		field: 'omar',
 		students: [{ name: 'Omar', at: 0.5 }],
 		headY: 0.48,

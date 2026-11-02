@@ -1,45 +1,11 @@
 import { useEffect, useId } from 'react'
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
-import { LinearGradient } from 'expo-linear-gradient'
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import { parseColor } from '@app/brand'
 import { useTheme } from '@/contexts/ThemeContext'
 import { Springs } from '@/lib/motion'
 import { Text } from './Text'
-
-/**
- * The app's mark until a play drops in its own: the brand gradient in a
- * rounded square with the name's initial in the AA text colour for it.
- * 🎨 REPLACE with the play's logo (an expo-image of assets/icon.png) once it
- * has one.
- */
-export function LogoMark({ name, size = 40 }: { name: string; size?: number }) {
-	const { colors: c, elevation } = useTheme()
-	const radius = size * 0.3
-	return (
-		<View
-			style={[{ width: size, height: size, borderRadius: radius }, elevation.soft]}
-			accessibilityElementsHidden
-			importantForAccessibility="no-hide-descendants"
-		>
-			<LinearGradient
-				colors={c.brandGradient}
-				start={{ x: 0, y: 0 }}
-				end={{ x: 1, y: 1 }}
-				style={[StyleSheet.absoluteFill, s.center, { borderRadius: radius }]}
-			>
-				<Text
-					variant="h3"
-					style={{ color: c.onBrand, fontSize: size * 0.46, lineHeight: size * 0.56 }}
-					maxFontSizeMultiplier={1}
-				>
-					{name.charAt(0).toUpperCase()}
-				</Text>
-			</LinearGradient>
-		</View>
-	)
-}
 
 /** Initials on the accent tint — the person, until they have a photo. */
 export function Avatar({ initials, size = 64 }: { initials: string; size?: number }) {

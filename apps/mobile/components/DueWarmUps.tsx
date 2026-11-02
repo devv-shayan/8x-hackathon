@@ -69,7 +69,7 @@ export function DueWarmUps() {
 				style={[s.card, { backgroundColor: c.well, borderRadius: radii['3xl'] }]}
 			>
 				<View style={[s.portrait, { borderRadius: radii.xl }]}>
-					<PixelBackdrop scene={student === 'Omar' ? 'omarCard' : 'mayaCard'} />
+					<PixelBackdrop scene={student === 'Omar' ? 'omarPortrait' : 'mayaPortrait'} />
 				</View>
 				<View style={s.copy}>
 					<Text variant="h3">{`${student} has a question`}</Text>

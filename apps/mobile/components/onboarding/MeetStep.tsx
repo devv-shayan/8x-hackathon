@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { SceneName } from '@app/pixel'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
@@ -8,18 +9,19 @@ import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import { useTheme } from '@/contexts/ThemeContext'
+import { STUDENT_LINES } from '@/lib/studentLines'
 
 const STUDENTS: { name: string; scene: SceneName; says: string; who: string }[] = [
 	{
 		name: 'Maya',
 		scene: 'mayaCard',
-		says: '“Wait, how can it be both? That doesn’t add up.”',
+		says: STUDENT_LINES.Maya,
 		who: 'Never saw the video. Stops you when it doesn’t add up.'
 	},
 	{
 		name: 'Omar',
 		scene: 'omarCard',
-		says: '“The video also covers that part. You skipped it.”',
+		says: STUDENT_LINES.Omar,
 		who: 'Watched it twice. Catches what you left out.'
 	}
 ]
@@ -32,7 +34,8 @@ export function MeetStep({ onContinue }: { onContinue: () => void }) {
 	const { colors: c, radii } = useTheme()
 	const insets = useSafeAreaInsets()
 	return (
-		<View style={s.fill}>
+		<View style={[s.fill, { backgroundColor: c.hero }]}>
+			<StatusBar style="light" />
 			<PixelBackdrop scene="meet" />
 			<View style={[s.cards, { paddingTop: insets.top + 16 }]}>
 				{STUDENTS.map((student) => (
