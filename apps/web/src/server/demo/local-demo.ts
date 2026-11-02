@@ -21,7 +21,7 @@ export function isLocalDemoBearer(token: string): boolean {
 	return process.env.NODE_ENV !== 'production' && token === LOCAL_DEMO_BEARER
 }
 
-type OwnedTopic = TopicRecord & { userId: string }
+type OwnedTopic = TopicRecord & { userId: string; createdAt: Date }
 
 type DemoTurn = {
 	id: string
@@ -93,6 +93,14 @@ export const demoMemory = {
 		return topic?.userId === userId ? topic : null
 	},
 
+	listTopics(userId: string, limit: number): { id: string; youtubeId: string; title: string }[] {
+		return [...topics.values()]
+			.filter((topic) => topic.userId === userId)
+			.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+			.slice(0, limit)
+			.map(({ id, youtubeId, title }) => ({ id, youtubeId, title }))
+	},
+
 	saveTopic(
 		userId: string,
 		topic: {
@@ -104,7 +112,7 @@ export const demoMemory = {
 	): TopicRecord {
 		const existing = demoMemory.findTopic(userId, topic.youtubeId)
 		if (existing) return existing
-		const record: OwnedTopic = { id: randomUUID(), userId, ...topic }
+		const record: OwnedTopic = { id: randomUUID(), userId, createdAt: new Date(), ...topic }
 		topics.set(record.id, record)
 		return record
 	},

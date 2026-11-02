@@ -40,15 +40,16 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 
 ## What's built
 
-| Area            | Where                                                               |
-| --------------- | ------------------------------------------------------------------- |
-| Add-video route | `apps/web/src/app/api/app/v1/videos/route.ts`                       |
-| Reading a video | `apps/web/src/server/video/read-video.ts`, `youtube-info.ts`        |
-| Key concepts    | `apps/web/src/server/video/find-key-concepts.ts`, `key-concepts.ts` |
-| Saved videos    | `apps/web/src/server/db/topics.ts`                                  |
-| Schema          | `apps/web/prisma/schema/learning.prisma`                            |
-| Home screen     | `apps/mobile/app/(tabs)/index.tsx` (link box, due warm-ups)         |
-| Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`  |
+| Area            | Where                                                                         |
+| --------------- | ----------------------------------------------------------------------------- |
+| Add-video route | `apps/web/src/app/api/app/v1/videos/route.ts`                                 |
+| Reading a video | `apps/web/src/server/video/read-video.ts`, `youtube-info.ts`                  |
+| Key concepts    | `apps/web/src/server/video/find-key-concepts.ts`, `key-concepts.ts`           |
+| Saved videos    | `apps/web/src/server/db/topics.ts`                                            |
+| Schema          | `apps/web/prisma/schema/learning.prisma`                                      |
+| Home screen     | `apps/mobile/app/(tabs)/index.tsx` (link box, ready, warm-ups, recent topics) |
+| List topics     | `GET /api/app/v1/topics` (title + open class id, no transcript)               |
+| Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`            |
 
 In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't
 read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
