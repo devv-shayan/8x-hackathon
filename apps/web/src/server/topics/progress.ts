@@ -10,6 +10,8 @@ export type StoredGap = {
 	concept: KeyConcept
 	nextDueAt: Date
 	closedAt: Date | null
+	/** Answered warm-ups, oldest first. */
+	warmUps: { createdAt: Date; studentName: string; isRight: boolean }[]
 }
 
 export type Score = { correct: number; total: number }
@@ -52,7 +54,12 @@ export function topicGaps(
 			start_seconds: gap.concept.startSeconds ?? null,
 			closed: gap.closedAt !== null,
 			next_due_at: gap.closedAt ? null : gap.nextDueAt.toISOString(),
-			taught_last_class: taught.has(gap.concept.title)
+			taught_last_class: taught.has(gap.concept.title),
+			warm_ups: gap.warmUps.map(({ createdAt, studentName, isRight }) => ({
+				asked_at: createdAt.toISOString(),
+				student_name: studentName,
+				is_right: isRight
+			}))
 		}))
 }
 

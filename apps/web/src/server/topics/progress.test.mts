@@ -23,7 +23,8 @@ const gap = (
 	id,
 	concept: { title, quote: title.toLowerCase(), startSeconds: 60 },
 	nextDueAt,
-	closedAt
+	closedAt,
+	warmUps: []
 })
 
 const GAPS = [
@@ -53,6 +54,19 @@ test('gaps list open ones soonest first, then closed, and mark what the last cla
 	assert.equal(listed[2]!.closed, true)
 	assert.equal(listed[2]!.next_due_at, null)
 	assert.equal(listed[0]!.next_due_at, WED.toISOString())
+})
+
+test("a gap carries its answered warm-ups, in the order they're stored", () => {
+	const first = { createdAt: MON, studentName: 'Maya', isRight: false }
+	const second = { createdAt: WED, studentName: 'Omar', isRight: true }
+	const [listed] = topicGaps(
+		[{ ...gap('novel', 'A novel', SAT), warmUps: [first, second] }],
+		RESULTS
+	)
+	assert.deepEqual(listed!.warm_ups, [
+		{ asked_at: MON.toISOString(), student_name: 'Maya', is_right: false },
+		{ asked_at: WED.toISOString(), student_name: 'Omar', is_right: true }
+	])
 })
 
 test("a video's row counts ideas taught after class and its next warm-up", () => {

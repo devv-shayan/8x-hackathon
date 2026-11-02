@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronLeft } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { isPastedTopic, type TopicGap } from '@app/contract'
+import { isPastedTopic, type TopicGap, type TopicGapWarmUp } from '@app/contract'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { QueryErrorState } from '@/components/QueryError'
@@ -28,6 +28,19 @@ const ROOM_SHARE = 0.28
 function leave() {
 	if (router.canGoBack()) router.back()
 	else router.replace('/(tabs)')
+}
+
+/** One past warm-up on a gap: who asked, when, and how it went. */
+function WarmUpLine({ warmUp }: { warmUp: TopicGapWarmUp }) {
+	const when = new Date(warmUp.asked_at).toLocaleDateString(undefined, {
+		day: 'numeric',
+		month: 'short'
+	})
+	return (
+		<Text variant="caption" tone={warmUp.is_right ? 'primary' : 'tertiary'}>
+			{`${warmUp.student_name}, ${when}: ${warmUp.is_right ? 'right' : 'not quite'}`}
+		</Text>
+	)
 }
 
 function GapRow({ gap }: { gap: TopicGap }) {
@@ -60,6 +73,9 @@ function GapRow({ gap }: { gap: TopicGap }) {
 				<Text variant="caption" tone="secondary">
 					{note}
 				</Text>
+				{gap.warm_ups.map((warmUp) => (
+					<WarmUpLine key={warmUp.asked_at} warmUp={warmUp} />
+				))}
 			</View>
 			{gap.start_seconds != null ? (
 				<Text variant="eyebrow" tone="secondary">

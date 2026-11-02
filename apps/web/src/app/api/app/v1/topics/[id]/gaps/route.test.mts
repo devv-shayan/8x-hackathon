@@ -52,13 +52,15 @@ beforeEach(() => {
 							id: CLOSED_ID,
 							concept: { title: 'Confidence', quote: 'q', startSeconds: 66 },
 							nextDueAt: WED,
-							closedAt: TAUGHT
+							closedAt: TAUGHT,
+							warmUps: [{ createdAt: TAUGHT, studentName: 'Omar', isRight: true }]
 						},
 						{
 							id: GAP_ID,
 							concept: { title: 'A novel', quote: 'q', startSeconds: 111 },
 							nextDueAt: WED,
-							closedAt: null
+							closedAt: null,
+							warmUps: []
 						}
 					]
 				]
@@ -82,6 +84,9 @@ test("GET topic gaps: the person's video, both scores and every gap, open first"
 			[CLOSED_ID, true]
 		]
 	)
+	assert.deepEqual(res.body.gaps[1].warm_ups, [
+		{ asked_at: TAUGHT.toISOString(), student_name: 'Omar', is_right: true }
+	])
 	// Every store was asked for this person only.
 	for (const call of fake.storeCalls) assert.equal(call.args[0], USER)
 })
