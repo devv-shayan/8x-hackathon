@@ -13,6 +13,7 @@ import expo from 'eslint-config-expo/flat.js'
 const WEB = 'apps/web'
 const MOBILE = 'apps/mobile'
 const CONTRACT = 'packages/contract'
+const PIXEL = 'packages/pixel'
 
 // Absolute, so the plugins that resolve paths themselves (Next's pages-dir
 // lookup, the TypeScript import resolver) work from any cwd — `npm run lint`
@@ -176,6 +177,13 @@ export default defineConfig([
 	...scopeTo(CONTRACT, compat.extends('next/typescript')),
 	{
 		files: [`${CONTRACT}/**/*.{ts,mts}`],
+		rules: { '@typescript-eslint/no-explicit-any': 'error', 'no-console': 'error' }
+	},
+
+	// ── The pixel engine: TypeScript the website and the app both draw with ──
+	...scopeTo(PIXEL, compat.extends('next/typescript')),
+	{
+		files: [`${PIXEL}/**/*.{ts,mts}`],
 		rules: { '@typescript-eslint/no-explicit-any': 'error', 'no-console': 'error' }
 	},
 

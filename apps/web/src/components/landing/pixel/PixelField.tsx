@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import { hexToRgb, renderField } from './dither'
-import { PIXEL_FIELDS, type PixelFieldName } from './fields'
+import { hexToRgb, PIXEL_FIELDS, renderField, type PixelFieldName } from '@app/pixel'
 import { useAnimationFrame } from './useAnimationFrame'
 
 const FPS = 24

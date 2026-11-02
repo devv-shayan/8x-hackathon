@@ -4,7 +4,7 @@ import { assertProductionBuildEnv, assertProductionDatabaseEnv } from './deploy-
 const nextConfig = {
 	reactStrictMode: true,
 	// The shared packages ship raw .ts — let Next transpile them.
-	transpilePackages: ['@app/brand', '@app/contract'],
+	transpilePackages: ['@app/brand', '@app/contract', '@app/pixel'],
 	// Lint is its own gate (`npm run lint`, from the monorepo root config).
 	// `next build` would lint a second time, and its plugin check can't see a
 	// root config, so it warns that the Next plugin is missing when it isn't.

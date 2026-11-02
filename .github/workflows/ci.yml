@@ -43,7 +43,7 @@ jobs:
           cache: npm
 
       # Installs every workspace (apps/web, apps/mobile, packages/brand,
-      # packages/contract) at once.
+      # packages/contract, packages/pixel) at once.
       - name: Install dependencies
         run: npm ci
 
@@ -58,9 +58,9 @@ jobs:
       - name: Check the template is clean
         run: npm run check:template
 
-      # apps/web, apps/mobile, packages/contract and packages/brand, each with its
-      # own tsconfig.
-      - name: Typecheck (web, mobile, contract, brand)
+      # apps/web, apps/mobile, packages/contract, packages/brand and
+      # packages/pixel, each with its own tsconfig.
+      - name: Typecheck (web, mobile, contract, brand, pixel)
         run: npm run typecheck
 
       # One ESLint config for the whole repo (eslint.config.mjs). Errors and
@@ -98,7 +98,8 @@ jobs:
         run: npm run check:store
 
       # The script tests (scripts/*.test.mjs), mobile Jest (packages/brand's
-      # suites run there too), and the apps/web and packages/contract suites.
+      # suites run there too), and the apps/web, packages/contract and
+      # packages/pixel suites.
       # The same `npm test` local-review runs.
       - name: Tests
         run: npm test
