@@ -101,7 +101,7 @@ export const metadata: Metadata = {
 		description:
 			'Paste a YouTube video, explain it, and teach AI students who ask about what you missed.'
 	}
-	// The favicon is app/icon.tsx, drawn from the brand — no need to declare it.
+	// The favicon is app/icon.png, the web app's pixel mark — no need to declare it.
 }
 
 export const viewport: Viewport = {
