@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
-import type { ListedTopic } from '@app/contract'
+import { isPastedTopic, type ListedTopic } from '@app/contract'
 import { QueryErrorState } from '@/components/QueryError'
 import { Card } from '@/components/ui/Card'
 import { Eyebrow } from '@/components/ui/Eyebrow'
@@ -32,12 +32,14 @@ function TopicRow({ topic }: { topic: ListedTopic }) {
 			accessibilityLabel={unfinished ? `Continue ${topic.title}` : `Open ${topic.title}`}
 		>
 			<View style={s.row}>
-				<Image
-					source={{ uri: youtubeThumbnailUrl(topic.youtube_id) }}
-					style={[s.thumb, { borderRadius: radii.sm }]}
-					contentFit="cover"
-					accessibilityIgnoresInvertColors
-				/>
+				{isPastedTopic(topic.youtube_id) ? null : (
+					<Image
+						source={{ uri: youtubeThumbnailUrl(topic.youtube_id) }}
+						style={[s.thumb, { borderRadius: radii.sm }]}
+						contentFit="cover"
+						accessibilityIgnoresInvertColors
+					/>
+				)}
 				<View style={s.copy}>
 					<Text variant="body" numberOfLines={2}>
 						{topic.title}

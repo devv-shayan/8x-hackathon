@@ -1,5 +1,5 @@
 import 'server-only'
-import { MAX_CLASS_QUESTIONS, type ClassSession } from '@app/contract'
+import { isPastedTopic, MAX_CLASS_QUESTIONS, type ClassSession } from '@app/contract'
 import { notFound } from '@/server/api/app-route'
 import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
@@ -172,7 +172,7 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 	return {
 		id: session.id,
 		topic_id: session.topicId,
-		youtube_id: finished ? (topic?.youtubeId ?? null) : null,
+		youtube_id: finished && topic && !isPastedTopic(topic.youtubeId) ? topic.youtubeId : null,
 		students: students.map(({ id, name, persona }) => ({ id, name, persona })),
 		turns: [...heardTurns(session.turns), ...session.turns.filter(isOpen)].map(
 			({ id, studentId, question, answer, outcome }) => ({

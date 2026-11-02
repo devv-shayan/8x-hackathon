@@ -16,6 +16,7 @@ import { createUploadBody, createUploadResponse } from './uploads'
 import {
 	getTopicResponse,
 	listTopicsResponse,
+	pasteTextBody,
 	readVideoBody,
 	readVideoResponse,
 	topicParams
@@ -110,6 +111,14 @@ export const endpoints = {
 		path: '/api/app/v1/videos',
 		auth: 'user',
 		body: readVideoBody,
+		response: readVideoResponse,
+		status: 200
+	},
+	pasteText: {
+		method: 'POST',
+		path: '/api/app/v1/videos/text',
+		auth: 'user',
+		body: pasteTextBody,
 		response: readVideoResponse,
 		status: 200
 	},

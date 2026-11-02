@@ -13,7 +13,8 @@ export const MAX_KEY_CONCEPTS = 10
 export const keyConceptSchema = z.object({
 	title: z.string().min(1),
 	quote: z.string().min(1),
-	startSeconds: z.number().int().nonnegative()
+	// Null when the source is pasted text: there is no moment in a video to point at.
+	startSeconds: z.number().int().nonnegative().nullable()
 })
 
 export type KeyConcept = z.infer<typeof keyConceptSchema>
@@ -101,7 +102,7 @@ export function parseKeyConcepts(
 	}
 	return {
 		concepts: [...verified]
-			.sort((a, b) => a.startSeconds - b.startSeconds)
+			.sort((a, b) => (a.startSeconds ?? 0) - (b.startSeconds ?? 0))
 			.slice(0, MAX_KEY_CONCEPTS),
 		droppedCount: concepts.length - verified.length
 	}
