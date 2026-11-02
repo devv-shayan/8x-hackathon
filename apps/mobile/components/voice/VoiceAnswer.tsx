@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
+import { RecordingStrip } from './RecordingStrip'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useVoiceAnswer, type VoiceSurface } from '@/hooks/useVoiceAnswer'
 import { track } from '@/lib/analytics'
-import { formatTimestamp } from '@/lib/formatTimestamp'
 import { canRecordVoice } from '@/lib/voice/recorder'
 
 export type AnswerMeta = { method: 'voice' | 'typed'; edited?: boolean }
@@ -21,6 +21,7 @@ export type AnswerMeta = { method: 'voice' | 'typed'; edited?: boolean }
 export function VoiceAnswer({
 	surface,
 	student,
+	question,
 	typed,
 	onTypedChange,
 	onSend,
@@ -32,6 +33,8 @@ export function VoiceAnswer({
 }: {
 	surface: Exclude<VoiceSurface, 'explain'>
 	student: string
+	/** What's being answered: sent with the recording so its words are spelled right. */
+	question: string
 	typed: string
 	onTypedChange: (text: string) => void
 	onSend: (text: string, meta: AnswerMeta) => void
@@ -44,7 +47,7 @@ export function VoiceAnswer({
 	secondary: { label: string; onPress: () => void; disabled?: boolean }
 }) {
 	const { colors: c } = useTheme()
-	const voice = useVoiceAnswer(surface)
+	const voice = useVoiceAnswer(surface, question)
 	const [typing, setTyping] = useState(!canRecordVoice)
 	// Letting go inside sends; sliding off first cancels (the press ends without a press).
 	const released = useRef(false)
@@ -183,32 +186,13 @@ export function VoiceAnswer({
 	return (
 		<>
 			{recording ? (
-				<View
-					style={s.strip}
-					accessibilityRole="progressbar"
-					accessibilityLabel={`Recording, ${Math.round(voice.seconds)} seconds`}
-				>
-					<View style={s.timer}>
-						<View style={[s.dot, { backgroundColor: c.error }]} />
-						<Text variant="eyebrow">{formatTimestamp(Math.floor(voice.seconds))}</Text>
-					</View>
-					<View style={s.wave} accessibilityElementsHidden>
-						{Array.from({ length: voice.waveBars }, (_, i) => {
-							const level = voice.levels[i - (voice.waveBars - voice.levels.length)]
-							return (
-								<View
-									key={i}
-									style={[
-										s.bar,
-										{
-											height: 4 + Math.round((level ?? 0) * 24),
-											backgroundColor: level === undefined ? c.surface3 : c.textPrimary
-										}
-									]}
-								/>
-							)
-						})}
-					</View>
+				<View style={s.stripRow}>
+					<RecordingStrip
+						seconds={voice.seconds}
+						levels={voice.levels}
+						bars={voice.waveBars}
+						scene={surface}
+					/>
 				</View>
 			) : voice.hint ? (
 				<Text variant="caption" tone="secondary" style={s.status} accessibilityLiveRegion="polite">
@@ -275,11 +259,7 @@ const s = StyleSheet.create({
 	},
 	noticeText: { flex: 1 },
 	status: { marginTop: 14, textAlign: 'center' },
-	strip: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12, height: 28 },
-	timer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-	dot: { width: 8, height: 8, borderRadius: 4 },
-	wave: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-	bar: { width: 2, borderRadius: 1 },
+	stripRow: { marginTop: 18 },
 	hold: {
 		marginTop: 14,
 		height: 56,
