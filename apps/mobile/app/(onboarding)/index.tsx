@@ -1,8 +1,9 @@
 /**
  * Onboarding — runs once, after the first sign-in.
  *
- * One step in the shell for now: a name (optional, skippable). The app has one
- * light look, so there is no appearance step. Completing saves the name
+ * Two steps: meet the class (Maya and Omar, on their own backgrounds), then a name
+ * (optional, skippable) in the shell. The app has one light look, so there is no
+ * appearance step. Completing saves the name
  * to the profile through the API (PATCH /api/app/v1/profile), then writes
  * `onboarding_completed` to the user's metadata; the auth listener in
  * app/_layout.tsx then routes to the tabs.
@@ -16,6 +17,7 @@ import { DeviceEventEmitter, StyleSheet, View } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { DISPLAY_NAME_MAX } from '@app/contract'
 import Animated, { FadeInLeft, FadeInRight, FadeOut, ReduceMotion } from 'react-native-reanimated'
+import { MeetStep } from '@/components/onboarding/MeetStep'
 import { OnboardingShell } from '@/components/onboarding/Shell'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { Text } from '@/components/ui/Text'
@@ -27,7 +29,7 @@ import { haptic } from '@/lib/haptics'
 import { Durations, Easings } from '@/lib/motion'
 import { isSupabaseEnabled, supabase } from '@/lib/supabase'
 
-const STEPS = ['name'] as const
+const STEPS = ['meet', 'name'] as const
 type Step = (typeof STEPS)[number]
 
 const forward = FadeInRight.duration(Durations.enter)
@@ -115,6 +117,8 @@ export default function OnboardingScreen() {
 		loading: saving,
 		refusal: name.trim() ? null : 'Type a name, or tap Skip.'
 	}
+
+	if (step === 'meet') return <MeetStep onContinue={() => go(index + 1)} />
 
 	return (
 		<OnboardingShell
