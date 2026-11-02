@@ -11,11 +11,13 @@
 		"./backdrop-html": "./src/backdrop-html.generated.ts"
 	},
 	"scripts": {
+		"build:icons": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs scripts/build-icons.mjs",
 		"build:backdrop": "node scripts/build-backdrop.mjs",
 		"test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs --test \"src/**/*.test.mts\"",
 		"typecheck": "tsc --noEmit -p ."
 	},
 	"devDependencies": {
-		"typescript": "~5.9.2"
+		"typescript": "~5.9.2",
+		"pngjs": "^3.4.0"
 	}
 }

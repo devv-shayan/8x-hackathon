@@ -204,3 +204,14 @@ test('with a floor, students stand just above the sheet, smaller only when they 
 	assert.ok(tall.headY - 0.2 * tall.scale >= 0.16 - 1e-9)
 	assert.deepEqual(placeStudents(scene), { headY: scene.headY, scale: scene.scale })
 })
+
+test("the app's icons and splash are drawn from the current engine", async () => {
+	const { ICONS, ICON_DIR, iconFile } = await import('../scripts/build-icons.mjs')
+	for (const name of Object.keys(ICONS)) {
+		const onDisk = readFileSync(new URL(name, ICON_DIR))
+		assert.ok(
+			Buffer.compare(onDisk, iconFile(name)) === 0,
+			`${name} is stale: run \`npm run build:icons --workspace=@app/pixel\``
+		)
+	}
+})
