@@ -12,6 +12,7 @@ import {
 	studentName
 } from '@/components/class/shared'
 import { Button } from '@/components/ui/Button'
+import type { AnswerMeta } from '@/components/voice/VoiceAnswer'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Screen } from '@/components/ui/Screen'
 import { Text } from '@/components/ui/Text'
@@ -25,6 +26,9 @@ import { topicQueryKey } from '@/lib/topicQuery'
  * the class (an open class), then the results (a finished class). This route owns the session
  * and every call; each step only draws it.
  */
+/** An answer or a skip, and for an answer how it was given (voice or typed). */
+type Reply = { turn: ClassTurn; outcome: TurnOutcome; text?: string; meta?: AnswerMeta }
+
 export default function ClassScreen() {
 	const { topicId } = useLocalSearchParams<{ topicId: string }>()
 	const [current, setSession] = useState<ClassSession | null>(null)
@@ -82,16 +86,16 @@ export default function ClassScreen() {
 		setSession(finished)
 	}
 	const reply = useMutation({
-		mutationFn: ({ turn, outcome }: { turn: ClassTurn; outcome: TurnOutcome }) =>
+		mutationFn: ({ turn, outcome, text }: Reply) =>
 			answerOrCatchUp(
 				session?.id ?? '',
 				turn.id,
-				outcome === 'skipped' ? { outcome } : { outcome, answer }
+				outcome === 'skipped' ? { outcome } : { outcome, answer: text }
 			),
-		onSuccess: ({ class: updated }, { turn }) => {
+		onSuccess: ({ class: updated }, { turn, meta }) => {
 			// The server decides needed_help, from whether help was given on this question.
 			const saved = updated.turns.find(({ id }) => id === turn.id)
-			track('class_answered', { outcome: saved?.outcome ?? 'answered' })
+			track('class_answered', { outcome: saved?.outcome ?? 'answered', ...meta })
 			if (updated.finished) finishClass(updated, false)
 			else setSession(updated)
 			setAnswer('')
@@ -124,7 +128,9 @@ export default function ClassScreen() {
 					track('class_hand_picked', { student: studentName(session, turn) })
 					setPickedId(turn.id)
 				}}
-				onAnswer={() => openTurn && reply.mutate({ turn: openTurn, outcome: 'answered' })}
+				onAnswer={(text, meta) =>
+					openTurn && reply.mutate({ turn: openTurn, outcome: 'answered', text, meta })
+				}
 				onSkip={() => openTurn && reply.mutate({ turn: openTurn, outcome: 'skipped' })}
 				onEnd={() => end.mutate()}
 				answering={reply.isPending}
