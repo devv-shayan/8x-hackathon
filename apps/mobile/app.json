@@ -13,11 +13,11 @@
 		"orientation": "portrait",
 		"scheme": "chalkback",
 		"icon": "./assets/icon.png",
-		"userInterfaceStyle": "automatic",
+		"userInterfaceStyle": "light",
 		"splash": {
 			"image": "./assets/splash-icon.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#090f1e"
+			"backgroundColor": "#ffffff"
 		},
 		"ios": {
 			"supportsTablet": false,
@@ -48,7 +48,7 @@
 			"package": "com.chalkback.app",
 			"adaptiveIcon": {
 				"foregroundImage": "./assets/icon.png",
-				"backgroundColor": "#090f1e"
+				"backgroundColor": "#ffffff"
 			},
 			"permissions": [],
 			"blockedPermissions": [
@@ -58,8 +58,8 @@
 				"android.permission.RECORD_AUDIO"
 			],
 			"androidStatusBar": {
-				"barStyle": "light-content",
-				"backgroundColor": "#090f1e",
+				"barStyle": "dark-content",
+				"backgroundColor": "#ffffff",
 				"translucent": true
 			},
 			"predictiveBackGestureEnabled": false,
@@ -81,7 +81,7 @@
 			[
 				"expo-splash-screen",
 				{
-					"backgroundColor": "#090f1e",
+					"backgroundColor": "#ffffff",
 					"image": "./assets/splash-icon.png",
 					"imageWidth": 200
 				}

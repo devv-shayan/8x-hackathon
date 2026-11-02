@@ -15,7 +15,7 @@
  */
 
 import { alphaOf, toChannels } from './color'
-import type { Palette, Scheme, Theme, TypeRole } from './types'
+import type { FontGroup, Palette, Scheme, Theme, TypeRole } from './types'
 import { SCHEMES } from './theme'
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
@@ -52,16 +52,22 @@ const bezier = (b: readonly number[]) => `cubic-bezier(${b.join(',')})`
 export const WEB_FONT_VARS: Record<string, string> = {
 	Inter: '--font-inter',
 	'Source Serif 4': '--font-source-serif',
-	'Bricolage Grotesque': '--font-bricolage'
+	'Bricolage Grotesque': '--font-bricolage',
+	'Inter Tight': '--font-inter-tight',
+	'JetBrains Mono': '--font-jetbrains'
 }
 
 function presetVars(t: Theme): string[] {
-	const family = (group: 'display' | 'text') => {
+	const family = (group: FontGroup) => {
 		const f = t.fonts[group]
 		const v = WEB_FONT_VARS[f.name]
 		return `${v ? `var(${v}), ` : ''}'${f.name}', ${f.fallback}`
 	}
-	const lines = [`--font-display:${family('display')};`, `--font-text:${family('text')};`]
+	const lines = [
+		`--font-display:${family('display')};`,
+		`--font-text:${family('text')};`,
+		`--font-mono:${family('mono')};`
+	]
 	for (const [role, spec] of Object.entries(t.type) as [TypeRole, Theme['type'][TypeRole]][]) {
 		const r = kebab(role)
 		lines.push(
