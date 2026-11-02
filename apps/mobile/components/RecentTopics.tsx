@@ -5,8 +5,8 @@ import { router } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { isPastedTopic, type ListedTopic } from '@app/contract'
 import { QueryErrorState } from '@/components/QueryError'
-import { Card } from '@/components/ui/Card'
-import { Eyebrow } from '@/components/ui/Eyebrow'
+import { PressableScale } from '@/components/motion/PressableScale'
+import { MonoLabel } from '@/components/ui/MonoLabel'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 import { Text } from '@/components/ui/Text'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -17,7 +17,7 @@ import { youtubeThumbnailUrl } from '@/lib/youtubeThumb'
 export const topicsQueryKey = ['topics'] as const
 
 function TopicRow({ topic }: { topic: ListedTopic }) {
-	const { radii } = useTheme()
+	const { colors: c, radii } = useTheme()
 	const unfinished = topic.open_class_id !== null
 
 	function open() {
@@ -27,33 +27,30 @@ function TopicRow({ topic }: { topic: ListedTopic }) {
 	}
 
 	return (
-		<Card
+		<PressableScale
+			scaleTo="card"
 			onPress={open}
+			accessibilityRole="button"
 			accessibilityLabel={unfinished ? `Continue ${topic.title}` : `Open ${topic.title}`}
+			style={[s.row, { borderTopColor: c.borderHairline }]}
 		>
-			<View style={s.row}>
-				{isPastedTopic(topic.youtube_id) ? null : (
-					<Image
-						source={{ uri: youtubeThumbnailUrl(topic.youtube_id) }}
-						style={[s.thumb, { borderRadius: radii.sm }]}
-						contentFit="cover"
-						accessibilityIgnoresInvertColors
-					/>
-				)}
-				<View style={s.copy}>
-					<Text variant="body" numberOfLines={2}>
-						{topic.title}
-					</Text>
-					{unfinished ? (
-						<Eyebrow tone="brand">Continue</Eyebrow>
-					) : (
-						<Text variant="caption" tone="secondary">
-							Teach again
-						</Text>
-					)}
-				</View>
+			{isPastedTopic(topic.youtube_id) ? null : (
+				<Image
+					source={{ uri: youtubeThumbnailUrl(topic.youtube_id) }}
+					style={[s.thumb, { borderRadius: radii.md }]}
+					contentFit="cover"
+					accessibilityIgnoresInvertColors
+				/>
+			)}
+			<View style={s.copy}>
+				<Text variant="label" numberOfLines={2} style={s.title}>
+					{topic.title}
+				</Text>
+				<Text variant="caption" tone="secondary">
+					{unfinished ? 'Class in progress: continue' : 'Teach again'}
+				</Text>
 			</View>
-		</Card>
+		</PressableScale>
 	)
 }
 
@@ -86,13 +83,8 @@ export function RecentTopics() {
 	if (topics.data.length === 0) return null
 
 	return (
-		<View style={s.section}>
-			<View style={s.heading}>
-				<Eyebrow tone="muted">Recent</Eyebrow>
-				<Text variant="h3" accessibilityRole="header">
-					Your topics
-				</Text>
-			</View>
+		<View>
+			<MonoLabel style={s.heading}>Your videos</MonoLabel>
 			{topics.data.map((topic) => (
 				<TopicRow key={topic.id} topic={topic} />
 			))}
@@ -101,9 +93,15 @@ export function RecentTopics() {
 }
 
 const s = StyleSheet.create({
-	section: { gap: 12 },
-	heading: { gap: 4 },
-	row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-	thumb: { width: 96, height: 54, backgroundColor: 'transparent' },
-	copy: { flex: 1, gap: 8 }
+	heading: { marginBottom: 8 },
+	row: {
+		flexDirection: 'row',
+		gap: 12,
+		alignItems: 'center',
+		paddingVertical: 12,
+		borderTopWidth: StyleSheet.hairlineWidth
+	},
+	thumb: { width: 72, height: 40, backgroundColor: 'transparent' },
+	copy: { flex: 1, gap: 2 },
+	title: { fontSize: 15, lineHeight: 20 }
 })
