@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Linking, StyleSheet, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -27,6 +27,7 @@ import { finalResult, summarizeResults } from '@/lib/assessment'
 import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
 import { topicQueryKey } from '@/lib/topicQuery'
+import { youtubeWatchUrl } from '@/lib/youtubeWatch'
 
 // A student's next question is an AI call, so it takes longer than the API default.
 const CLASS_TIMEOUT_MS = 60 * 1000
@@ -90,9 +91,32 @@ function outcomeLabel(outcome: TurnOutcome) {
 	return 'Skipped'
 }
 
-function ConceptCard({ item, label }: { item: ConceptResult; label: string }) {
+function ConceptCard({
+	item,
+	label,
+	youtubeId
+}: {
+	item: ConceptResult
+	label: string
+	youtubeId: string | null
+}) {
+	const canOpen = Boolean(youtubeId)
+
+	function openClip() {
+		if (!youtubeId) return
+		track('assessment_clip_opened', { concept: item.concept })
+		void Linking.openURL(youtubeWatchUrl(youtubeId, item.start_seconds))
+	}
+
 	return (
-		<Card>
+		<Card
+			onPress={canOpen ? openClip : undefined}
+			accessibilityLabel={
+				canOpen
+					? `Open video for ${item.concept}${item.start_seconds != null ? ` at ${formatTimestamp(item.start_seconds)}` : ''}`
+					: undefined
+			}
+		>
 			<View style={s.conceptRow}>
 				<Eyebrow tone="muted">
 					{item.start_seconds != null ? formatTimestamp(item.start_seconds) : label}
@@ -100,8 +124,13 @@ function ConceptCard({ item, label }: { item: ConceptResult; label: string }) {
 				<Text variant="body" style={{ fontWeight: '600' }}>
 					{item.concept}
 				</Text>
+				{item.quote ? (
+					<Text variant="bodySm" tone="secondary">
+						{`“${item.quote}”`}
+					</Text>
+				) : null}
 				<Text variant="caption" tone="secondary">
-					{label}
+					{canOpen ? `${label} · Open in YouTube` : label}
 				</Text>
 			</View>
 		</Card>
@@ -125,8 +154,10 @@ function ScoreCard({ score, label }: { score: string; label: string }) {
 
 function Assessment({ session }: { session: ClassSession }) {
 	const results = session.concept_results ?? []
+	const reactions = session.reactions ?? []
 	const { correct, finalCorrect, scoredAfterClass, fixed, gaps } = summarizeResults(results)
 	const answered = session.turns.filter(({ outcome }) => outcome !== null)
+	const youtubeId = session.youtube_id
 
 	useEffect(() => {
 		if (results.length === 0) return
@@ -169,6 +200,7 @@ function Assessment({ session }: { session: ClassSession }) {
 							key={item.concept}
 							item={item}
 							label={`${resultLabel(item.result)} at first`}
+							youtubeId={youtubeId}
 						/>
 					))}
 				</View>
@@ -180,7 +212,12 @@ function Assessment({ session }: { session: ClassSession }) {
 						{scoredAfterClass ? 'Still missed or wrong' : 'Missed or wrong'}
 					</Eyebrow>
 					{gaps.map((item) => (
-						<ConceptCard key={item.concept} item={item} label={resultLabel(finalResult(item))} />
+						<ConceptCard
+							key={item.concept}
+							item={item}
+							label={resultLabel(finalResult(item))}
+							youtubeId={youtubeId}
+						/>
 					))}
 				</View>
 			) : null}
@@ -204,6 +241,24 @@ function Assessment({ session }: { session: ClassSession }) {
 					You didn’t answer any questions this time.
 				</Text>
 			)}
+
+			{reactions.length > 0 ? (
+				<View style={s.section}>
+					<Eyebrow tone="muted">From the class</Eyebrow>
+					{reactions.map((reaction) => {
+						const who =
+							session.students.find(({ id }) => id === reaction.student_id)?.name ?? 'A student'
+						return (
+							<Card key={reaction.student_id}>
+								<View style={s.conceptRow}>
+									<Eyebrow tone="muted">{who}</Eyebrow>
+									<Text variant="body">{reaction.text}</Text>
+								</View>
+							</Card>
+						)
+					})}
+				</View>
+			) : null}
 
 			<Button label="Back to home" fullWidth onPress={leaveClass} />
 		</View>

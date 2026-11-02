@@ -1,4 +1,5 @@
 import type { PrismaClient, TurnOutcome } from '@prisma/client'
+import { parseStoredReactions, type StoredReaction } from '@/server/classroom/reactions'
 import { parseStoredConceptResults, type ConceptResult } from '@/server/classroom/score-explanation'
 import { demoMemory, isLocalDemoUser } from '@/server/demo/local-demo'
 import { db } from './client'
@@ -13,11 +14,16 @@ const CLASS = {
 	topicId: true,
 	explanation: true,
 	conceptResults: true,
+	reactions: true,
 	turns: { orderBy: { createdAt: 'asc' } }
 } as const
 
-function withResults<T extends { conceptResults: unknown }>(row: T) {
-	return { ...row, conceptResults: parseStoredConceptResults(row.conceptResults) }
+function withResults<T extends { conceptResults: unknown; reactions: unknown }>(row: T) {
+	return {
+		...row,
+		conceptResults: parseStoredConceptResults(row.conceptResults),
+		reactions: parseStoredReactions(row.reactions)
+	}
 }
 
 export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn' | 'student'>) {
@@ -48,6 +54,18 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		/** For a class that couldn't be scored when it started. */
 		async saveConceptResults(classId: string, conceptResults: ConceptResult[]) {
 			await client.class.update({ where: { id: classId }, data: { conceptResults } })
+		},
+
+		/** Closing lines after the class. Best effort: only write once. */
+		async saveReactions(classId: string, reactions: StoredReaction[]) {
+			if (demoMemory.hasClass(classId)) {
+				demoMemory.saveReactions(classId, reactions)
+				return
+			}
+			await client.class.update({
+				where: { id: classId },
+				data: { reactions }
+			})
 		},
 
 		async find(userId: string, classId: string) {

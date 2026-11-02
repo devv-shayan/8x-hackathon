@@ -57,7 +57,10 @@ type EventName =
 	// whether teaching fixes it: fixed_count above zero is the aha.
 	// Metadata: assessment_viewed { correct_count: number, final_correct_count: number,
 	// fixed_count: number, concept_count: number }. correct_count is the first explanation's.
+	// assessment_clip_opened { concept }: they opened the video at a missed idea's timestamp.
+	// concept discriminates so two clips the same day both count.
 	| 'assessment_viewed'
+	| 'assessment_clip_opened'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:
 	//   { method: 'email' | 'apple' | 'google' }

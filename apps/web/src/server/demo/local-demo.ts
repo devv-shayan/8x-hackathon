@@ -35,11 +35,14 @@ type DemoTurn = {
 	createdAt: Date
 }
 
+type DemoReaction = { studentId: string; text: string }
+
 type DemoClass = {
 	id: string
 	topicId: string
 	explanation: string
 	conceptResults: ConceptResult[]
+	reactions: DemoReaction[] | null
 	turns: DemoTurn[]
 	createdAt: Date
 }
@@ -67,6 +70,7 @@ function cloneClass(row: DemoClass): DemoClass {
 	return {
 		...row,
 		conceptResults: row.conceptResults.map((result) => ({ ...result })),
+		reactions: row.reactions?.map((reaction) => ({ ...reaction })) ?? null,
 		turns: row.turns.map((turn) => ({ ...turn }))
 	}
 }
@@ -136,11 +140,17 @@ export const demoMemory = {
 			topicId,
 			explanation,
 			conceptResults: conceptResults.map((result) => ({ ...result })),
+			reactions: null,
 			turns: [],
 			createdAt: new Date()
 		}
 		classes.set(row.id, row)
 		return cloneClass(row)
+	},
+
+	saveReactions(classId: string, reactions: DemoReaction[]) {
+		const row = classes.get(classId)
+		if (row && row.reactions == null) row.reactions = reactions.map((r) => ({ ...r }))
 	},
 
 	findClass(userId: string, classId: string): DemoClass | null {

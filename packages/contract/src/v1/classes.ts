@@ -41,12 +41,22 @@ export const conceptResultSchema = z.object({
 	/** Counting what the person said in class. Null if nothing was answered or it couldn't be scored. */
 	result_after_class: z.enum(CONCEPT_RESULTS).nullable().default(null),
 	/** From the stored key concept; null only if that concept no longer has a timestamp. */
-	start_seconds: z.number().int().nonnegative().nullable()
+	start_seconds: z.number().int().nonnegative().nullable(),
+	/** Exact line from the video that backs this concept; null if the concept is gone. */
+	quote: z.string().nullable()
+})
+
+/** A short in-character line from a student after the class. */
+export const classReactionSchema = z.object({
+	student_id: uuid,
+	text: z.string()
 })
 
 export const classSchema = z.object({
 	id: uuid,
 	topic_id: uuid,
+	/** Set on a finished class so Assessment can open the video; null while still teaching. */
+	youtube_id: z.string().nullable(),
 	students: z.array(classStudentSchema),
 	turns: z.array(classTurnSchema),
 	finished: z.boolean(),
@@ -54,7 +64,12 @@ export const classSchema = z.object({
 	 * Null while the class is still open: scoring stays hidden until it ends.
 	 * Filled on a finished class for the assessment screen.
 	 */
-	concept_results: z.array(conceptResultSchema).nullable()
+	concept_results: z.array(conceptResultSchema).nullable(),
+	/**
+	 * Null while the class is still open. Empty array if reactions couldn't be written;
+	 * a failure never blocks the results.
+	 */
+	reactions: z.array(classReactionSchema).nullable()
 })
 
 export const classResponse = z.object({ class: classSchema })
@@ -96,5 +111,6 @@ export type ClassHelp = z.infer<typeof classHelpResponse>['help']
 export type ClassSession = z.infer<typeof classSchema>
 export type ClassTurn = z.infer<typeof classTurnSchema>
 export type ClassStudent = z.infer<typeof classStudentSchema>
+export type ClassReaction = z.infer<typeof classReactionSchema>
 export type ConceptResult = z.infer<typeof conceptResultSchema>
 export type TurnOutcome = z.infer<typeof turnOutcomeSchema>
