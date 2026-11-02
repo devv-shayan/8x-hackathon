@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useLocalSearchParams } from 'expo-router'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import type { ClassSession, ClassTurn, TurnOutcome, Video } from '@app/contract'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ClassSession, ClassTurn, ListedTopic, TurnOutcome, Video } from '@app/contract'
 import { ClassStep } from '@/components/class/ClassStep'
 import { ExplainStep } from '@/components/class/ExplainStep'
 import { ResultsStep } from '@/components/class/ResultsStep'
+import { topicsQueryKey } from '@/components/RecentTopics'
 import { CLASS_TIMEOUT_MS, leaveClass, studentName } from '@/components/class/shared'
 import { Button } from '@/components/ui/Button'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -45,6 +46,11 @@ export default function ClassScreen() {
 		staleTime: Infinity
 	})
 	const videoTitle = cachedTopic.data?.title ?? topic.data?.title ?? null
+	// The video, from the read that just happened or Home's list, for its thumbnail.
+	const listed = useQueryClient()
+		.getQueryData<ListedTopic[]>(topicsQueryKey)
+		?.find(({ id }) => id === topicId)
+	const youtubeId = cachedTopic.data?.youtube_id ?? listed?.youtube_id ?? null
 	const session = current ?? open.data?.class ?? null
 	const resumedId = open.data?.class?.id
 
@@ -134,11 +140,24 @@ export default function ClassScreen() {
 		)
 	}
 
+	if (session) return <ResultsStep session={session} title={videoTitle} />
+
+	if (!open.isPending && !open.isError) {
+		return (
+			<ExplainStep
+				topicId={topicId}
+				title={videoTitle}
+				youtubeId={youtubeId}
+				ideaCount={cachedTopic.data?.concepts.length ?? null}
+				onStart={(explanation) => start.mutate(explanation)}
+				pending={start.isPending}
+				error={start.isError ? errorMessage(start.error) : null}
+			/>
+		)
+	}
+
 	return (
-		<Screen
-			header={<PageHeader title={session ? 'Results' : 'Explain'} onBack={leaveClass} />}
-			gap={14}
-		>
+		<Screen header={<PageHeader title="Explain" onBack={leaveClass} />} gap={14}>
 			{open.isPending ? (
 				<Text variant="body" tone="secondary">
 					Checking for your class…
@@ -148,17 +167,7 @@ export default function ClassScreen() {
 					<Text variant="body">{errorMessage(open.error)}</Text>
 					<Button label="Try again" fullWidth onPress={() => open.refetch()} />
 				</>
-			) : session ? (
-				<ResultsStep session={session} />
-			) : (
-				<ExplainStep
-					topicId={topicId}
-					title={videoTitle}
-					onStart={(explanation) => start.mutate(explanation)}
-					pending={start.isPending}
-					error={start.isError ? errorMessage(start.error) : null}
-				/>
-			)}
+			) : null}
 		</Screen>
 	)
 }

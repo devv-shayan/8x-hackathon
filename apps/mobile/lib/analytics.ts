@@ -86,9 +86,9 @@ type EventName =
 	| 'logout'
 	// Onboarding — judged on completion rate, and where people fall out.
 	// onboarding_step_viewed fires as each step appears.
-	//   metadata: { step: 'name', index: number }
-	// `step` is the discriminator. started → step_viewed(name) → completed is the
-	// funnel; a step that loses people shows as the gap after it.
+	//   metadata: { step: 'meet' | 'name', index: number }
+	// `step` is the discriminator. started → step_viewed(meet) → step_viewed(name)
+	// → completed is the funnel; a step that loses people shows as the gap after it.
 	// onboarding_completed carries { skipped_name: boolean }.
 	| 'onboarding_started'
 	| 'onboarding_step_viewed'

@@ -52,10 +52,17 @@ export const SCENES = {
 		halo: 0.99
 	},
 	home: { field: 'limeEdges', students: [], headY: 0, scale: 0, halo: null },
-	/** A warm-up: one student, on the black band's tunnel. */
-	warmUp: {
+	/** A warm-up: the student who asks, alone on the black band's tunnel. */
+	warmUpMaya: {
 		field: 'tunnel',
 		students: [{ name: 'Maya', at: 0.5 }],
+		headY: 0.3,
+		scale: 0.5,
+		halo: null
+	},
+	warmUpOmar: {
+		field: 'tunnel',
+		students: [{ name: 'Omar', at: 0.5 }],
 		headY: 0.3,
 		scale: 0.5,
 		halo: null
