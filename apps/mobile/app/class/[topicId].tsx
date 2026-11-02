@@ -69,7 +69,8 @@ export default function ClassScreen() {
 
 	const hands = session?.turns.filter(({ outcome }) => outcome === null) ?? []
 	const answered = session?.turns.filter(({ outcome }) => outcome !== null) ?? []
-	const openTurn = hands.find(({ id }) => id === pickedId) ?? hands[0]
+	// Nobody asks until the person calls on them: a hand up is only a hand up.
+	const openTurn = hands.find(({ id }) => id === pickedId)
 
 	function finishClass(finished: ClassSession, endedEarly: boolean) {
 		track('class_finished', { question_count: finished.turns.length, ended_early: endedEarly })
