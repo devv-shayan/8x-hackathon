@@ -44,7 +44,22 @@ export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 			if (topicIds.length === 0) return byTopic
 			const rows = await client.gap.findMany({
 				where: { userId, topicId: { in: topicIds } },
-				select: { id: true, topicId: true, concept: true, nextDueAt: true, closedAt: true }
+				select: {
+					id: true,
+					topicId: true,
+					concept: true,
+					nextDueAt: true,
+					closedAt: true,
+					warmUps: {
+						where: { isRight: { not: null } },
+						orderBy: { createdAt: 'asc' },
+						select: {
+							createdAt: true,
+							isRight: true,
+							student: { select: { name: true } }
+						}
+					}
+				}
 			})
 			for (const row of rows) {
 				const list = byTopic.get(row.topicId) ?? []
@@ -52,7 +67,12 @@ export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 					id: row.id,
 					concept: keyConceptSchema.parse(row.concept),
 					nextDueAt: row.nextDueAt,
-					closedAt: row.closedAt
+					closedAt: row.closedAt,
+					warmUps: row.warmUps.map((warmUp) => ({
+						createdAt: warmUp.createdAt,
+						studentName: warmUp.student.name,
+						isRight: warmUp.isRight === true
+					}))
 				})
 				byTopic.set(row.topicId, list)
 			}

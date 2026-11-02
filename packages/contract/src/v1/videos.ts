@@ -90,6 +90,13 @@ const scoreSchema = z.object({
 	total: z.number().int().nonnegative()
 })
 
+/** One answered warm-up on a gap: when it was asked, by whom, and if the answer was right. */
+export const topicGapWarmUpSchema = z.object({
+	asked_at: isoDateTime,
+	student_name: z.string(),
+	is_right: z.boolean()
+})
+
 /** An idea the person missed in this video, and where it stands on the warm-up schedule. */
 export const topicGapSchema = z.object({
 	id: uuid,
@@ -103,7 +110,9 @@ export const topicGapSchema = z.object({
 	 * Taught in the latest class, in the explanation or when a student asked: still open
 	 * until warm-ups show it stuck.
 	 */
-	taught_last_class: z.boolean()
+	taught_last_class: z.boolean(),
+	/** Its answered warm-ups, oldest first. */
+	warm_ups: z.array(topicGapWarmUpSchema)
 })
 
 /** One video's page: its scores and its gaps, open ones first, soonest due first. */
@@ -122,4 +131,5 @@ export type KeyConcept = z.infer<typeof keyConceptSchema>
 export type TopicSummary = z.infer<typeof topicSummarySchema>
 export type ListedTopic = z.infer<typeof listedTopicSchema>
 export type TopicGap = z.infer<typeof topicGapSchema>
+export type TopicGapWarmUp = z.infer<typeof topicGapWarmUpSchema>
 export type TopicGaps = z.infer<typeof getTopicGapsResponse>
