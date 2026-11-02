@@ -12,13 +12,19 @@ import type { PixelBackdropProps } from './types'
  * with no native code of its own. Touches pass through to the screen. It stays hidden until
  * the page has loaded, so there's no white flash, and pauses when the screen isn't focused.
  */
-export function PixelBackdrop({ scene, raised, style }: PixelBackdropProps) {
+export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackdropProps) {
 	const web = useRef<WebView>(null)
 	const focused = useIsFocused()
 	const still = useReducedMotion()
 	const [loaded, setLoaded] = useState(false)
 	const raisedKey = JSON.stringify(raised ?? {})
-	const state = JSON.stringify({ scene, raised: JSON.parse(raisedKey), playing: focused, still })
+	const state = JSON.stringify({
+		scene,
+		raised: JSON.parse(raisedKey),
+		playing: focused,
+		still,
+		floor
+	})
 	const initial = useRef(state).current
 
 	useEffect(() => {

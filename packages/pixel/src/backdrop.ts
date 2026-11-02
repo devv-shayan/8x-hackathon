@@ -13,6 +13,8 @@ export interface BackdropState {
 	playing: boolean
 	/** Reduce Motion: one frame, hands already where they're going. */
 	still: boolean
+	/** Where the sheet's top edge is, as a share of the height, so students stand above it. */
+	floor?: number | null
 }
 
 export interface Backdrop {
@@ -45,7 +47,15 @@ export function startBackdrop(canvas: HTMLCanvasElement, initial: BackdropState)
 
 	function draw(seconds: number) {
 		if (!ctx || !image) return
-		renderScene(image.data, image.width, image.height, SCENES[state.scene], seconds, lifts)
+		renderScene(
+			image.data,
+			image.width,
+			image.height,
+			SCENES[state.scene],
+			seconds,
+			lifts,
+			state.floor
+		)
 		ctx.putImageData(image, 0, 0)
 	}
 

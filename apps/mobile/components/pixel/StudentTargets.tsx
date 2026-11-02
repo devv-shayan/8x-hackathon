@@ -9,14 +9,17 @@ import { SCENES, studentBounds, type Raised, type SceneName, type StudentName } 
 export function StudentTargets({
 	scene,
 	raised,
+	floor = null,
 	onPick
 }: {
 	scene: SceneName
 	raised: Raised
+	/** The same floor the scene's PixelBackdrop stands its students on. */
+	floor?: number | null
 	onPick: (name: StudentName) => void
 }) {
 	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
-	const boxes = size ? studentBounds(SCENES[scene], size.width, size.height) : []
+	const boxes = size ? studentBounds(SCENES[scene], size.width, size.height, floor) : []
 
 	return (
 		<View
