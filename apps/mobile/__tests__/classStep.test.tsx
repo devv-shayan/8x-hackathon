@@ -6,6 +6,16 @@ import { fireEvent, render, screen } from '@testing-library/react-native'
 import type { ClassSession } from '@app/contract'
 import { ClassStep } from '@/components/class/ClassStep'
 
+jest.mock('@/lib/voice/recorder', () => ({
+	canRecordVoice: false,
+	RecorderError: Error,
+	useRecorder: () => ({ streams: false, start: jest.fn() })
+}))
+jest.mock('@/lib/voice/playback', () => ({
+	canPlayVoice: false,
+	playWav: jest.fn(),
+	speakWithDevice: jest.fn()
+}))
 jest.mock('react-native-safe-area-context', () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))

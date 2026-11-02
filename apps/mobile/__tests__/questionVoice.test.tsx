@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { api } from '@/lib/api'
 import { track } from '@/lib/analytics'
-import { playWav, speakWithBrowser } from '@/lib/voice/playback'
+import { playWav, speakWithDevice } from '@/lib/voice/playback'
 
 let mockAudioAvailable = true
 
@@ -26,7 +26,7 @@ jest.mock('@/lib/voice/playback', () => {
 			return mockAudioAvailable
 		},
 		playWav: jest.fn(playing),
-		speakWithBrowser: jest.fn(playing)
+		speakWithDevice: jest.fn(playing)
 	}
 })
 
@@ -90,7 +90,7 @@ it("plays the student's voice once, and Replay plays it again without asking the
 it("falls back to the browser's voice when the server can't make one", async () => {
 	jest.mocked(api).mockRejectedValue(new Error('busy'))
 	renderVoice()
-	await waitFor(() => expect(speakWithBrowser).toHaveBeenCalledWith(QUESTION))
+	await waitFor(() => expect(speakWithDevice).toHaveBeenCalledWith(QUESTION))
 	expect(playWav).not.toHaveBeenCalled()
 	await waitFor(() =>
 		expect(track).toHaveBeenCalledWith(

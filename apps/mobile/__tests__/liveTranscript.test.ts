@@ -6,15 +6,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native'
 import { useLiveTranscript } from '@/hooks/useLiveTranscript'
 import { api } from '@/lib/api'
-import { startRecording } from '@/lib/voice/recorder'
+import type { RecordingOptions } from '@/lib/voice/recording'
 import { createSegmenter } from '@/lib/voice/segmenter'
 
 jest.mock('@/lib/analytics', () => ({ track: jest.fn() }))
 jest.mock('@/lib/api', () => ({ api: jest.fn() }))
+const mockStart = jest.fn()
+let mockStreams = true
 jest.mock('@/lib/voice/recorder', () => ({
 	canRecordVoice: true,
 	RecorderError: Error,
-	startRecording: jest.fn()
+	useRecorder: () => ({ streams: mockStreams, start: mockStart })
 }))
 
 const RATE = 16_000
@@ -58,9 +60,10 @@ describe('the live transcript', () => {
 
 	beforeEach(() => {
 		jest.mocked(api).mockReset()
-		jest.mocked(startRecording).mockImplementation(async (options) => {
+		mockStreams = true
+		mockStart.mockImplementation(async (options?: RecordingOptions) => {
 			push = options?.onSamples ?? (() => {})
-			return { stop: () => new Float32Array(), cancel: jest.fn(), level: () => 0, seconds: () => 0 }
+			return { stop: async () => null, cancel: jest.fn(), level: () => 0, seconds: () => 0 }
 		})
 	})
 
@@ -80,7 +83,7 @@ describe('the live transcript', () => {
 		await waitFor(() => expect(result.current.text).toBe('He felt stuck.'))
 		// Before anything is said, the video's title is the context.
 		const first = jest.mocked(api).mock.calls[0]![1] as { body: { prompt?: string } }
-		expect(first.body.prompt).toBe('Try something new for 30 days')
+		expect(first.body.prompt).toBe('Explaining the video “Try something new for 30 days”.')
 		act(() => sayAPhrase())
 		let said = ''
 		await act(async () => {
@@ -127,5 +130,35 @@ describe('the live transcript', () => {
 		})
 		expect(result.current.text).toBe('He felt stuck.')
 		expect(result.current.phase).toBe('idle')
+	})
+
+	it('on a phone, writes the whole recording down once, at stop, with the title as context', async () => {
+		mockStreams = false
+		mockStart.mockImplementation(async () => ({
+			stop: async () => ({ base64: 'AAAAGGZ0eXBNNEEg', format: 'm4a', seconds: 20 }),
+			cancel: jest.fn(),
+			level: () => 0,
+			seconds: () => 0
+		}))
+		jest
+			.mocked(api)
+			.mockResolvedValue({ text: 'He felt stuck, so he tried something new.' } as never)
+		const { result } = renderHook(() => useLiveTranscript('Try something new for 30 days'))
+		await act(() => result.current.start())
+		expect(result.current.streams).toBe(false)
+		let said = ''
+		await act(async () => {
+			said = await result.current.stop()
+		})
+		expect(said).toBe('He felt stuck, so he tried something new.')
+		expect(api).toHaveBeenCalledTimes(1)
+		expect(api).toHaveBeenCalledWith('transcribeSpeech', {
+			body: {
+				audio_base64: 'AAAAGGZ0eXBNNEEg',
+				format: 'm4a',
+				prompt: 'Explaining the video “Try something new for 30 days”.'
+			},
+			timeoutMs: 30_000
+		})
 	})
 })

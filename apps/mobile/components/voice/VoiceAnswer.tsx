@@ -212,7 +212,7 @@ export function VoiceAnswer({
 				}}
 				onPress={() => {
 					released.current = true
-					voice.finish()
+					void voice.finish()
 				}}
 				onPressOut={() => {
 					// onPress follows onPressOut when the finger lets go on the button; without it,

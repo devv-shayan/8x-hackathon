@@ -192,7 +192,11 @@ export function ExplainStep({
 									</>
 								) : (
 									<Text variant="h2" tone="tertiary">
-										{recording ? 'Listening… your words show up here as you talk.' : ''}
+										{recording
+											? live.streams
+												? 'Listening… your words show up here as you talk.'
+												: 'Listening… your words show up here when you stop.'
+											: 'Writing down what you said…'}
 									</Text>
 								)}
 							</Text>
@@ -259,7 +263,9 @@ export function ExplainStep({
 								Teach it like they never saw it.
 							</Text>
 							<Text variant="lead" tone="secondary" style={s.lead}>
-								Talk it through out loud. Your words show up as you go; tap stop when you’re done.
+								{live.streams
+									? 'Talk it through out loud. Your words show up as you go; tap stop when you’re done.'
+									: 'Talk it through out loud, then tap stop. Your words show up when you do.'}
 							</Text>
 							<Button
 								label="Start explaining"
