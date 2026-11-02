@@ -21,7 +21,7 @@ export interface Segment<T extends string> {
 /**
  * A pill track with one raised segment that slides to the choice on the
  * smooth spring. For two to four mutually exclusive options shown together
- * (appearance, a list filter).
+ * (a list filter).
  */
 export function SegmentedControl<T extends string>({
 	segments,

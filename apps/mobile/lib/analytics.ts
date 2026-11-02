@@ -55,7 +55,10 @@ type EventName =
 	| 'class_resumed'
 	| 'class_hand_picked'
 	// class_help_opened { student: string }: how often a question sends the person to the video.
+	// class_help_clip_opened { start_seconds: number }: in private help, they rewatched the
+	// moment in the video. start_seconds discriminates, so two moments in one class both count.
 	| 'class_help_opened'
+	| 'class_help_clip_opened'
 	| 'class_answered'
 	| 'class_finished'
 	// Assessment — judged on whether people who finish a class see what they missed, and on
@@ -83,23 +86,17 @@ type EventName =
 	| 'logout'
 	// Onboarding — judged on completion rate, and where people fall out.
 	// onboarding_step_viewed fires as each step appears.
-	//   metadata: { step: 'name' | 'appearance', index: number }
-	// `step` is the discriminator. started → step_viewed(name) → step_viewed
-	// (appearance) → completed is the funnel; a step that loses people shows as
-	// the gap after it. onboarding_completed carries
-	//   { skipped_name: boolean, appearance: 'system' | 'light' | 'dark' }.
+	//   metadata: { step: 'name', index: number }
+	// `step` is the discriminator. started → step_viewed(name) → completed is the
+	// funnel; a step that loses people shows as the gap after it.
+	// onboarding_completed carries { skipped_name: boolean }.
 	| 'onboarding_started'
 	| 'onboarding_step_viewed'
 	| 'onboarding_completed'
-	// Preferences — settings toggles that change what the app looks and feels
-	// like. Not an "aha" and not a money moment; they answer "does anyone use
-	// light mode on the dark preset?" before a play spends time on it.
-	//   appearance_changed  metadata: { mode: 'system' | 'light' | 'dark',
-	//                                    source: 'onboarding' | 'settings' }
+	// Preferences — settings toggles that change how the app feels. Not an "aha"
+	// and not a money moment. The app has one light look, so there is no
+	// appearance setting to track.
 	//   haptics_changed     metadata: { enabled: boolean }
-	// `mode` and `source` discriminate: the same choice made in onboarding and
-	// later in settings are two different signals.
-	| 'appearance_changed'
 	| 'haptics_changed'
 	// Activity — reading the notification list.
 	//   notification_opened            metadata: { category }
@@ -201,6 +198,13 @@ type EventName =
 	| 'warm_up_offered'
 	| 'warm_up_started'
 	| 'warm_up_answered'
+	// Topic page — one video's gaps and when each comes back. Judged on whether
+	// people check a video's progress and teach it again.
+	//   topic_viewed              the page opens. metadata: { topic_id, open_gaps: number }
+	//   topic_teach_again_tapped  "Teach it again". metadata: { topic_id }
+	// topic_id discriminates, so two videos the same day both count.
+	| 'topic_viewed'
+	| 'topic_teach_again_tapped'
 // TODO: add your app-specific events here
 
 /** Track an event. No-ops silently when PostHog is unconfigured. */
