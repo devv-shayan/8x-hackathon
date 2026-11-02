@@ -75,15 +75,40 @@ const FIELD_COLOURS = Object.fromEntries(
 	Object.entries(PIXEL_FIELDS).map(([name, f]) => [name, f.palette.map(hexToRgb)])
 ) as Record<PixelFieldName, Rgb[]>
 
-/** Students raise the hand on the side facing the middle, as in the hero. */
-function figures(scene: Scene, aspect: number, raised: Raised): Figure[] {
+/** The top of the room: below the screen's floating buttons, as a share of its height. */
+const CEILING = 0.16
+/** How far students stand behind the sheet's top edge, in their own heights. */
+const BEHIND = 0.08
+/** A student's height above the head's centre with a hand up, and below it to the waist. */
+const ABOVE_HEAD = 0.2
+const BELOW_HEAD = 0.62
+
+/**
+ * Where a scene's students stand. Without a `floor` they stand where the scene puts them.
+ * With one (the share of the height where the sheet's top edge is), they stand on it, just
+ * behind the sheet, shrunk only if the room above it is too short for them: so a tall sheet
+ * never hides them.
+ */
+export function placeStudents(
+	scene: Scene,
+	floor?: number | null
+): { headY: number; scale: number } {
+	if (floor == null) return { headY: scene.headY, scale: scene.scale }
+	const room = floor - CEILING
+	const scale = Math.max(0, Math.min(scene.scale, room / (ABOVE_HEAD + BELOW_HEAD - BEHIND)))
+	return { headY: floor + BEHIND * scale - BELOW_HEAD * scale, scale }
+}
+
+/** Students raise the hand on the outside, so two raised hands never cross in the middle. */
+function figures(scene: Scene, aspect: number, raised: Raised, floor?: number | null): Figure[] {
+	const { headY, scale } = placeStudents(scene, floor)
 	return scene.students.map((student, i) => ({
 		name: student.name,
 		material: student.name === 'Maya' ? 'maya' : 'omar',
-		hand: student.at < 0.5 || (student.at === 0.5 && student.name === 'Maya') ? 1 : -1,
+		hand: student.at > 0.5 || (student.at === 0.5 && student.name === 'Maya') ? 1 : -1,
 		cx: student.at * aspect,
-		headY: scene.headY,
-		scale: scene.scale,
+		headY,
+		scale,
 		lift: raised[student.name] ?? 0,
 		blinkPhase: i * 0.37
 	}))
@@ -96,12 +121,13 @@ export function renderScene(
 	height: number,
 	scene: Scene,
 	t: number,
-	raised: Raised = {}
+	raised: Raised = {},
+	floor?: number | null
 ): void {
 	const aspect = width / height
 	const field = PIXEL_FIELDS[scene.field].field
 	const fieldColours = FIELD_COLOURS[scene.field]
-	const people = figures(scene, aspect, raised)
+	const people = figures(scene, aspect, raised, floor)
 	// Where each halo sits: the middle of the student's head and chest.
 	const pools = people.map((f) => [f.cx, f.headY + 0.16 * f.scale, 0.3 * f.scale] as const)
 	for (let y = 0; y < height; y++) {
@@ -142,10 +168,11 @@ export function renderScene(
 export function studentBounds(
 	scene: Scene,
 	width: number,
-	height: number
+	height: number,
+	floor?: number | null
 ): { name: StudentName; left: number; top: number; width: number; height: number }[] {
 	const aspect = width / height
-	return figures(scene, aspect, {}).map((f) => {
+	return figures(scene, aspect, {}, floor).map((f) => {
 		const half = 0.26 * f.scale
 		const top = f.headY - 0.42 * f.scale
 		return {

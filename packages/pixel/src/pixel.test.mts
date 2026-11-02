@@ -6,7 +6,7 @@ import { BAYER_4, ditherIndex, hexToRgb, renderField } from './dither'
 import { createFbm, createSimplex } from './noise'
 import { PIXEL_FIELDS } from './fields'
 import { FIGURE_COLOURS, figureAt, SEATS, shadeAt } from './students'
-import { renderScene, SCENES, studentBounds } from './scenes'
+import { placeStudents, renderScene, SCENES, studentBounds } from './scenes'
 import { BACKDROP_HTML } from './backdrop-html.generated'
 import { readFileSync } from 'node:fs'
 
@@ -125,7 +125,7 @@ test("a scene's students stand where it puts them, with a hand up on request", (
 		const f = {
 			name: box.name,
 			material: box.name === 'Maya' ? ('maya' as const) : ('omar' as const),
-			hand: student.at < 0.5 ? (1 as const) : (-1 as const),
+			hand: student.at > 0.5 ? (1 as const) : (-1 as const),
 			cx: student.at * aspect,
 			headY: scene.headY,
 			scale: scene.scale,
@@ -191,4 +191,16 @@ test("the WebView's page runs: it starts a backdrop and takes updates", () => {
 	;(window.__backdrop as (s: object) => void)({ scene: 'results' })
 	assert.equal(canvas.width, Math.round(402 / 4))
 	assert.equal(drawn.length, 2)
+})
+
+test('with a floor, students stand just above the sheet, smaller only when they must', () => {
+	const scene = SCENES.classroom
+	const roomy = placeStudents(scene, 0.62)
+	assert.equal(roomy.scale, scene.scale)
+	assert.ok(Math.abs(roomy.headY + 0.62 * roomy.scale - 0.62) < 0.08 * roomy.scale + 1e-9)
+	const tall = placeStudents(scene, 0.42)
+	assert.ok(tall.scale < scene.scale)
+	// The raised hand stays below the screen's floating buttons.
+	assert.ok(tall.headY - 0.2 * tall.scale >= 0.16 - 1e-9)
+	assert.deepEqual(placeStudents(scene), { headY: scene.headY, scale: scene.scale })
 })

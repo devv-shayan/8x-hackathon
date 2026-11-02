@@ -168,6 +168,9 @@ async function classWithOneAnswer() {
 test('a class scored at the start asks about what was missed or wrong', async () => {
 	const started = await startClass(USER, TOPIC, 'Plants drink.')
 	assert.equal(started.turns.length, 2)
+	// The video is there for private help, but the score stays hidden until the end.
+	assert.equal(started.youtube_id, 'video')
+	assert.equal(started.concept_results, null)
 	assert.equal(scoreCalls, 1)
 	assert.ok(questionPrompts.some((prompt) => prompt.includes('Xylem')))
 	assert.deepEqual(gapSaves, [
