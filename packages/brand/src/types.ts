@@ -6,7 +6,7 @@
 
 import type { Layout, Space } from './scale'
 
-export type PresetName = 'dusk' | 'daylight'
+export type PresetName = 'dusk' | 'daylight' | 'landing'
 export type Scheme = 'light' | 'dark'
 
 // ── Colour ────────────────────────────────────────────────────────────────────
@@ -203,8 +203,11 @@ export type TypeRole =
 	| 'labelTracked'
 	| 'number'
 
-/** `display` is the preset's headline face; `text` is the workhorse (Inter). */
-export type FontGroup = 'display' | 'text'
+/**
+ * `display` is the preset's headline face; `text` is the workhorse; `mono` is for small
+ * labels, timecodes and figures in an instrument.
+ */
+export type FontGroup = 'display' | 'text' | 'mono'
 export type FontWeight = 400 | 500 | 600 | 700 | 800
 
 export interface TypeSpec {

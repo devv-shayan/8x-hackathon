@@ -57,7 +57,7 @@ const ACCENTS = [
 	'#000000'
 ]
 
-const PRESETS: PresetName[] = ['dusk', 'daylight']
+const PRESETS: PresetName[] = ['dusk', 'daylight', 'landing']
 const SCHEMES: Scheme[] = ['dark', 'light']
 
 type Check = { label: string; ratio: number; min: number }

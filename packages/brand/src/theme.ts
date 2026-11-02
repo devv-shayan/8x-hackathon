@@ -4,6 +4,7 @@
 
 import { daylight } from '../presets/daylight'
 import { dusk } from '../presets/dusk'
+import { landing } from '../presets/landing'
 import { parseColor, withAlpha } from './color'
 import { buildPalette } from './palette'
 import { layout, space } from './scale'
@@ -18,7 +19,7 @@ import type {
 	Theme
 } from './types'
 
-export const presets: Record<PresetName, Preset> = { dusk, daylight }
+export const presets: Record<PresetName, Preset> = { dusk, daylight, landing }
 
 export const SCHEMES: readonly Scheme[] = ['dark', 'light']
 
@@ -56,7 +57,9 @@ function assertAccent(accent: string): string {
 export function buildTheme(presetName: PresetName, accent: string = 'default'): Theme {
 	const preset = presets[presetName]
 	if (!preset) {
-		throw new Error(`@app/brand: unknown preset '${presetName}' (use 'dusk' or 'daylight')`)
+		throw new Error(
+			`@app/brand: unknown preset '${presetName}' (use 'dusk', 'daylight' or 'landing')`
+		)
 	}
 	const hex = accent === 'default' ? preset.defaultAccent : assertAccent(accent)
 	const palettes = {
