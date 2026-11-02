@@ -27,7 +27,7 @@ pre-wired, so you build features, not boilerplate.
 | ----------------------- | --------------------------------------------------------------------------------------------- |
 | **Auth**                | Passwordless OTP email — no passwords, no user support headaches                              |
 | **Social login**        | Google + Apple OAuth wired via Supabase — buttons work, just add credentials                  |
-| **Onboarding**          | Name and appearance, saved to the profile through `PATCH /api/app/v1/profile`                 |
+| **Onboarding**          | A name, saved to the profile through `PATCH /api/app/v1/profile`                              |
 | **Auth routing**        | Three-zone guard (public → onboarding → authenticated) — zero manual navigation               |
 | **Subscriptions**       | RevenueCat IAP fully wired — `useSubscription().isPremium` anywhere in the app                |
 | **Paywall**             | Full upgrade screen — monthly/yearly packages, savings badge, restore, promo code redeem      |
@@ -46,7 +46,7 @@ pre-wired, so you build features, not boilerplate.
 | **Tests**               | Jest + jest-expo suites in `__tests__/`, plus `packages/brand`'s contrast and token tests     |
 | **Deep linking**        | App scheme + Android intent filter; universal links are an optional launch step               |
 | **Dev skip**            | "Skip to the app" / "Skip to onboarding" on sign-in, in development only — no network call    |
-| **Design system**       | `packages/brand` presets (dusk / daylight) + one accent hex, via a ThemeProvider              |
+| **Design system**       | `packages/brand` presets (landing, the website's look) + one accent hex, via a ThemeProvider  |
 | **Typography**          | Inter + the preset's display face via `@expo-google-fonts` — `<Text>` maps weight to family   |
 | **Component library**   | Buttons, cards, lists, sheets, alerts, toasts, skeletons, OTP input, glass tab bar — themed   |
 | **Navigation**          | Expo Router file-based routing — add a file, get a screen                                     |
@@ -161,7 +161,7 @@ The whole list, for both apps, is "Renaming for your play" in the root
 Open `packages/brand/brand.config.ts` (shared with the website) and set:
 
 ```ts
-preset: 'dusk',        // or 'daylight'
+preset: 'landing',     // or 'dusk' / 'daylight' (import their faces in lib/fonts.ts first)
 accent: '#6366f1',     // any hex, or 'default' for the preset's own
 appName: 'YourApp',
 siteName: 'YourApp',
@@ -270,7 +270,7 @@ app/
   (auth)/
     login.tsx          OTP email + Google/Apple OAuth
   (onboarding)/
-    index.tsx          Name, then appearance — runs once after the first sign-in
+    index.tsx          A name — runs once after the first sign-in
   (tabs)/
     _layout.tsx        Tab bar config
     index.tsx          Home — stats, recent items, activity feed
@@ -282,7 +282,7 @@ app/
 
 contexts/
   SubscriptionContext.tsx   isPremium + purchase/restore/refresh
-  ThemeContext.tsx          The brand theme: useTheme(), useColors(), the light/dark choice
+  ThemeContext.tsx          The brand theme: useTheme(), useColors(); one light scheme
   ToastContext.tsx          useToast() — show toasts from anywhere
 
 hooks/                 Each wraps lib/api.ts in TanStack Query; lists page with the API's cursor
@@ -296,7 +296,6 @@ lib/
   account.ts           In-app account deletion (DELETE /api/app/v1/account)
   lifecycle.ts         Tells the web app a session exists: user_signed_up, last seen
   themedStyles.ts      makeStyles / useThemedStyles / makeThemed, cached per palette
-  themePref.ts         Stored light/dark/system choice, preloaded before first paint
   motion.ts            Springs, easings, enter(i) stagger, shake — from the preset
   haptics.ts           Meaning-named haptics (press, select, snap, success…)
   fonts.ts             Preset font files for expo-font

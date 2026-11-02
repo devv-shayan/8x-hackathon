@@ -6,7 +6,6 @@ import * as SplashScreen from 'expo-splash-screen'
 import { palette, type Palette } from '@app/brand'
 import { queryClient } from '@/lib/queryClient'
 import { presetFonts } from '@/lib/fonts'
-import { loadThemePref } from '@/lib/themePref'
 import { loadHapticsPref } from '@/lib/haptics'
 import { makeStyles } from '@/lib/themedStyles'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
@@ -198,10 +197,10 @@ function RootLayout() {
 		initI18n().then(() => setI18nReady(true))
 	}, [])
 
-	// Read the stored light/dark choice (and the haptics switch) before first
-	// paint, so the first frame is already in the right scheme.
+	// Read the haptics switch before first paint, so the first tap already
+	// follows it.
 	useEffect(() => {
-		Promise.all([loadThemePref(), loadHapticsPref()]).finally(() => setThemeReady(true))
+		loadHapticsPref().finally(() => setThemeReady(true))
 	}, [])
 
 	useEffect(() => {
@@ -385,6 +384,8 @@ function AppTree({
 													<Stack.Screen name="upgrade" options={MODAL} />
 													<Stack.Screen name="privacy" options={PUSH} />
 													<Stack.Screen name="terms" options={PUSH} />
+													{/* Development only: the redesign's pixel scenes (app/dev/backdrops.tsx). */}
+													{__DEV__ ? <Stack.Screen name="dev/backdrops" options={PUSH} /> : null}
 												</Stack>
 												<ScreenTracker />
 												<SessionExpiredNotice />

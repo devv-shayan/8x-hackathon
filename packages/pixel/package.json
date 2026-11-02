@@ -7,10 +7,15 @@
 	"main": "./index.ts",
 	"types": "./index.ts",
 	"exports": {
-		".": "./index.ts"
+		".": "./index.ts",
+		"./backdrop-html": "./src/backdrop-html.generated.ts"
 	},
 	"scripts": {
+		"build:backdrop": "node scripts/build-backdrop.mjs",
 		"test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs --test \"src/**/*.test.mts\"",
 		"typecheck": "tsc --noEmit -p ."
+	},
+	"devDependencies": {
+		"typescript": "~5.9.2"
 	}
 }

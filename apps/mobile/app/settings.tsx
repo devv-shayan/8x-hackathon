@@ -2,15 +2,13 @@ import { useState } from 'react'
 import { Platform, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
 import Constants from 'expo-constants'
-import { FileText, Moon, ShieldCheck, Sun, SunMoon, Trash2, Vibrate } from 'lucide-react-native'
+import { FileText, ShieldCheck, Trash2, Vibrate } from 'lucide-react-native'
 import { AlertModal } from '@/components/ui/AppModal'
 import { ListRow, Section } from '@/components/ui/List'
 import { PageHeader, ScreenTitle } from '@/components/ui/PageHeader'
 import { Screen } from '@/components/ui/Screen'
-import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { Text } from '@/components/ui/Text'
 import { Toggle } from '@/components/ui/Toggle'
-import { useTheme, type ThemePref } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { AccountDeletionError, deleteAccount } from '@/lib/account'
 import { track } from '@/lib/analytics'
@@ -24,17 +22,11 @@ const DELETE_ACCOUNT_MESSAGE =
 	"classes and answers. It can't be undone."
 
 export default function SettingsScreen() {
-	const { pref, setPref } = useTheme()
 	const { showToast } = useToast()
 	const [haptics, setHaptics] = useState(hapticsPreference())
 	const [confirmDelete, setConfirmDelete] = useState(false)
 	const [deleting, setDeleting] = useState(false)
 	const [notice, setNotice] = useState<{ title: string; message: string } | null>(null)
-
-	function changeAppearance(mode: ThemePref) {
-		setPref(mode)
-		track('appearance_changed', { mode, source: 'settings' })
-	}
 
 	function changeHaptics(enabled: boolean) {
 		setHaptics(enabled)
@@ -88,31 +80,6 @@ export default function SettingsScreen() {
 	return (
 		<Screen header={<PageHeader />} gap={26}>
 			<ScreenTitle title="Settings" />
-
-			<Section title="Appearance" footnote="System follows your phone's light or dark setting.">
-				<SegmentedControl<ThemePref>
-					accessibilityLabel="Appearance"
-					value={pref}
-					onChange={changeAppearance}
-					segments={[
-						{
-							value: 'system',
-							label: 'System',
-							icon: (color) => <SunMoon size={16} color={color} strokeWidth={2} />
-						},
-						{
-							value: 'light',
-							label: 'Light',
-							icon: (color) => <Sun size={16} color={color} strokeWidth={2} />
-						},
-						{
-							value: 'dark',
-							label: 'Dark',
-							icon: (color) => <Moon size={16} color={color} strokeWidth={2} />
-						}
-					]}
-				/>
-			</Section>
 
 			{Platform.OS === 'web' ? null : (
 				<Section title="Feel">

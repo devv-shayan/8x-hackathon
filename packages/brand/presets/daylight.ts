@@ -126,6 +126,11 @@ export const daylight: Preset = {
 				700: 'Inter_700Bold',
 				800: 'Inter_800ExtraBold'
 			}
+		},
+		mono: {
+			name: 'JetBrains Mono',
+			fallback: 'ui-monospace, Menlo, monospace',
+			files: { 500: 'JetBrainsMono_500Medium' }
 		}
 	},
 

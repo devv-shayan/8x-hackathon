@@ -82,8 +82,8 @@ describe('app.json follows the preset', () => {
 		)
 	})
 
-	it('lets the system appearance reach the app', () => {
-		expect(app.userInterfaceStyle).toBe('automatic')
+	it('pins native controls to light, as the app has no dark mode', () => {
+		expect(app.userInterfaceStyle).toBe('light')
 	})
 })
 
