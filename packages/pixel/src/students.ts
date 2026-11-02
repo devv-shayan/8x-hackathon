@@ -1,8 +1,9 @@
 import { ditherIndex, hexToRgb, type Rgb } from './dither'
 import { createFbm } from './noise'
 
-// Maya and Omar for the hero, drawn from shapes (signed distances) and dithered into the
-// same pixels as the backgrounds. Pure, so the shapes can be tested without a canvas.
+// Maya and Omar, drawn from shapes (signed distances) and dithered into the same pixels as
+// the backgrounds: the website's hero, and any app scene (scenes.ts). Pure, so the shapes can
+// be tested without a canvas.
 
 const fbm = createFbm(29)
 
@@ -14,7 +15,7 @@ const PALETTES = {
 	desk: ['#0b0b0b', '#2a2a2a', '#444444']
 } as const
 
-type Material = keyof typeof PALETTES
+export type Material = keyof typeof PALETTES
 
 const COLOURS = Object.fromEntries(
 	Object.entries(PALETTES).map(([name, hexes]) => [name, hexes.map(hexToRgb)])
@@ -77,6 +78,87 @@ function roundedBox(
 	return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r
 }
 
+/** Maya or Omar, placed anywhere: `cx` and `headY` in heights, `scale` 1 is the hero's size. */
+export interface Figure {
+	name: 'Maya' | 'Omar'
+	material: 'maya' | 'omar'
+	/** Which side the hand goes up on: 1 right, -1 left. */
+	hand: 1 | -1
+	cx: number
+	headY: number
+	scale: number
+	/** The hand, 0 down to 1 up. */
+	lift: number
+	/** Offsets the blink, so two students don't blink together. */
+	blinkPhase: number
+}
+
+/**
+ * One student at a point: the material, shade and how deep inside the figure the point is
+ * (negative is inside; the deepest part wins where figures overlap), or null outside it.
+ * Every measure is a share of the hero's, times `scale`, so the hero is `scale` 1 with its
+ * head at HEAD_Y.
+ */
+export function figureAt(
+	px: number,
+	py: number,
+	t: number,
+	f: Figure
+): { material: Material; shade: number; depth: number } | null {
+	const s = f.scale
+	const { cx, headY, lift } = f
+	const sx = cx + f.hand * SHOULDER.dx * s
+	const sy = headY + (SHOULDER.y - HEAD_Y) * s
+	const hx = sx + f.hand * (0.06 + lift * 0.01) * s
+	const hy = headY + (HAND_DOWN_Y - HEAD_Y - (HAND_DOWN_Y - HAND_UP_Y) * lift) * s
+	const head = Math.hypot(px - cx, py - headY) - HEAD_RADIUS * s
+	const parts: [number, Material][] = [
+		[head, f.material],
+		[capsule(px, py, cx, headY + 0.08 * s, cx, headY + 0.19 * s, 0.06 * s), f.material],
+		[roundedBox(px, py, cx, headY + 0.4 * s, 0.19 * s, 0.22 * s, 0.11 * s), f.material],
+		[capsule(px, py, sx, sy, hx, hy, ARM_RADIUS * s), f.material],
+		[Math.hypot(px - hx, py - hy) - HAND_RADIUS * s, lift > 0.5 ? 'raisedHand' : f.material]
+	]
+	let deepest = 0
+	let material: Material = f.material
+	let shade = 0
+	for (const [distance, part] of parts) {
+		if (distance >= deepest) continue
+		deepest = distance
+		material = part
+		shade =
+			-distance < OUTLINE * s
+				? INK_SHADE
+				: 0.3 +
+					0.55 * Math.min(1, (-distance * 14) / s) +
+					0.12 * fbm((px * 5) / s, (py * 5) / s, t * 0.2)
+	}
+	if (deepest < 0 && head < 0) {
+		// The face: eyes that blink, Maya's hair, Omar's glasses.
+		const open = (t / BLINK_EVERY + f.blinkPhase) % 1 < BLINK_SHUT ? 0.15 : 1
+		for (const side of [-1, 1]) {
+			const ex = cx + side * EYE.dx * s
+			const ey = headY + EYE.dy * s
+			if (Math.hypot(px - ex, (py - ey) / open) < EYE.r * s) shade = INK_SHADE
+			if (f.name === 'Omar' && Math.abs(Math.hypot(px - ex, py - ey) - LENS.r * s) < LENS.width * s)
+				shade = INK_SHADE
+		}
+		if (f.name === 'Maya' && py < headY - (0.035 - 0.02 * Math.sin(((px - cx) * 30) / s)) * s)
+			shade = HAIR_SHADE
+	}
+	if (deepest < 0) return { material, shade, depth: deepest }
+	// Maya's bun sits behind her head, so any part of anyone drawn there covers it.
+	if (f.name === 'Maya') {
+		const bun = Math.hypot(px - (cx - 0.09 * s), py - (headY - 0.1 * s)) - 0.05 * s
+		if (bun < 0)
+			return { material: 'maya', shade: -bun < OUTLINE * s ? INK_SHADE : HAIR_SHADE, depth: -1e-9 }
+	}
+	return null
+}
+
+/** The colours each student's materials are dithered into. */
+export const FIGURE_COLOURS: Readonly<Record<Material, readonly Rgb[]>> = COLOURS
+
 /**
  * The material and shade at a point. `px` and `py` are in heights from the top left, so
  * circles stay round. `raised` is each student's hand, 0 down to 1 up.
@@ -94,50 +176,25 @@ export function shadeAt(
 		material = 'desk'
 		shade = 0.2 + 0.3 * fbm(px * 6, py * 6, 0)
 	}
-	let deepest = 1
+	let deepest = 0
 	SEATS.forEach((seat, i) => {
 		const cx = seat.at * aspect
-		const lift = raised[i] ?? 0
-		const headY = HEAD_Y + Math.sin(t * 1.3 + cx * 7) * 0.006
-		const sx = cx + seat.hand * SHOULDER.dx
-		const hx = sx + seat.hand * (0.06 + lift * 0.01)
-		const hy = HAND_DOWN_Y - (HAND_DOWN_Y - HAND_UP_Y) * lift
-		const head = Math.hypot(px - cx, py - headY) - HEAD_RADIUS
-		const parts: [number, Material][] = [
-			[head, seat.material],
-			[capsule(px, py, cx, headY + 0.08, cx, 0.56, 0.06), seat.material],
-			[roundedBox(px, py, cx, 0.77, 0.19, 0.22, 0.11), seat.material],
-			[capsule(px, py, sx, SHOULDER.y, hx, hy, ARM_RADIUS), seat.material],
-			[Math.hypot(px - hx, py - hy) - HAND_RADIUS, lift > 0.5 ? 'raisedHand' : seat.material]
-		]
-		for (const [distance, part] of parts) {
-			if (distance >= 0 || distance >= deepest) continue
-			deepest = distance
-			material = part
-			shade =
-				-distance < OUTLINE
-					? INK_SHADE
-					: 0.3 + 0.55 * Math.min(1, -distance * 14) + 0.12 * fbm(px * 5, py * 5, t * 0.2)
+		const hit = figureAt(px, py, t, {
+			name: seat.name,
+			material: seat.material,
+			hand: seat.hand,
+			cx,
+			headY: HEAD_Y + Math.sin(t * 1.3 + cx * 7) * 0.006,
+			scale: 1,
+			lift: raised[i] ?? 0,
+			blinkPhase: i * 0.37
+		})
+		if (hit && hit.depth < deepest) {
+			deepest = hit.depth
+			material = hit.material
+			shade = hit.shade
 		}
-		if (head >= 0) return
-		// The face: eyes that blink, Maya's hair with a bun, Omar's glasses.
-		const open = (t / BLINK_EVERY + i * 0.37) % 1 < BLINK_SHUT ? 0.15 : 1
-		for (const side of [-1, 1]) {
-			const ex = cx + side * EYE.dx
-			const ey = headY + EYE.dy
-			if (Math.hypot(px - ex, (py - ey) / open) < EYE.r) shade = INK_SHADE
-			if (seat.name === 'Omar' && Math.abs(Math.hypot(px - ex, py - ey) - LENS.r) < LENS.width)
-				shade = INK_SHADE
-		}
-		if (seat.name === 'Maya' && py < headY - 0.035 + 0.02 * Math.sin((px - cx) * 30))
-			shade = HAIR_SHADE
 	})
-	// Maya's bun sits behind her head, so it only shows where nothing else is drawn.
-	const bun = Math.hypot(px - (SEATS[0].at * aspect - 0.09), py - (HEAD_Y - 0.1)) - 0.05
-	if (bun < 0 && deepest === 1) {
-		material = 'maya'
-		shade = -bun < OUTLINE ? INK_SHADE : HAIR_SHADE
-	}
 	return { material, shade }
 }
 
