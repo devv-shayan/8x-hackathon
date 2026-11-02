@@ -63,14 +63,14 @@ export default function ClassScreen() {
 	}, [resumedId])
 
 	const start = useMutation({
-		mutationFn: (explanation: string) =>
+		mutationFn: ({ explanation }: { explanation: string; meta: AnswerMeta }) =>
 			api('startClass', {
 				body: { topic_id: topicId, explanation },
 				timeoutMs: CLASS_TIMEOUT_MS
 			}),
-		onSuccess: ({ class: started }) => {
+		onSuccess: ({ class: started }, { meta }) => {
 			haptic.success()
-			track('class_started')
+			track('class_started', meta)
 			setSession(started)
 		},
 		onError: () => haptic.error()
@@ -156,7 +156,7 @@ export default function ClassScreen() {
 				title={videoTitle}
 				youtubeId={youtubeId}
 				ideaCount={cachedTopic.data?.concepts.length ?? null}
-				onStart={(explanation) => start.mutate(explanation)}
+				onStart={(explanation, meta) => start.mutate({ explanation, meta })}
 				pending={start.isPending}
 				error={start.isError ? errorMessage(start.error) : null}
 			/>
