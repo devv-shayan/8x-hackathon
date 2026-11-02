@@ -14,6 +14,7 @@
 		"@8xresearch/research-widget": "^0.7.6",
 		"@app/brand": "*",
 		"@app/contract": "*",
+		"@app/pixel": "*",
 		"@expo-google-fonts/inter-tight": "^0.4.2",
 		"@expo-google-fonts/jetbrains-mono": "^0.4.1",
 		"@expo/metro-runtime": "~55.0.12",

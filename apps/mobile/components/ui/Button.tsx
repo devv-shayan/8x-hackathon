@@ -15,7 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import type { HapticMeaning } from '@/lib/haptics'
 import { Text } from './Text'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'ink'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const HEIGHT: Record<ButtonSize, number> = { sm: 40, md: 50, lg: 56 }
@@ -46,7 +46,8 @@ export interface ButtonProps extends Omit<PressableProps, 'style' | 'children'> 
 /**
  * The button. Primary is the brand fill (its gradient) with the AA text colour
  * derived for it; secondary is the accent tint; outline, ghost and destructive
- * are quiet. Disabled is a calm well-coloured pill, not a faded brand button.
+ * are quiet. Ink is black with the accent as its text: the main action on a white sheet over
+ * a pixel background. Disabled is a calm well-coloured pill, not a faded brand button.
  * Loading keeps the button's size and swaps the label for a spinner.
  */
 export function Button({
@@ -78,7 +79,8 @@ export function Button({
 				secondary: { bg: c.brandDim, border: c.brandBorder, text: c.brandInk },
 				outline: { bg: 'transparent', border: c.borderActive, text: c.textPrimary },
 				ghost: { bg: 'transparent', border: 'transparent', text: c.textSecondary },
-				destructive: { bg: c.errorSoft, border: c.errorBorder, text: c.errorText }
+				destructive: { bg: c.errorSoft, border: c.errorBorder, text: c.errorText },
+				ink: { bg: c.textPrimary, border: 'transparent', text: c.brandFill }
 			}[variant]
 
 	const filled = variant === 'primary' && !inert
@@ -97,7 +99,7 @@ export function Button({
 			{...rest}
 			onPress={handlePress}
 			disabled={(inert && !onDisabledPress) || loading}
-			haptic={haptic ?? (variant === 'primary' && !inert ? 'press' : false)}
+			haptic={haptic ?? ((variant === 'primary' || variant === 'ink') && !inert ? 'press' : false)}
 			accessibilityLabel={accessibilityLabel ?? label}
 			accessibilityState={{ disabled: inert, busy: loading }}
 			style={[

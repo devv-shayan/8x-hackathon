@@ -384,6 +384,8 @@ function AppTree({
 													<Stack.Screen name="upgrade" options={MODAL} />
 													<Stack.Screen name="privacy" options={PUSH} />
 													<Stack.Screen name="terms" options={PUSH} />
+													{/* Development only: the redesign's pixel scenes (app/dev/backdrops.tsx). */}
+													{__DEV__ ? <Stack.Screen name="dev/backdrops" options={PUSH} /> : null}
 												</Stack>
 												<ScreenTracker />
 												<SessionExpiredNotice />
