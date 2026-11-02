@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, type PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
-import { renderStudents, SEATS } from './students'
+import { renderStudents, SEATS } from '@app/pixel'
 import { useAnimationFrame } from './useAnimationFrame'
 
 const CELL = 3

@@ -2,7 +2,7 @@ import { FileCheck2, Gift, Lock, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SectionBand } from './parts'
 import { PixelField } from './pixel/PixelField'
-import type { PixelFieldName } from './pixel/fields'
+import type { PixelFieldName } from '@app/pixel'
 
 const REASONS = [
 	{
