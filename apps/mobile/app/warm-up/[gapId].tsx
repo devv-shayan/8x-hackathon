@@ -216,6 +216,7 @@ export default function WarmUpScreen() {
 								key={warmUpId}
 								surface="warm_up"
 								student={student ?? 'the student'}
+								question={question}
 								typed={text}
 								onTypedChange={setText}
 								onSend={send}

@@ -16,10 +16,15 @@ export type Recording = {
 	seconds: () => number
 }
 
+export type RecordingOptions = {
+	onLimit?: () => void
+	onSamples?: (samples: Float32Array) => void
+	maxSeconds?: number
+	keepAudio?: boolean
+}
+
 export const canRecordVoice = false
 
-export async function startRecording(
-	_options: { onLimit?: () => void; onSamples?: (samples: Float32Array) => void } = {}
-): Promise<Recording> {
+export async function startRecording(_options: RecordingOptions = {}): Promise<Recording> {
 	throw new RecorderError('unsupported')
 }

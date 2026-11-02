@@ -33,14 +33,24 @@ export const canRecordVoice =
 /** How many samples each callback carries: about a tenth of a second at 44.1–48 kHz. */
 const FRAME = 4096
 
+export type RecordingOptions = {
+	/** Runs once `maxSeconds` have been recorded. */
+	onLimit?: () => void
+	/** Each new piece at 16 kHz, as it arrives. */
+	onSamples?: (samples: Float32Array) => void
+	/** MAX_SPEECH_SECONDS unless given: one request's worth. */
+	maxSeconds?: number
+	/** False when `onSamples` handles the audio: `stop` then returns nothing. */
+	keepAudio?: boolean
+}
+
 /**
  * Starts recording. Asks for the microphone the first time; rejects with a RecorderError if it's
- * refused or missing. `onLimit` runs once MAX_SPEECH_SECONDS have been recorded; `onSamples`
- * receives each new piece at 16 kHz as it arrives.
+ * refused or missing.
  */
-export async function startRecording(
-	options: { onLimit?: () => void; onSamples?: (samples: Float32Array) => void } = {}
-): Promise<Recording> {
+export async function startRecording(options: RecordingOptions = {}): Promise<Recording> {
+	const maxSeconds = options.maxSeconds ?? MAX_SPEECH_SECONDS
+	const keepAudio = options.keepAudio ?? true
 	if (!canRecordVoice) throw new RecorderError('unsupported')
 	let stream: MediaStream
 	try {
@@ -65,10 +75,10 @@ export async function startRecording(
 		const input = event.inputBuffer.getChannelData(0)
 		const piece = resample(new Float32Array(input), context.sampleRate)
 		lastLevel = loudness(piece)
-		pieces.push(piece)
+		if (keepAudio) pieces.push(piece)
 		total += piece.length
 		options.onSamples?.(piece)
-		if (!limited && total >= MAX_SPEECH_SECONDS * SPEECH_SAMPLE_RATE) {
+		if (!limited && total >= maxSeconds * SPEECH_SAMPLE_RATE) {
 			limited = true
 			options.onLimit?.()
 		}
@@ -87,7 +97,8 @@ export async function startRecording(
 	return {
 		stop: () => {
 			release()
-			const all = new Float32Array(Math.min(total, MAX_SPEECH_SECONDS * SPEECH_SAMPLE_RATE))
+			const kept = pieces.reduce((sum, piece) => sum + piece.length, 0)
+			const all = new Float32Array(Math.min(kept, maxSeconds * SPEECH_SAMPLE_RATE))
 			let at = 0
 			for (const piece of pieces) {
 				if (at >= all.length) break

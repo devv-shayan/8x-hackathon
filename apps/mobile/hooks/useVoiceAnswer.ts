@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { MAX_SPEECH_PROMPT_CHARS } from '@app/contract'
 import { track } from '@/lib/analytics'
 import { api, ApiError, errorMessage } from '@/lib/api'
 import { RecorderError, startRecording, type Recording } from '@/lib/voice/recorder'
@@ -26,7 +27,8 @@ const MIN_SECONDS = 0.6
 const WAVE_BARS = 44
 const TICK_MS = 100
 
-export function useVoiceAnswer(surface: VoiceSurface) {
+/** `context` (the question being answered) steers spelling: names, terms from the video. */
+export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 	const [phase, setPhase] = useState<VoicePhase>('idle')
 	const [transcript, setTranscript] = useState('')
 	const [draft, setDraft] = useState('')
@@ -56,8 +58,9 @@ export function useVoiceAnswer(surface: VoiceSurface) {
 			setPhase('transcribing')
 			setFailure(null)
 			try {
+				const prompt = context?.trim().slice(0, MAX_SPEECH_PROMPT_CHARS)
 				const { text } = await api('transcribeSpeech', {
-					body: { audio_base64: wav },
+					body: { audio_base64: wav, ...(prompt ? { prompt } : {}) },
 					timeoutMs: TRANSCRIBE_TIMEOUT_MS
 				})
 				if (!text.trim()) {
@@ -73,7 +76,7 @@ export function useVoiceAnswer(surface: VoiceSurface) {
 				fail({ reason: busy ? 'busy' : 'transcribe_failed', message: errorMessage(error) })
 			}
 		},
-		[fail]
+		[context, fail]
 	)
 
 	const finish = useCallback(() => {

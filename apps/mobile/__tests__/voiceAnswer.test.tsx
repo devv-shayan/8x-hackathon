@@ -51,6 +51,7 @@ function renderAnswer(onSend = jest.fn()) {
 		<VoiceAnswer
 			surface="class"
 			student="Omar"
+			question="What changed for him?"
 			typed=""
 			onTypedChange={() => {}}
 			onSend={onSend}
@@ -79,7 +80,10 @@ it('hold, let go, fix a word, send: the answer goes as voice, marked edited', as
 		fireEvent.press(screen.getByLabelText('Let go to send'))
 	})
 	const field = await screen.findByDisplayValue('He got more confident.')
-	expect(api).toHaveBeenCalledWith('transcribeSpeech', expect.anything())
+	expect(api).toHaveBeenCalledWith('transcribeSpeech', {
+		body: { audio_base64: expect.any(String), prompt: 'What changed for him?' },
+		timeoutMs: 30_000
+	})
 	fireEvent.changeText(field, 'He got much more confident.')
 	fireEvent.press(screen.getByText('Send to Omar'))
 	expect(onSend).toHaveBeenCalledWith('He got much more confident.', {

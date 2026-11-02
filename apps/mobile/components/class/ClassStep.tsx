@@ -170,6 +170,7 @@ export function ClassStep({
 								key={openTurn.id}
 								surface="class"
 								student={name}
+								question={openTurn.question}
 								typed={answer}
 								onTypedChange={onAnswerChange}
 								onSend={onAnswer}
