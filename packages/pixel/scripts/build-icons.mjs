@@ -1,7 +1,8 @@
-// Renders the app's icon, Android adaptive icon, splash mark and web favicon from the pixel
-// engine: the black band's lime tunnel behind the website's mark, a 3x3 block of pixels with
+// Renders the app's icon, Android adaptive icon, splash mark and web favicon, and the
+// website's favicon, from the pixel engine: the black band's lime tunnel behind the website's mark, a 3x3 block of pixels with
 // one lime cell for a student's raised hand. Run it after changing the art, then make a store
-// build: icons and the splash are baked into the native app.
+// build: icons and the splash are baked into the native app. The website's favicon ships
+// with the next deploy.
 //
 //   npm run build:icons --workspace=@app/pixel
 import { writeFileSync } from 'node:fs'
@@ -9,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
 import { ditherIndex, hexToRgb, PIXEL_FIELDS } from '../index.ts'
 
-const ASSETS = new URL('../../../apps/mobile/assets/', import.meta.url)
+const ROOT = new URL('../../../', import.meta.url)
 
 /** The mark's cells, as the website's BrandMark draws them. */
 const CELLS = ['ink', 'ink', 'ink', 'ink', 'off', 'off', 'ink', 'ink', 'lime']
@@ -106,13 +107,16 @@ function splashMark(px, markSize) {
 	return png
 }
 
+/** Each file, by its path from the repo root. */
 export const ICONS = {
 	// iOS masks the corners itself; the mark sits well inside them.
-	'icon.png': () => icon(1024, 0.5),
+	'apps/mobile/assets/icon.png': () => icon(1024, 0.5),
 	// Android crops the foreground to a circle or squircle in its middle two thirds.
-	'adaptive-icon.png': () => icon(1024, 0.36),
-	'splash-icon.png': () => splashMark(1024, 0.6),
-	'favicon.png': () => icon(48, 0.62)
+	'apps/mobile/assets/adaptive-icon.png': () => icon(1024, 0.36),
+	'apps/mobile/assets/splash-icon.png': () => splashMark(1024, 0.6),
+	'apps/mobile/assets/favicon.png': () => icon(48, 0.62),
+	// The website's favicon, the same as the web app's: Next.js serves app/icon.png.
+	'apps/web/src/app/icon.png': () => icon(48, 0.62)
 }
 
 /** The PNG file for one of ICONS, byte for byte. */
@@ -120,11 +124,11 @@ export function iconFile(name) {
 	return PNG.sync.write(ICONS[name]())
 }
 
-export const ICON_DIR = ASSETS
+export const ICON_DIR = ROOT
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	for (const name of Object.keys(ICONS)) {
-		writeFileSync(new URL(name, ASSETS), iconFile(name))
-		console.log(`Wrote apps/mobile/assets/${name}`)
+		writeFileSync(new URL(name, ROOT), iconFile(name))
+		console.log(`Wrote ${name}`)
 	}
 }
