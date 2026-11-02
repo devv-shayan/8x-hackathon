@@ -12,6 +12,12 @@ import {
 import { listNotificationsQuery, listNotificationsResponse } from './notifications'
 import { profileResponse, updateProfileBody } from './profile'
 import { createTaskBody, listTasksQuery, listTasksResponse, taskResponse } from './tasks'
+import {
+	speakQuestionBody,
+	speakQuestionResponse,
+	transcribeSpeechBody,
+	transcribeSpeechResponse
+} from './speech'
 import { createUploadBody, createUploadResponse } from './uploads'
 import {
 	getTopicGapsResponse,
@@ -261,6 +267,22 @@ export const endpoints = {
 		params: warmUpParams,
 		body: answerWarmUpBody,
 		response: answerWarmUpResponse,
+		status: 200
+	},
+	transcribeSpeech: {
+		method: 'POST',
+		path: '/api/app/v1/speech/transcriptions',
+		auth: 'user',
+		body: transcribeSpeechBody,
+		response: transcribeSpeechResponse,
+		status: 200
+	},
+	speakQuestion: {
+		method: 'POST',
+		path: '/api/app/v1/speech/questions',
+		auth: 'user',
+		body: speakQuestionBody,
+		response: speakQuestionResponse,
 		status: 200
 	}
 } as const satisfies Record<string, Endpoint>

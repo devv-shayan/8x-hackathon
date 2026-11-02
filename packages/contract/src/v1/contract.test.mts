@@ -14,8 +14,12 @@ import {
 	listItemsResponse,
 	listTopicsResponse,
 	MAX_AVATAR_BYTES,
+	MAX_SPEECH_BASE64_CHARS,
+	MAX_SPEECH_PROMPT_CHARS,
 	pageQuery,
 	profileResponse,
+	speakQuestionBody,
+	transcribeSpeechBody,
 	updateProfileBody
 } from '../../index'
 
@@ -153,6 +157,35 @@ test('uploads: avatars only, by content type and size', () => {
 		false
 	)
 	assert.equal(createUploadBody.safeParse({ ...ok, purpose: 'video' }).success, false)
+})
+
+test('speech: a recording is bounded, and nothing else rides along', () => {
+	assert.equal(transcribeSpeechBody.safeParse({ audio_base64: 'UklGRg==' }).success, true)
+	assert.equal(transcribeSpeechBody.safeParse({ audio_base64: '' }).success, false)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'a'.repeat(MAX_SPEECH_BASE64_CHARS + 1) })
+			.success,
+		false
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({
+			audio_base64: 'UklGRg==',
+			prompt: 'a'.repeat(MAX_SPEECH_PROMPT_CHARS + 1)
+		}).success,
+		false
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'UklGRg==', language: 'en' }).success,
+		false
+	)
+})
+
+test('speech: a question is named by its ids, never by its text', () => {
+	assert.equal(speakQuestionBody.safeParse({ class_id: ID, turn_id: ID }).success, true)
+	assert.equal(speakQuestionBody.safeParse({ warm_up_id: ID }).success, true)
+	assert.equal(speakQuestionBody.safeParse({ class_id: ID }).success, false)
+	assert.equal(speakQuestionBody.safeParse({ warm_up_id: ID, text: 'Say this' }).success, false)
+	assert.equal(speakQuestionBody.safeParse({ text: 'Say this' }).success, false)
 })
 
 test('pages: limit from the query string, bounded', () => {

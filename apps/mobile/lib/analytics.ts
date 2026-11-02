@@ -205,6 +205,24 @@ type EventName =
 	// topic_id discriminates, so two videos the same day both count.
 	| 'topic_viewed'
 	| 'topic_teach_again_tapped'
+	// Voice (docs/voice-requirements.md) — explaining and answering out loud, and the
+	// students speaking their questions. Judged on whether people teach by voice: THE
+	// metric is class_answered with method 'voice'. class_started, class_answered and
+	// warm_up_answered carry { method: 'voice' | 'typed', edited: boolean } (edited only
+	// for voice: they fixed the transcript before sending). The drop-off to watch is
+	// recording → transcript → sent: a denied microphone, a bad transcript, or typing.
+	// `surface` ('explain' | 'class' | 'warm_up') discriminates every voice event.
+	//   voice_recording_started  recording begins. metadata: { surface }
+	//   voice_recording_failed   voice couldn't be used, or a transcript failed.
+	//                            metadata: { surface, reason: 'denied' | 'unsupported' |
+	//                            'transcribe_failed' | 'busy' }
+	//   voice_typed_instead      "Type instead". metadata: { surface }
+	//   voice_question_played    a question is spoken. metadata: { surface, student,
+	//                            replay: boolean, source: 'groq' | 'browser' }
+	| 'voice_recording_started'
+	| 'voice_recording_failed'
+	| 'voice_typed_instead'
+	| 'voice_question_played'
 // TODO: add your app-specific events here
 
 /** Track an event. No-ops silently when PostHog is unconfigured. */
