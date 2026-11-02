@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { uuid } from './common'
 
 // /api/app/v1/speech: what the person says, as text, and the students' questions, as audio.
-// Audio travels as base64 WAV inside JSON, like every other v1 body. Nothing is stored.
+// Audio travels as base64 inside JSON, like every other v1 body. Nothing is stored.
 //
 // POST speech/transcriptions → the text of one recording (a held answer, or a piece of a
 //                              spoken explanation)
@@ -17,9 +17,16 @@ export const MAX_SPEECH_BASE64_CHARS = 2_600_000
 /** The text already said, sent so a piece of a longer explanation reads on from it. */
 export const MAX_SPEECH_PROMPT_CHARS = 1000
 
+/**
+ * How a recording is encoded: 16 kHz mono WAV from the web build, or AAC in an m4a from a phone,
+ * which can't record WAV on Android. WAV when left out, as the first builds sent.
+ */
+export const SPEECH_FORMATS = ['wav', 'm4a'] as const
+
 export const transcribeSpeechBody = z
 	.object({
 		audio_base64: z.string().min(1).max(MAX_SPEECH_BASE64_CHARS),
+		format: z.enum(SPEECH_FORMATS).optional(),
 		prompt: z.string().max(MAX_SPEECH_PROMPT_CHARS).optional()
 	})
 	.strict()
@@ -41,6 +48,7 @@ export const speakQuestionResponse = z.object({
 	student_name: z.string()
 })
 
+export type SpeechFormat = (typeof SPEECH_FORMATS)[number]
 export type TranscribeSpeechBody = z.infer<typeof transcribeSpeechBody>
 export type SpeakQuestionBody = z.infer<typeof speakQuestionBody>
 export type SpeakQuestionResponse = z.infer<typeof speakQuestionResponse>

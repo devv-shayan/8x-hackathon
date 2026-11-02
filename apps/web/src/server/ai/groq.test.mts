@@ -36,6 +36,14 @@ test('transcribe: posts the WAV to Whisper in English, with the prompt, and trim
 	assert.equal(new Headers(requests[0]!.init.headers).get('authorization'), 'Bearer test-key')
 })
 
+test("transcribe: a phone's recording goes as an m4a file", async () => {
+	answer(Response.json({ text: 'Hi.' }))
+	await transcribe(CONTEXT, new Uint8Array([1]), undefined, 'm4a')
+	const file = (requests[0]!.init.body as FormData).get('file') as File
+	assert.equal(file.name, 'speech.m4a')
+	assert.equal(file.type, 'audio/mp4')
+})
+
 test('speak: asks Orpheus for WAV in the given voice and returns the bytes', async () => {
 	answer(new Response(new Uint8Array([9, 8, 7])))
 	const audio = await speak(CONTEXT, 'What changed?', 'daniel')

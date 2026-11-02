@@ -3,6 +3,7 @@ import {
 	SPEECH_SAMPLE_RATE,
 	MAX_SPEECH_SECONDS,
 	type SpeakQuestionBody,
+	type SpeechFormat,
 	type SpeakQuestionResponse
 } from '@app/contract'
 import { SPEAK_MAX_CHARS, speak, transcribe } from '@/server/ai/groq'
@@ -29,24 +30,38 @@ export type SpeechDeps = {
 /** What the routes use; tests replace its members. */
 export const speechDeps: SpeechDeps = { transcribe, speak, questions: questionStore }
 
-/** The text of a base64 WAV the app recorded, read on from `prompt`. */
+/** An m4a's `ftyp` box, four bytes in: how an MPEG-4 file starts. */
+function isMp4(bytes: Uint8Array) {
+	return bytes.byteLength > 12 && String.fromCharCode(...bytes.subarray(4, 8)) === 'ftyp'
+}
+
+/** The text of a base64 recording the app made, read on from `prompt`. */
 export async function transcribeRecording(
 	deps: Pick<SpeechDeps, 'transcribe'>,
 	audioBase64: string,
-	prompt: string | undefined
+	prompt: string | undefined,
+	format: SpeechFormat = 'wav'
 ): Promise<string> {
-	const wav = new Uint8Array(Buffer.from(audioBase64, 'base64'))
-	const info = readWav(wav)
-	if (!info || info.sampleRate !== SPEECH_SAMPLE_RATE || info.channels !== 1) {
+	const audio = new Uint8Array(Buffer.from(audioBase64, 'base64'))
+	let seconds: number | null = null
+	if (format === 'wav') {
+		const info = readWav(audio)
+		if (!info || info.sampleRate !== SPEECH_SAMPLE_RATE || info.channels !== 1) {
+			throw new ApiError('invalid_request', "That recording didn't come through. Try again.")
+		}
+		if (info.seconds > MAX_SPEECH_SECONDS + SECONDS_GRACE) {
+			throw new ApiError('invalid_request', 'That recording is too long. Keep it under a minute.')
+		}
+		seconds = Math.round(info.seconds)
+	} else if (!isMp4(audio)) {
+		// A phone's m4a has no length to check here: the body's size cap bounds it instead.
 		throw new ApiError('invalid_request', "That recording didn't come through. Try again.")
 	}
-	if (info.seconds > MAX_SPEECH_SECONDS + SECONDS_GRACE) {
-		throw new ApiError('invalid_request', 'That recording is too long. Keep it under a minute.')
-	}
 	return deps.transcribe(
-		{ feature: 'transcribe', meta: { seconds: Math.round(info.seconds) } },
-		wav,
-		prompt?.trim() || undefined
+		{ feature: 'transcribe', meta: seconds === null ? {} : { seconds } },
+		audio,
+		prompt?.trim() || undefined,
+		format
 	)
 }
 

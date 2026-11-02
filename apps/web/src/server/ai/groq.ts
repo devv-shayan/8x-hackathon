@@ -64,21 +64,28 @@ async function call(context: GroqContext, model: string, path: string, init: Req
 	})
 }
 
-/** The text of one WAV recording, read on from `prompt` (what was already said). */
+const AUDIO_TYPES = { wav: 'audio/wav', m4a: 'audio/mp4' } as const
+
+/** The text of one recording (WAV or m4a), read on from `prompt` (what was already said). */
 export async function transcribe(
 	context: GroqContext,
-	wav: Uint8Array,
-	prompt?: string
+	audio: Uint8Array,
+	prompt?: string,
+	format: keyof typeof AUDIO_TYPES = 'wav'
 ): Promise<string> {
 	const form = new FormData()
-	form.append('file', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'speech.wav')
+	form.append(
+		'file',
+		new Blob([new Uint8Array(audio)], { type: AUDIO_TYPES[format] }),
+		`speech.${format}`
+	)
 	form.append('model', TRANSCRIBE_MODEL)
 	form.append('language', 'en')
 	form.append('temperature', '0')
 	form.append('response_format', 'json')
 	if (prompt) form.append('prompt', prompt)
 	const response = await call(
-		{ ...context, meta: { ...context.meta, audio_bytes: wav.byteLength } },
+		{ ...context, meta: { ...context.meta, format, audio_bytes: audio.byteLength } },
 		TRANSCRIBE_MODEL,
 		'/audio/transcriptions',
 		{ method: 'POST', body: form }
