@@ -92,6 +92,35 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		 * Newest unfinished class id per topic, for Home's recent list.
 		 * One query for the whole list — never N× findOpen.
 		 */
+		/**
+		 * The latest finished class on each of these topics (no question left open), with its
+		 * results and when it started. Topics with none are left out.
+		 */
+		async latestFinishedForTopics(
+			userId: string,
+			topicIds: string[]
+		): Promise<Map<string, { conceptResults: ConceptResult[]; createdAt: Date }>> {
+			const latest = new Map<string, { conceptResults: ConceptResult[]; createdAt: Date }>()
+			if (topicIds.length === 0 || isLocalDemoUser(userId)) return latest
+			const rows = await client.class.findMany({
+				where: {
+					topicId: { in: topicIds },
+					topic: { userId },
+					turns: { none: { outcome: null } }
+				},
+				orderBy: { createdAt: 'desc' },
+				select: { topicId: true, conceptResults: true, createdAt: true }
+			})
+			for (const row of rows) {
+				if (latest.has(row.topicId)) continue
+				latest.set(row.topicId, {
+					conceptResults: parseStoredConceptResults(row.conceptResults),
+					createdAt: row.createdAt
+				})
+			}
+			return latest
+		},
+
 		async findOpenIdsForTopics(userId: string, topicIds: string[]): Promise<Map<string, string>> {
 			const open = new Map<string, string>()
 			if (topicIds.length === 0) return open

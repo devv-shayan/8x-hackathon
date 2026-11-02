@@ -376,6 +376,7 @@ function AppTree({
 														<Stack.Screen name="detail/[id]" options={PUSH} />
 														<Stack.Screen name="class/[topicId]" options={PUSH} />
 														<Stack.Screen name="warm-up/[gapId]" options={PUSH} />
+														<Stack.Screen name="topic/[id]" options={PUSH} />
 														<Stack.Screen name="settings" options={PUSH} />
 														<Stack.Screen name="support" options={PUSH} />
 													</Stack.Protected>
