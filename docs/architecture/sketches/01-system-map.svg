@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="System map: Xiaohei carries every request from the Expo app through one door, /api/app/v1, to Postgres and the AI services">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&amp;display=swap');
+    text { font-family: 'Caveat', 'Comic Sans MS', 'Segoe Print', cursive; fill: #111; }
+    .big { font-size: 40px; font-weight: 700; }
+    .mid { font-size: 32px; font-weight: 600; }
+    .note { font-size: 28px; }
+    .orange { fill: #e8730c; } .red { fill: #d62828; } .blue { fill: #2563eb; }
+  </style>
+  <defs>
+    <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#e8730c" stroke-width="1.6" stroke-linecap="round"/></marker>
+    <g id="xh">
+      <path d="M-12 -4 L-14 0 M10 -4 L12 0 M-11 -22 L-12 -4 M9 -22 L10 -4" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M-26 -40 C-30 -70 -18 -92 2 -90 C22 -88 30 -66 26 -40 C23 -24 10 -18 -2 -19 C-16 -20 -24 -27 -26 -40 Z" fill="#111" stroke="#111" stroke-width="2"/>
+      <circle cx="-8" cy="-62" r="3.6" fill="#fff"/><circle cx="9" cy="-60" r="3.6" fill="#fff"/>
+    </g>
+  </defs>
+  <rect width="1600" height="900" fill="#ffffff"/>
+
+  <g filter="url(#wobble)" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- the phone, left -->
+    <path d="M150 300 C150 286 160 278 174 278 L298 280 C312 280 320 290 320 304 L318 612 C318 626 308 634 294 634 L172 632 C158 632 150 622 151 608 Z"/>
+    <path d="M214 296 L256 297"/>
+    <path d="M176 330 L294 331 L293 560 L177 559 Z" stroke-width="1.8"/>
+    <!-- the building with the one door, middle -->
+    <path d="M640 330 L800 230 L962 332"/>
+    <path d="M662 330 L660 650 L942 652 L944 332"/>
+    <path d="M770 652 L770 520 C770 500 786 488 804 488 C824 488 838 502 838 522 L838 652"/>
+    <circle cx="826" cy="580" r="4" fill="#111"/>
+    <!-- Postgres drum, bottom right -->
+    <path d="M1240 560 C1240 538 1400 538 1400 560 C1400 582 1240 582 1240 560 Z"/>
+    <path d="M1240 560 L1240 680 C1240 704 1400 704 1400 680 L1400 560"/>
+    <path d="M1240 620 C1250 640 1390 640 1400 620" stroke-width="1.6"/>
+    <!-- pipe from the building to Postgres: Prisma -->
+    <path d="M944 600 C1050 600 1120 610 1236 616"/>
+    <path d="M944 616 C1050 616 1120 626 1236 632"/>
+    <!-- three AI windows, top right -->
+    <path d="M1150 170 L1430 172 L1428 246 L1152 244 Z"/>
+    <path d="M1150 282 L1430 284 L1428 358 L1152 356 Z"/>
+    <path d="M1150 394 L1430 396 L1428 470 L1152 468 Z"/>
+    <!-- the envelope Xiaohei carries -->
+    <path d="M452 430 L540 432 L539 488 L451 486 Z"/>
+    <path d="M452 431 L496 462 L540 433"/>
+  </g>
+
+  <!-- orange flow: phone to door, door to the services -->
+  <g fill="none" stroke="#e8730c" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" filter="url(#wobble)">
+    <path d="M330 520 C420 560 600 590 762 590"/>
+    <path d="M944 410 C1010 360 1070 240 1140 210"/>
+    <path d="M944 430 C1020 410 1080 330 1140 320"/>
+    <path d="M944 450 C1030 450 1090 434 1140 432"/>
+  </g>
+  <!-- red: the app never goes to the tables -->
+  <g fill="none" stroke="#d62828" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="10 12" filter="url(#wobble)">
+    <path d="M300 660 C600 800 1000 790 1236 690"/>
+  </g>
+  <g stroke="#d62828" stroke-width="3.2" stroke-linecap="round" filter="url(#wobble)">
+    <path d="M760 740 L800 780 M800 740 L760 780"/>
+  </g>
+
+  <!-- Xiaohei, mid-stride, envelope in his arms -->
+  <use href="#xh" transform="translate(496 560) scale(1.35)"/>
+  <g stroke="#111" stroke-width="2.6" stroke-linecap="round" fill="none" filter="url(#wobble)">
+    <path d="M470 500 L462 486 M522 500 L530 487"/>
+  </g>
+
+  <!-- labels -->
+  <text x="160" y="262" class="big">Expo app</text>
+  <text x="140" y="690" class="note blue">web build · Expo Go · stores</text>
+  <text x="446" y="418" class="note blue">bearer token</text>
+  <text x="360" y="340" class="note blue">signed in by Supabase Auth</text>
+  <text x="676" y="380" class="big">/api/app/v1</text>
+  <text x="690" y="430" class="note">Next.js, apps/web</text>
+  <text x="604" y="470" class="note orange">the only door in</text>
+  <text x="1172" y="218" class="mid">Gemini · read, score, ask</text>
+  <text x="1172" y="330" class="mid">Groq · hear and speak</text>
+  <text x="1172" y="442" class="mid">Supadata / yt-dlp · captions</text>
+  <text x="1262" y="742" class="big">Postgres</text>
+  <text x="1040" y="586" class="note">Prisma</text>
+  <text x="590" y="840" class="note red">the app never touches tables</text>
+  <text x="1010" y="800" class="note blue">packages/contract: one Zod shape for both sides</text>
+</svg>

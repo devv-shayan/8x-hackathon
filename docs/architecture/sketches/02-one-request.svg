@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="One request: Xiaohei pushes the request crate through the four gates every /api/app/v1 route is built with">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&amp;display=swap');
+    text { font-family: 'Caveat', 'Comic Sans MS', 'Segoe Print', cursive; fill: #111; }
+    .big { font-size: 40px; font-weight: 700; }
+    .mid { font-size: 32px; font-weight: 600; }
+    .note { font-size: 28px; }
+    .orange { fill: #e8730c; } .red { fill: #d62828; } .blue { fill: #2563eb; }
+  </style>
+  <defs>
+    <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="5"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#e8730c" stroke-width="1.6" stroke-linecap="round"/></marker>
+    <marker id="redarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#d62828" stroke-width="1.6" stroke-linecap="round"/></marker>
+    <g id="xh">
+      <path d="M-12 -4 L-14 0 M10 -4 L12 0 M-11 -22 L-12 -4 M9 -22 L10 -4" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M-26 -40 C-30 -70 -18 -92 2 -90 C22 -88 30 -66 26 -40 C23 -24 10 -18 -2 -19 C-16 -20 -24 -27 -26 -40 Z" fill="#111" stroke="#111" stroke-width="2"/>
+      <circle cx="-8" cy="-62" r="3.6" fill="#fff"/><circle cx="9" cy="-60" r="3.6" fill="#fff"/>
+    </g>
+  </defs>
+  <rect width="1600" height="900" fill="#ffffff"/>
+
+  <g filter="url(#wobble)" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- the floor everything slides along -->
+    <path d="M90 600 C400 604 900 598 1510 603"/>
+    <!-- gate 1: a turnstile with a stamp -->
+    <path d="M360 600 L360 420 M440 600 L440 420 M352 420 L448 420"/>
+    <path d="M400 420 L400 380 M380 380 L420 380 L420 360 L380 360 Z"/>
+    <!-- gate 2: a sieve -->
+    <path d="M610 600 L610 430 M720 600 L720 430"/>
+    <path d="M600 470 L730 470 M612 490 L718 490" stroke-width="1.8"/>
+    <path d="M630 470 L630 490 M650 470 L650 490 M670 470 L670 490 M690 470 L690 490 M710 470 L710 490" stroke-width="1.6"/>
+    <!-- gate 3: a drawer cabinet with a keyhole -->
+    <path d="M880 600 L878 410 L1060 412 L1062 600"/>
+    <path d="M882 470 L1058 472 M882 536 L1058 538" stroke-width="1.8"/>
+    <path d="M958 440 L982 441 M958 504 L982 505 M958 568 L982 569"/>
+    <!-- gate 4: a box shaped hole the answer must fit -->
+    <path d="M1230 600 L1230 400 L1390 402 L1392 600"/>
+    <path d="M1270 450 L1350 451 L1349 520 L1271 519 Z" stroke-dasharray="8 7"/>
+    <!-- the crate Xiaohei pushes -->
+    <path d="M210 600 L212 530 L290 532 L288 600"/>
+    <path d="M212 556 L288 557" stroke-width="1.6"/>
+  </g>
+
+  <!-- orange: the way through -->
+  <g fill="none" stroke="#e8730c" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" filter="url(#wobble)">
+    <path d="M300 660 C420 690 1250 690 1420 660"/>
+    <path d="M1400 520 C1460 470 1480 380 1440 300"/>
+  </g>
+  <!-- red: a wrong shape goes back as a 500 -->
+  <g fill="none" stroke="#d62828" stroke-width="2.6" stroke-linecap="round" marker-end="url(#redarrow)" filter="url(#wobble)">
+    <path d="M1310 395 C1300 310 1240 260 1160 250"/>
+  </g>
+
+  <!-- Xiaohei, leaning into the crate -->
+  <use href="#xh" transform="translate(160 600) scale(1.25) rotate(10)"/>
+  <g stroke="#111" stroke-width="2.6" stroke-linecap="round" fill="none" filter="url(#wobble)">
+    <path d="M184 548 L212 556 M182 566 L212 574"/>
+  </g>
+
+  <!-- labels -->
+  <text x="330" y="340" class="mid">requireUser</text>
+  <text x="330" y="720" class="note blue">who's asking? bearer token</text>
+  <text x="590" y="400" class="mid">Zod parse</text>
+  <text x="600" y="760" class="note blue">bad input: 400, with the field</text>
+  <text x="860" y="380" class="mid">the store, by userId</text>
+  <text x="868" y="720" class="note blue">someone else's row: 404</text>
+  <text x="1220" y="370" class="mid">response parse</text>
+  <text x="1010" y="230" class="note red">wrong shape: 500, never half an answer</text>
+  <text x="1380" y="280" class="note orange">to the app</text>
+  <text x="1180" y="800" class="note blue">the app parses it with the same schema</text>
+  <text x="90" y="820" class="note">every route: createAppRoute, in src/server/api/app-route.ts</text>
+</svg>

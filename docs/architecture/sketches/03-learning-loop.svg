@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="The learning loop: a video becomes an explanation and a class; missed ideas drop into the gap drawer, and Xiaohei fishes them back out as warm-ups until they are right twice">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&amp;display=swap');
+    text { font-family: 'Caveat', 'Comic Sans MS', 'Segoe Print', cursive; fill: #111; }
+    .big { font-size: 40px; font-weight: 700; }
+    .mid { font-size: 32px; font-weight: 600; }
+    .note { font-size: 28px; }
+    .orange { fill: #e8730c; } .red { fill: #d62828; } .blue { fill: #2563eb; }
+  </style>
+  <defs>
+    <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#e8730c" stroke-width="1.6" stroke-linecap="round"/></marker>
+    <g id="xh">
+      <path d="M-12 -4 L-14 0 M10 -4 L12 0 M-11 -22 L-12 -4 M9 -22 L10 -4" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M-26 -40 C-30 -70 -18 -92 2 -90 C22 -88 30 -66 26 -40 C23 -24 10 -18 -2 -19 C-16 -20 -24 -27 -26 -40 Z" fill="#111" stroke="#111" stroke-width="2"/>
+      <circle cx="-8" cy="-62" r="3.6" fill="#fff"/><circle cx="9" cy="-60" r="3.6" fill="#fff"/>
+    </g>
+  </defs>
+  <rect width="1600" height="900" fill="#ffffff"/>
+
+  <!-- the loop, orange: link, explain, class, results, around -->
+  <g fill="none" stroke="#e8730c" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" filter="url(#wobble)">
+    <path d="M300 250 C420 170 600 160 720 190"/>
+    <path d="M880 200 C1000 210 1120 260 1180 330"/>
+    <path d="M1220 470 C1210 560 1140 620 1040 650"/>
+    <path d="M700 700 C560 720 420 680 360 600"/>
+    <path d="M300 470 C250 400 250 320 280 270"/>
+  </g>
+
+  <g filter="url(#wobble)" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- a video: a screen with a play triangle -->
+    <path d="M180 200 L330 202 L329 296 L181 294 Z"/>
+    <path d="M238 228 L280 249 L238 270 Z"/>
+    <!-- explain: a page with lines -->
+    <path d="M740 140 L860 142 L858 270 L742 268 Z"/>
+    <path d="M760 178 L838 179 M760 204 L840 205 M760 230 L820 231" stroke-width="1.8"/>
+    <!-- class: two raised hands -->
+    <path d="M1170 400 C1168 370 1200 360 1210 380 C1222 358 1256 368 1250 400 L1248 450 L1172 448 Z"/>
+    <path d="M1180 360 L1172 318 M1244 362 L1256 320" stroke-width="2.2"/>
+    <!-- results: a scale -->
+    <path d="M880 650 L880 600 M820 600 L940 600 M820 600 L800 640 L840 640 Z M940 600 L920 640 L960 640 Z"/>
+    <path d="M850 680 L910 680 L880 650 Z"/>
+    <!-- the gap drawer, bottom left -->
+    <path d="M300 480 L520 482 L519 600 L301 598 Z"/>
+    <path d="M300 540 L520 541" stroke-width="1.8"/>
+    <path d="M396 510 L424 510 M396 570 L424 570"/>
+    <!-- a missed idea on a fishing line -->
+    <path d="M560 300 C560 360 520 420 470 470" stroke-width="1.6"/>
+    <path d="M454 470 L486 471 L485 500 L455 499 Z" stroke-width="2"/>
+  </g>
+
+  <!-- Xiaohei on the drawer, fishing a gap back up -->
+  <use href="#xh" transform="translate(600 480) scale(1.3)"/>
+  <g stroke="#111" stroke-width="2.6" stroke-linecap="round" fill="none" filter="url(#wobble)">
+    <path d="M620 420 L570 300"/>
+  </g>
+  <!-- blue: the drawer's due dates -->
+  <g fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" filter="url(#wobble)">
+    <path d="M318 500 L360 502 M318 560 L362 561"/>
+  </g>
+
+  <!-- labels -->
+  <text x="150" y="180" class="mid">paste a YouTube link</text>
+  <text x="140" y="340" class="note blue">transcript + key ideas (Gemini)</text>
+  <text x="730" y="120" class="mid">explain it yourself</text>
+  <text x="900" y="300" class="note blue">scored against the ideas</text>
+  <text x="1270" y="400" class="mid">class</text>
+  <text x="1270" y="440" class="note blue">call on a raised hand</text>
+  <text x="980" y="720" class="mid">results: what you taught</text>
+  <text x="300" y="640" class="mid">missed ideas become gaps</text>
+  <text x="640" y="380" class="note orange">a warm-up brings it back</text>
+  <text x="300" y="680" class="note blue">missed: +2 days · right: +5</text>
+  <text x="120" y="800" class="note red">right twice in a row: the gap closes</text>
+</svg>
