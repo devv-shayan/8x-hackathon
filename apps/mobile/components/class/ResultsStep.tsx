@@ -44,11 +44,15 @@ function stateOf(item: ConceptResult, fixed: ConceptResult[]): IdeaState {
 function IdeaRow({
 	item,
 	state,
-	youtubeId
+	youtubeId,
+	onNotInVideo,
+	flagging
 }: {
 	item: ConceptResult
 	state: IdeaState
 	youtubeId: string | null
+	onNotInVideo: (concept: string) => void
+	flagging: boolean
 }) {
 	const { colors: c } = useTheme()
 	const canOpen = Boolean(youtubeId)
@@ -66,50 +70,65 @@ function IdeaRow({
 	}
 
 	return (
-		<PressableScale
-			scaleTo="card"
-			disabled={!canOpen}
-			onPress={openClip}
-			accessibilityRole={canOpen ? 'button' : 'text'}
-			accessibilityLabel={`${item.concept}${note ? `, ${note}` : ''}${canOpen ? ', open in YouTube' : ''}`}
-			style={[s.idea, { borderTopColor: c.borderHairline }]}
-		>
-			<View
-				style={[
-					s.mark,
-					state === 'explained' && { backgroundColor: c.textPrimary },
-					state === 'fixed' && { backgroundColor: c.brandFill, borderColor: c.borderActive },
-					state === 'missed' && { borderColor: c.borderActive }
-				]}
+		<View style={[s.idea, { borderTopColor: c.borderHairline }]}>
+			<PressableScale
+				scaleTo="card"
+				disabled={!canOpen}
+				onPress={openClip}
+				accessibilityRole={canOpen ? 'button' : 'text'}
+				accessibilityLabel={`${item.concept}${note ? `, ${note}` : ''}${canOpen ? ', open in YouTube' : ''}`}
+				style={s.ideaMain}
 			>
-				{state === 'missed' ? null : (
-					<Check size={13} strokeWidth={3} color={state === 'explained' ? c.surface : c.onBrand} />
-				)}
-			</View>
-			<View style={s.ideaCopy}>
-				<Text
-					variant="label"
-					style={[s.ideaTitle, state === 'missed' && { color: c.textSecondary }]}
+				<View
+					style={[
+						s.mark,
+						state === 'explained' && { backgroundColor: c.textPrimary },
+						state === 'fixed' && { backgroundColor: c.brandFill, borderColor: c.borderActive },
+						state === 'missed' && { borderColor: c.borderActive }
+					]}
 				>
-					{item.concept}
-				</Text>
-				{note ? (
-					<Text variant="caption" tone="secondary">
-						{note}
+					{state === 'missed' ? null : (
+						<Check
+							size={13}
+							strokeWidth={3}
+							color={state === 'explained' ? c.surface : c.onBrand}
+						/>
+					)}
+				</View>
+				<View style={s.ideaCopy}>
+					<Text
+						variant="label"
+						style={[s.ideaTitle, state === 'missed' && { color: c.textSecondary }]}
+					>
+						{item.concept}
+					</Text>
+					{note ? (
+						<Text variant="caption" tone="secondary">
+							{note}
+						</Text>
+					) : null}
+					{state === 'missed' && item.quote ? (
+						<Text variant="caption" tone="tertiary" numberOfLines={2}>
+							{`“${item.quote}”`}
+						</Text>
+					) : null}
+				</View>
+				{item.start_seconds != null ? (
+					<Text variant="eyebrow" tone="secondary">
+						{formatTimestamp(item.start_seconds)}
 					</Text>
 				) : null}
-				{state === 'missed' && item.quote ? (
-					<Text variant="caption" tone="tertiary" numberOfLines={2}>
-						{`“${item.quote}”`}
-					</Text>
-				) : null}
-			</View>
-			{item.start_seconds != null ? (
-				<Text variant="eyebrow" tone="secondary">
-					{formatTimestamp(item.start_seconds)}
-				</Text>
-			) : null}
-		</PressableScale>
+			</PressableScale>
+			<Button
+				label="Not in the video"
+				variant="ghost"
+				size="sm"
+				loading={flagging}
+				disabled={flagging}
+				onPress={() => onNotInVideo(item.concept)}
+				accessibilityLabel={`${item.concept} was not in the video`}
+			/>
+		</View>
 	)
 }
 
@@ -118,7 +137,17 @@ function IdeaRow({
  * every idea with its moment in the video and what happens next, how each question went,
  * and what the students said.
  */
-export function ResultsStep({ session, title }: { session: ClassSession; title: string | null }) {
+export function ResultsStep({
+	session,
+	title,
+	onNotInVideo,
+	flaggingConcept
+}: {
+	session: ClassSession
+	title: string | null
+	onNotInVideo: (concept: string) => void
+	flaggingConcept: string | null
+}) {
 	const { colors: c } = useTheme()
 	const insets = useSafeAreaInsets()
 	const { height } = useWindowDimensions()
@@ -172,6 +201,8 @@ export function ResultsStep({ session, title }: { session: ClassSession; title: 
 										item={item}
 										state={stateOf(item, fixed)}
 										youtubeId={youtubeId}
+										onNotInVideo={onNotInVideo}
+										flagging={flaggingConcept === item.concept}
 									/>
 								))}
 							</View>
@@ -241,11 +272,14 @@ const s = StyleSheet.create({
 	lede: { marginTop: 10 },
 	list: { marginTop: 14 },
 	idea: {
-		flexDirection: 'row',
-		alignItems: 'flex-start',
-		gap: 12,
+		gap: 4,
 		paddingVertical: 12,
 		borderTopWidth: StyleSheet.hairlineWidth
+	},
+	ideaMain: {
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+		gap: 12
 	},
 	mark: {
 		width: 22,

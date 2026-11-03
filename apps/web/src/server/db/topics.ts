@@ -86,6 +86,32 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 			})
 		},
 
+		/**
+		 * Marks one concept as not in the video. `already` when it was marked
+		 * before; `missing` when this topic has no concept with that title.
+		 */
+		async markNotInVideo(
+			userId: string,
+			topicId: string,
+			title: string
+		): Promise<'marked' | 'already' | 'missing'> {
+			const row = await client.topic.findFirst({ where: { id: topicId, userId }, select: TOPIC })
+			const topic = row ? toRecord(row) : null
+			if (!topic) return 'missing'
+			const match = topic.concepts.find((concept) => concept.title === title)
+			if (!match) return 'missing'
+			if (match.notInVideo === true) return 'already'
+			await client.topic.update({
+				where: { id: topic.id },
+				data: {
+					concepts: topic.concepts.map((concept) =>
+						concept.title === title ? { ...concept, notInVideo: true } : concept
+					)
+				}
+			})
+			return 'marked'
+		},
+
 		/** Saves a topic. If two reads of one video raced, the first one saved wins. */
 		async save(userId: string, topic: NewTopic): Promise<TopicRecord> {
 			const row = await client.topic.upsert({

@@ -66,9 +66,12 @@ type EventName =
 	// Metadata: assessment_viewed { correct_count: number, final_correct_count: number,
 	// fixed_count: number, concept_count: number }. correct_count is the first explanation's.
 	// assessment_clip_opened { concept }: they opened the video at a missed idea's timestamp.
-	// concept discriminates so two clips the same day both count.
+	// concept_not_in_video { concept }: they flagged an idea as not in the video, and it
+	// left the score. That flag is the metric. concept discriminates so two ideas the
+	// same day both count. assessment_viewed without a flag is the drop-off.
 	| 'assessment_viewed'
 	| 'assessment_clip_opened'
+	| 'concept_not_in_video'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:
 	//   { method: 'email' | 'apple' | 'google' }

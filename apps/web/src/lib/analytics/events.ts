@@ -161,6 +161,19 @@ export const WARM_UP_EVENTS = {
 export const WARM_UP_EVENT_NAMES = Object.values(WARM_UP_EVENTS)
 
 /**
+ * Not in the video — judged on whether a scored idea was never in the source.
+ * THE metric is `flagged`: they removed it from their results. Not a money
+ * moment. `concept` discriminates so two ideas the same day both count.
+ * assessment_viewed (PostHog, from the app) is the denominator.
+ */
+export const NOT_IN_VIDEO_EVENTS = {
+	/** They flagged one idea. metadata: { concept } */
+	flagged: 'concept_not_in_video'
+} as const
+
+export const NOT_IN_VIDEO_EVENT_NAMES = Object.values(NOT_IN_VIDEO_EVENTS)
+
+/**
  * Every registered web event, flat. This is what the whitelist and the CI check
  * read; adding a group above without spreading it here is the one mistake
  * `npm run check:events` is built to catch.
@@ -169,7 +182,8 @@ export const ALL_EVENT_NAMES = [
 	...FUNNEL_EVENT_NAMES,
 	...LIFECYCLE_EVENT_NAMES,
 	...CHECKOUT_EVENT_NAMES,
-	...WARM_UP_EVENT_NAMES
+	...WARM_UP_EVENT_NAMES,
+	...NOT_IN_VIDEO_EVENT_NAMES
 ] as const
 
 export type AppEvent = (typeof ALL_EVENT_NAMES)[number]

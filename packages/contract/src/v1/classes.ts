@@ -101,6 +101,8 @@ export const classHelpResponse = z.object({
 
 export const endClassBody = z.object({}).strict()
 
+export const notInVideoBody = z.object({ concept: z.string().trim().min(1).max(200) }).strict()
+
 export const classTurnParams = z.object({ id: uuid, turn: uuid })
 
 export const answerTurnBody = z
