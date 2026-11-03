@@ -4,7 +4,13 @@ import { useIsFocused } from 'expo-router'
 import type { SpeakQuestionBody } from '@app/contract'
 import { track } from '@/lib/analytics'
 import { api } from '@/lib/api'
-import { canPlayVoice, playWav, speakWithDevice, type Playing } from '@/lib/voice/playback'
+import {
+	canPlayVoice,
+	playWav,
+	speakWithDevice,
+	type Playing,
+	type Progress
+} from '@/lib/voice/playback'
 
 // A student saying their question aloud (docs/voice-requirements.md, R9–R11). The server
 // makes the voice from the question's ids; it takes a few seconds, so the text shows at once
@@ -57,12 +63,20 @@ export function useQuestionVoice({
 	source: SpeakQuestionBody | null
 	text: string | null
 	student: string | null
-}): { state: VoiceState; replay: () => void } {
+}): {
+	state: VoiceState
+	replay: () => void
+	/** How far the voice playing now has got, or null when nothing is playing. */
+	progress: () => Progress | null
+	/** Counts each time the voice starts, so a Replay starts showing the words again. */
+	plays: number
+} {
 	const focused = useIsFocused()
 	const enabled = canPlayVoice && source !== null && focused
 	const query = useQuery({ ...voiceQuery(source ?? { warm_up_id: '' }), enabled })
 	const key = source ? voiceKey(source).join(':') : null
 	const [speaking, setSpeaking] = useState(false)
+	const [plays, setPlays] = useState(0)
 	const current = useRef<Playing | null>(null)
 	const played = useRef(new Set<string>())
 	const shownAt = useRef(new Map<string, number>())
@@ -82,6 +96,7 @@ export function useQuestionVoice({
 			if (!playing) return
 			current.current = playing
 			setSpeaking(true)
+			setPlays((n) => n + 1)
 			playing.started
 				.then(() =>
 					track('voice_question_played', {
@@ -129,5 +144,10 @@ export function useQuestionVoice({
 			: query.status === 'pending'
 				? 'loading'
 				: 'ready'
-	return { state, replay: () => play(true) }
+	return {
+		state,
+		replay: () => play(true),
+		progress: () => current.current?.progress() ?? null,
+		plays
+	}
 }
