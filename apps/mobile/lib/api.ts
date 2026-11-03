@@ -10,7 +10,6 @@ import {
 } from '@app/contract'
 import { env } from './env'
 import { log } from './logger'
-import { localDemoAccessToken } from './demoAuth'
 import {
 	currentAccessToken,
 	endRejectedSession,
@@ -221,13 +220,7 @@ export async function api<N extends EndpointName>(
 
 	let token: string | undefined
 	if (endpoint.auth === 'user') {
-		const session = await currentAccessToken()
-		if ('token' in session) token = session.token
-		else {
-			const demo = await localDemoAccessToken()
-			if (demo) token = demo
-			else token = tokenOrThrow(session)
-		}
+		token = tokenOrThrow(await currentAccessToken())
 	}
 
 	const send = (bearer: string | undefined) =>
@@ -236,22 +229,14 @@ export async function api<N extends EndpointName>(
 	let res = await send(token)
 
 	if (res.status === 401 && endpoint.auth === 'user') {
-		const demo = await localDemoAccessToken()
-		if (demo && token !== demo) {
-			res = await send(demo)
-		} else {
-			const fresh = await refreshedAccessToken()
-			if ('failure' in fresh && fresh.failure === 'offline') {
-				throw new ApiError('offline', MESSAGES.offline)
-			}
-			if ('token' in fresh && fresh.token !== token) res = await send(fresh.token)
-			if (res.status === 401 || 'failure' in fresh) {
-				if (demo) {
-					throw new ApiError('unauthorized', MESSAGES.sessionExpired, { status: 401 })
-				}
-				await expireSession()
-				throw new ApiError('unauthorized', MESSAGES.sessionExpired, { status: 401 })
-			}
+		const fresh = await refreshedAccessToken()
+		if ('failure' in fresh && fresh.failure === 'offline') {
+			throw new ApiError('offline', MESSAGES.offline)
+		}
+		if ('token' in fresh && fresh.token !== token) res = await send(fresh.token)
+		if (res.status === 401 || 'failure' in fresh) {
+			await expireSession()
+			throw new ApiError('unauthorized', MESSAGES.sessionExpired, { status: 401 })
 		}
 	}
 

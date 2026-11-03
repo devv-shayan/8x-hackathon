@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { after, describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
 	chmodSync,
@@ -12,7 +12,7 @@ import {
 	writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { ESLint } from 'eslint'
 import {
@@ -1277,14 +1277,29 @@ const EXCEPTED_IDS = new Set(
 	)
 )
 
+// Registered as the file loads, then run one at a time. Each case needs its
+// own tree, and building that tree from scratch (copy, git init, git add)
+// was most of the time.
+const repoFixtureCases = []
 function fixtureTest(name, ids, fn) {
-	const excepted = ids.filter((id) => EXCEPTED_IDS.has(id))
-	const skip = excepted.length > 0 ? `still excepted: ${excepted.join(', ')}` : false
-	test(name, { skip }, fn)
+	repoFixtureCases.push({ name, ids, fn })
 }
 
-function createRepoFixture() {
-	const root = mkdtempSync(join(tmpdir(), 'check-standards-'))
+function linkFixtureModules(root) {
+	// Shared, not copied: the tool checks need eslint and tsc resolvable from
+	// the fixture. A real directory of per-package links rather than one link
+	// to the whole tree, because git refuses to evaluate a path "beyond a
+	// symbolic link" — and the ignore check probes node_modules/x.js.
+	mkdirSync(join(root, 'node_modules'))
+	for (const entry of readdirSync(join(REPO_ROOT, 'node_modules'))) {
+		linkNodeModule(join(REPO_ROOT, 'node_modules', entry), join(root, 'node_modules', entry))
+	}
+}
+
+let repoTemplate = null
+
+function buildRepoTemplate() {
+	const root = mkdtempSync(join(tmpdir(), 'check-standards-template-'))
 	const listed = spawnSync(
 		'git',
 		[
@@ -1306,14 +1321,7 @@ function createRepoFixture() {
 		mkdirSync(dirname(join(root, path)), { recursive: true })
 		cpSync(join(REPO_ROOT, path), join(root, path))
 	}
-	// Shared, not copied: the tool checks need eslint and tsc resolvable from
-	// the fixture. A real directory of per-package links rather than one link
-	// to the whole tree, because git refuses to evaluate a path "beyond a
-	// symbolic link" — and the ignore check probes node_modules/x.js.
-	mkdirSync(join(root, 'node_modules'))
-	for (const entry of readdirSync(join(REPO_ROOT, 'node_modules'))) {
-		linkNodeModule(join(REPO_ROOT, 'node_modules', entry), join(root, 'node_modules', entry))
-	}
+	linkFixtureModules(root)
 	git(root, 'init', '-q')
 	git(root, 'add', '-A')
 	// `git add` on Windows records hooks as 100644. Unix clones need 100755.
@@ -1323,6 +1331,24 @@ function createRepoFixture() {
 	}
 	return root
 }
+
+function createRepoFixture() {
+	if (repoTemplate == null) repoTemplate = buildRepoTemplate()
+	const root = mkdtempSync(join(tmpdir(), 'check-standards-'))
+	// Byte copy, not `git checkout`: a checkout rewrites line endings, and the
+	// checks read the working tree. Skip node_modules and link it again.
+	// Copying those junctions throws EPERM on Windows or duplicates packages.
+	cpSync(repoTemplate, root, {
+		recursive: true,
+		filter: (src) => basename(src) !== 'node_modules'
+	})
+	linkFixtureModules(root)
+	return root
+}
+
+after(() => {
+	if (repoTemplate != null) rmSync(repoTemplate, { recursive: true, force: true })
+})
 
 // Mutations that add a file the index must know about call `git add`
 // themselves; a blanket re-add here would undo an index-only mutation such
@@ -2140,4 +2166,12 @@ test('rls-no-policies is met by an RLS check that exempts no table', () => {
 		/still lets profiles, items keep RLS policies and grants/
 	)
 	assertUnmet(checkMonorepo(unchanged, 'rls-no-policies', WEB), /check-rls\.mjs is missing/)
+})
+
+describe('repo fixtures', { concurrency: 1 }, () => {
+	for (const { name, ids, fn } of repoFixtureCases) {
+		const excepted = ids.filter((id) => EXCEPTED_IDS.has(id))
+		const skip = excepted.length > 0 ? `still excepted: ${excepted.join(', ')}` : false
+		test(name, { skip }, fn)
+	}
 })

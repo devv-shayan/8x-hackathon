@@ -17,6 +17,16 @@ jest.mock('expo-router', () => ({
 	useLocalSearchParams: () => ({ gapId: 'gap' }),
 	useIsFocused: () => true
 }))
+jest.mock('@/lib/voice/recorder', () => ({
+	canRecordVoice: false,
+	RecorderError: Error,
+	useRecorder: () => ({ streams: false, start: jest.fn() })
+}))
+jest.mock('@/lib/voice/playback', () => ({
+	canPlayVoice: false,
+	playWav: jest.fn(),
+	speakWithDevice: jest.fn()
+}))
 jest.mock('react-native-safe-area-context', () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))

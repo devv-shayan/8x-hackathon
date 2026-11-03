@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { api } from '@/lib/api'
 import { track } from '@/lib/analytics'
-import { playWav, speakWithBrowser } from '@/lib/voice/playback'
+import { playWav, speakWithDevice } from '@/lib/voice/playback'
 
 let mockAudioAvailable = true
 
@@ -26,7 +26,7 @@ jest.mock('@/lib/voice/playback', () => {
 			return mockAudioAvailable
 		},
 		playWav: jest.fn(playing),
-		speakWithBrowser: jest.fn(playing)
+		speakWithDevice: jest.fn(playing)
 	}
 })
 
@@ -62,8 +62,12 @@ beforeEach(() => {
 it("plays the student's voice once, and Replay plays it again without asking the server", async () => {
 	jest.mocked(api).mockResolvedValue({ audio_base64: 'UklGRg==', student_name: 'Omar' } as never)
 	const { result } = renderVoice()
-	await waitFor(() => expect(playWav).toHaveBeenCalledWith('UklGRg=='))
-	expect(result.current.state).toBe('speaking')
+	// playWav() runs, then setSpeaking(true) renders. Under load the mock is
+	// visible while the hook still reports the previous state, ready.
+	await waitFor(() => {
+		expect(playWav).toHaveBeenCalledWith('UklGRg==')
+		expect(result.current.state).toBe('speaking')
+	})
 	expect(api).toHaveBeenCalledWith('speakQuestion', {
 		body: { class_id: CLASS_ID, turn_id: TURN_ID },
 		timeoutMs: 30_000
@@ -90,7 +94,7 @@ it("plays the student's voice once, and Replay plays it again without asking the
 it("falls back to the browser's voice when the server can't make one", async () => {
 	jest.mocked(api).mockRejectedValue(new Error('busy'))
 	renderVoice()
-	await waitFor(() => expect(speakWithBrowser).toHaveBeenCalledWith(QUESTION))
+	await waitFor(() => expect(speakWithDevice).toHaveBeenCalledWith(QUESTION))
 	expect(playWav).not.toHaveBeenCalled()
 	await waitFor(() =>
 		expect(track).toHaveBeenCalledWith(

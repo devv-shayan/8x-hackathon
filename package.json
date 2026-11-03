@@ -19,7 +19,7 @@
 		"web:start": "npm run start --workspace=@app/web",
 		"web:test": "npm test --workspace=@app/web",
 		"check:env": "node scripts/check-env-vars.mjs",
-		"typecheck": "npm run typecheck --workspace=@app/web && npm run typecheck --workspace=@app/mobile && npm run typecheck --workspace=@app/contract && npm run typecheck --workspace=@app/brand && npm run typecheck --workspace=@app/pixel",
+		"typecheck": "node scripts/run-typechecks.mjs",
 		"lint": "eslint . --max-warnings=0",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",

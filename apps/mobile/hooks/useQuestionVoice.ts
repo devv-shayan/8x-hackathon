@@ -4,7 +4,7 @@ import { useIsFocused } from 'expo-router'
 import type { SpeakQuestionBody } from '@app/contract'
 import { track } from '@/lib/analytics'
 import { api } from '@/lib/api'
-import { canPlayVoice, playWav, speakWithBrowser, type Playing } from '@/lib/voice/playback'
+import { canPlayVoice, playWav, speakWithDevice, type Playing } from '@/lib/voice/playback'
 
 // A student saying their question aloud (docs/voice-requirements.md, R9–R11). The server
 // makes the voice from the question's ids; it takes a few seconds, so the text shows at once
@@ -78,7 +78,7 @@ export function useQuestionVoice({
 			if (!student || !text) return
 			stop()
 			const audio = query.data?.audio_base64
-			const playing = audio ? playWav(audio) : speakWithBrowser(text)
+			const playing = audio ? playWav(audio) : speakWithDevice(text)
 			if (!playing) return
 			current.current = playing
 			setSpeaking(true)

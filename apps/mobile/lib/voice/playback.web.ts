@@ -32,7 +32,7 @@ export function playWav(base64: string): Playing {
 }
 
 /** Reads `text` with the browser's own voice, or returns null if it has none. */
-export function speakWithBrowser(text: string): Playing | null {
+export function speakWithDevice(text: string): Playing | null {
 	const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
 	if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') return null
 	synth.cancel()

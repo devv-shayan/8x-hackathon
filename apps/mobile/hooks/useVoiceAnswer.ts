@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { MAX_SPEECH_PROMPT_CHARS } from '@app/contract'
 import { track } from '@/lib/analytics'
 import { api, ApiError, errorMessage } from '@/lib/api'
-import { RecorderError, startRecording, type Recording } from '@/lib/voice/recorder'
-import { encodeWav, toBase64 } from '@/lib/voice/wav'
+import { RecorderError, useRecorder } from '@/lib/voice/recorder'
+import { MIC_SETTINGS, type RecordedAudio, type Recording } from '@/lib/voice/recording'
 
 // Answering out loud (docs/voice-requirements.md, R3–R8): hold to record, let go to turn it into
 // text, check the text, send it. The recording lives only in memory: it's kept until the text
@@ -36,11 +36,12 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 	const [hint, setHint] = useState<string | null>(null)
 	const [seconds, setSeconds] = useState(0)
 	const [levels, setLevels] = useState<number[]>([])
+	const recorder = useRecorder()
 	const recording = useRef<Recording | null>(null)
 	const starting = useRef(false)
 	/** What to do once the microphone is ready, if the hold already ended while it started. */
 	const afterStart = useRef<'finish' | 'cancel' | null>(null)
-	const lastWav = useRef<string | null>(null)
+	const lastAudio = useRef<RecordedAudio | null>(null)
 
 	const fail = useCallback(
 		(next: VoiceFailure) => {
@@ -54,20 +55,24 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 	)
 
 	const transcribe = useCallback(
-		async (wav: string) => {
+		async (audio: RecordedAudio) => {
 			setPhase('transcribing')
 			setFailure(null)
 			try {
 				const prompt = context?.trim().slice(0, MAX_SPEECH_PROMPT_CHARS)
 				const { text } = await api('transcribeSpeech', {
-					body: { audio_base64: wav, ...(prompt ? { prompt } : {}) },
+					body: {
+						audio_base64: audio.base64,
+						format: audio.format,
+						...(prompt ? { prompt } : {})
+					},
 					timeoutMs: TRANSCRIBE_TIMEOUT_MS
 				})
 				if (!text.trim()) {
 					fail({ reason: 'empty', message: 'We didn’t catch that. Hold the button and try again.' })
 					return
 				}
-				lastWav.current = null
+				lastAudio.current = null
 				setTranscript(text.trim())
 				setDraft(text.trim())
 				setPhase('review')
@@ -79,7 +84,7 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 		[context, fail]
 	)
 
-	const finish = useCallback(() => {
+	const finish = useCallback(async () => {
 		const current = recording.current
 		if (!current) {
 			// Let go before the microphone was ready (the permission prompt): stop once it is.
@@ -87,15 +92,15 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 			return
 		}
 		recording.current = null
-		const samples = current.stop()
-		if (samples.length < MIN_SECONDS * 16_000) {
+		setPhase('transcribing')
+		const audio = await current.stop()
+		if (!audio || audio.seconds < MIN_SECONDS) {
 			setPhase('idle')
 			setHint('Hold the button down while you talk, then let go.')
 			return
 		}
-		const wav = toBase64(encodeWav(samples))
-		lastWav.current = wav
-		void transcribe(wav)
+		lastAudio.current = audio
+		await transcribe(audio)
 	}, [transcribe])
 
 	const cancel = useCallback(() => {
@@ -117,13 +122,13 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 		setHint(null)
 		setFailure(null)
 		try {
-			const started = await startRecording({ onLimit: () => finish() })
+			const started = await recorder.start({ onLimit: () => void finish() })
 			recording.current = started
 			setSeconds(0)
 			setLevels([])
 			setPhase('recording')
 			track('voice_recording_started', { surface })
-			if (afterStart.current === 'finish') finish()
+			if (afterStart.current === 'finish') void finish()
 			else if (afterStart.current === 'cancel') cancel()
 		} catch (error) {
 			const reason = error instanceof RecorderError ? error.reason : 'unsupported'
@@ -131,13 +136,13 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 				reason,
 				message:
 					reason === 'denied'
-						? 'Your microphone is off. Type your answer, or allow the microphone in your browser and try again.'
-						: 'This browser can’t record. Type your answer instead.'
+						? `Your microphone is off. Type your answer, or allow the microphone in ${MIC_SETTINGS} and try again.`
+						: 'This device can’t record. Type your answer instead.'
 			})
 		} finally {
 			starting.current = false
 		}
-	}, [cancel, fail, finish, surface])
+	}, [cancel, fail, finish, recorder, surface])
 
 	/** Back to the button, for "Record again". */
 	const reset = useCallback(() => {
@@ -149,7 +154,7 @@ export function useVoiceAnswer(surface: VoiceSurface, context?: string | null) {
 	}, [])
 
 	const retry = useCallback(() => {
-		if (lastWav.current) void transcribe(lastWav.current)
+		if (lastAudio.current) void transcribe(lastAudio.current)
 		else reset()
 	}, [reset, transcribe])
 

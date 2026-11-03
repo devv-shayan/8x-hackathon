@@ -45,7 +45,6 @@ pre-wired, so you build features, not boilerplate.
 | **CI/CD**               | The root CI: typecheck, lint, Jest, store readiness and more on every push and PR             |
 | **Tests**               | Jest + jest-expo suites in `__tests__/`, plus `packages/brand`'s contrast and token tests     |
 | **Deep linking**        | App scheme + Android intent filter; universal links are an optional launch step               |
-| **Dev skip**            | "Skip to the app" / "Skip to onboarding" on sign-in, in development only — no network call    |
 | **Design system**       | `packages/brand` presets (landing, the website's look) + one accent hex, via a ThemeProvider  |
 | **Typography**          | Inter + the preset's display face via `@expo-google-fonts` — `<Text>` maps weight to family   |
 | **Component library**   | Buttons, cards, lists, sheets, alerts, toasts, skeletons, OTP input, glass tab bar — themed   |

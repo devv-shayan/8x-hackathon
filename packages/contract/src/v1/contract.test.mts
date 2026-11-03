@@ -178,6 +178,14 @@ test('speech: a recording is bounded, and nothing else rides along', () => {
 		transcribeSpeechBody.safeParse({ audio_base64: 'UklGRg==', language: 'en' }).success,
 		false
 	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'AAAA', format: 'm4a' }).success,
+		true
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'AAAA', format: 'mp3' }).success,
+		false
+	)
 })
 
 test('speech: a question is named by its ids, never by its text', () => {
