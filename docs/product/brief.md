@@ -86,9 +86,13 @@ loop.
 - A phone-first Expo app, also run in the browser for the demo
 - Email-code sign-in, from the template
 
+**Built after the MVP (2026-11-02)**
+
+- Voice: explain and answer out loud, and the students say their questions (8X-24,
+  `docs/voice-requirements.md`). Typing stays one tap away. Decided in 8X-29.
+
 **Next (if the MVP is solid before Nov 5)**
 
-- Voice: explain and answer out loud
 - Email reminder when a warm-up is due
 - More student personas, avatars, hand-raise animation and other playful
   touches (Arif's idea from call 3)
