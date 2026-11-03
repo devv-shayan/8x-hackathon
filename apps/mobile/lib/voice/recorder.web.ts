@@ -1,27 +1,11 @@
 import { MAX_SPEECH_SECONDS, SPEECH_SAMPLE_RATE } from '@app/contract'
-import { loudness, resample } from './wav'
+import { RecorderError, type Recorder, type Recording, type RecordingOptions } from './recording'
+import { encodeWav, loudness, resample, toBase64 } from './wav'
 
 // Recording the person in the browser: the microphone's raw samples, brought down to 16 kHz
-// mono as they arrive. The native file (recorder.ts) records nothing until a store build adds
-// a recording module and the microphone permission.
+// mono as they arrive, so explain can write them down as they're said. Phones use recorder.ts.
 
-export type RecorderFailure = 'denied' | 'unsupported'
-
-export class RecorderError extends Error {
-	constructor(readonly reason: RecorderFailure) {
-		super(reason)
-	}
-}
-
-export type Recording = {
-	/** Stops and returns everything recorded, at 16 kHz. */
-	stop: () => Float32Array
-	/** Stops and throws the audio away. */
-	cancel: () => void
-	/** How loud the last moment was, 0 to 1, for the wave. */
-	level: () => number
-	seconds: () => number
-}
+export { RecorderError } from './recording'
 
 /** Whether this browser can record at all (a secure page with a microphone API). */
 export const canRecordVoice =
@@ -33,22 +17,7 @@ export const canRecordVoice =
 /** How many samples each callback carries: about a tenth of a second at 44.1–48 kHz. */
 const FRAME = 4096
 
-export type RecordingOptions = {
-	/** Runs once `maxSeconds` have been recorded. */
-	onLimit?: () => void
-	/** Each new piece at 16 kHz, as it arrives. */
-	onSamples?: (samples: Float32Array) => void
-	/** MAX_SPEECH_SECONDS unless given: one request's worth. */
-	maxSeconds?: number
-	/** False when `onSamples` handles the audio: `stop` then returns nothing. */
-	keepAudio?: boolean
-}
-
-/**
- * Starts recording. Asks for the microphone the first time; rejects with a RecorderError if it's
- * refused or missing.
- */
-export async function startRecording(options: RecordingOptions = {}): Promise<Recording> {
+async function startRecording(options: RecordingOptions = {}): Promise<Recording> {
 	const maxSeconds = options.maxSeconds ?? MAX_SPEECH_SECONDS
 	const keepAudio = options.keepAudio ?? true
 	if (!canRecordVoice) throw new RecorderError('unsupported')
@@ -95,8 +64,9 @@ export async function startRecording(options: RecordingOptions = {}): Promise<Re
 		void context.close()
 	}
 	return {
-		stop: () => {
+		stop: async () => {
 			release()
+			if (!keepAudio) return null
 			const kept = pieces.reduce((sum, piece) => sum + piece.length, 0)
 			const all = new Float32Array(Math.min(kept, maxSeconds * SPEECH_SAMPLE_RATE))
 			let at = 0
@@ -105,10 +75,21 @@ export async function startRecording(options: RecordingOptions = {}): Promise<Re
 				all.set(piece.subarray(0, all.length - at), at)
 				at += piece.length
 			}
-			return all
+			return {
+				base64: toBase64(encodeWav(all)),
+				format: 'wav',
+				seconds: all.length / SPEECH_SAMPLE_RATE
+			}
 		},
 		cancel: release,
 		level: () => lastLevel,
 		seconds: () => total / SPEECH_SAMPLE_RATE
 	}
+}
+
+const WEB_RECORDER: Recorder = { streams: true, start: startRecording }
+
+/** The browser's recorder. A hook so phones can use expo-audio's, which only comes as one. */
+export function useRecorder(): Recorder {
+	return WEB_RECORDER
 }

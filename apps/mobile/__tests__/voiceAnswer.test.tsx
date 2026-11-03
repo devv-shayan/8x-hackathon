@@ -7,7 +7,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import { VoiceAnswer } from '@/components/voice/VoiceAnswer'
 import { api } from '@/lib/api'
 import { track } from '@/lib/analytics'
-import { RecorderError, startRecording } from '@/lib/voice/recorder'
+import { RecorderError } from '@/lib/voice/recorder'
 import { encodeWav, resample } from '@/lib/voice/wav'
 
 jest.mock('@/lib/analytics', () => ({ track: jest.fn() }))
@@ -24,6 +24,7 @@ jest.mock('@/lib/api', () => {
 	}
 	return { api: jest.fn(), ApiError: MockApiError, errorMessage: (e: Error) => e.message }
 })
+const mockStart = jest.fn()
 jest.mock('@/lib/voice/recorder', () => {
 	class MockRecorderError extends Error {
 		reason: string
@@ -32,14 +33,18 @@ jest.mock('@/lib/voice/recorder', () => {
 			this.reason = reason
 		}
 	}
-	return { canRecordVoice: true, RecorderError: MockRecorderError, startRecording: jest.fn() }
+	return {
+		canRecordVoice: true,
+		RecorderError: MockRecorderError,
+		useRecorder: () => ({ streams: false, start: mockStart })
+	}
 })
 
 const cancel = jest.fn()
 
 function recordingOf(seconds: number) {
 	return {
-		stop: () => new Float32Array(seconds * 16_000).fill(0.1),
+		stop: async () => ({ base64: 'AAAAGGZ0eXBNNEEg', format: 'm4a' as const, seconds }),
 		cancel,
 		level: () => 0.5,
 		seconds: () => seconds
@@ -67,7 +72,7 @@ const holdButton = () => screen.getByLabelText('Hold to answer Omar')
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	jest.mocked(startRecording).mockResolvedValue(recordingOf(3))
+	mockStart.mockResolvedValue(recordingOf(3))
 	jest.mocked(api).mockResolvedValue({ text: 'He got more confident.' } as never)
 })
 
@@ -81,7 +86,11 @@ it('hold, let go, fix a word, send: the answer goes as voice, marked edited', as
 	})
 	const field = await screen.findByDisplayValue('He got more confident.')
 	expect(api).toHaveBeenCalledWith('transcribeSpeech', {
-		body: { audio_base64: expect.any(String), prompt: 'What changed for him?' },
+		body: {
+			audio_base64: 'AAAAGGZ0eXBNNEEg',
+			format: 'm4a',
+			prompt: 'What changed for him?'
+		},
 		timeoutMs: 30_000
 	})
 	fireEvent.changeText(field, 'He got much more confident.')
@@ -105,7 +114,7 @@ it('sliding off the button sends nothing', async () => {
 })
 
 it('a blocked microphone shows why and falls back to typing', async () => {
-	jest.mocked(startRecording).mockRejectedValue(new RecorderError('denied'))
+	mockStart.mockRejectedValue(new RecorderError('denied'))
 	renderAnswer()
 	await act(async () => fireEvent(holdButton(), 'pressIn'))
 	await waitFor(() => expect(screen.getByText(/Your microphone is off/)).toBeTruthy())

@@ -118,6 +118,17 @@ test('transcribeRecording: not a WAV, the wrong format, or over a minute is refu
 	assert.equal(calls.length, 0)
 })
 
+test("transcribeRecording: a phone's m4a goes to Groq as m4a; something else in its place doesn't", async () => {
+	const { all, calls } = deps()
+	const m4a = new Uint8Array([0, 0, 0, 24, ...new TextEncoder().encode('ftypM4A '), 0, 0, 0, 0])
+	assert.equal(await transcribeRecording(all, base64(m4a), undefined, 'm4a'), 'what they said')
+	assert.equal(calls[0]![4], 'm4a')
+	await assert.rejects(transcribeRecording(all, base64(wav([1, 2])), undefined, 'm4a'), {
+		code: 'invalid_request'
+	})
+	assert.equal(calls.length, 1)
+})
+
 test("speakQuestion: the caller's own question, in its student's voice", async () => {
 	const { all, calls } = deps()
 	const res = await speakQuestion(all, USER, { class_id: ID, turn_id: ID })

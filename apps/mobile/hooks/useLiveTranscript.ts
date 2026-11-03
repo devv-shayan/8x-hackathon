@@ -2,15 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { MAX_SPEECH_PROMPT_CHARS, SPEECH_SAMPLE_RATE } from '@app/contract'
 import { track } from '@/lib/analytics'
 import { api } from '@/lib/api'
-import { RecorderError, startRecording, type Recording } from '@/lib/voice/recorder'
+import { RecorderError, useRecorder } from '@/lib/voice/recorder'
+import { MIC_SETTINGS, type RecordedAudio, type Recording } from '@/lib/voice/recording'
 import { createSegmenter, type Segmenter } from '@/lib/voice/segmenter'
 import { encodeWav, toBase64 } from '@/lib/voice/wav'
 import type { VoiceFailure } from './useVoiceAnswer'
 
-// Explaining out loud, written down as you go (docs/voice-requirements.md, R1, R2, R7). Each
-// piece the segmenter cuts goes to the speech route in order, with the tail of what was already
-// said, and its text is added to the explanation. If Groq is busy, the pieces wait and are sent
-// together when the person stops, so nothing said is lost. Audio lives in memory only.
+// Explaining out loud, written down as you go (docs/voice-requirements.md, R1, R2, R7). On the
+// web, each piece the segmenter cuts goes to the speech route in order, with the tail of what
+// was already said, and its text is added to the explanation. If Groq is busy, the pieces wait
+// and are sent together when the person stops, so nothing said is lost. A phone's recorder
+// hands over one file at the end (`streams` is false), so there the words come at stop.
+// Audio lives in memory only.
 
 /** idle: not recording (the text can be edited). recording. finishing: writing down the end. */
 export type LivePhase = 'idle' | 'recording' | 'finishing' | 'failed'
@@ -25,6 +28,15 @@ const TICK_MS = 100
 
 function tail(text: string) {
 	return text.slice(-Math.floor(MAX_SPEECH_PROMPT_CHARS * 0.6)).trim()
+}
+
+/**
+ * The video's title as a sentence, for the first piece's context. Whisper copies its prompt's
+ * style, so a bare title (no full stop) brings back text without punctuation.
+ */
+function titleSentence(title?: string | null) {
+	const clean = title?.trim()
+	return clean ? `Explaining the video “${clean}”.` : ''
 }
 
 function join(text: string, more: string) {
@@ -70,6 +82,9 @@ export function useLiveTranscript(context?: string | null) {
 	const spoken = useRef('')
 	const queue = useRef<Promise<void>>(Promise.resolve())
 	const backlog = useRef<Float32Array[]>([])
+	/** A phone's whole recording, until it's written down. */
+	const held = useRef<RecordedAudio | null>(null)
+	const recorder = useRecorder()
 	const recording = useRef<Recording | null>(null)
 	const segmenter = useRef<Segmenter | null>(null)
 
@@ -88,16 +103,26 @@ export function useLiveTranscript(context?: string | null) {
 		setLatest(clean)
 	}, [])
 
-	const transcribe = useCallback(
-		async (samples: Float32Array) => {
-			const prompt = tail(textRef.current) || context?.trim() || ''
+	const transcribeAudio = useCallback(
+		async (audio: Pick<RecordedAudio, 'base64' | 'format'>) => {
+			const prompt = tail(textRef.current) || titleSentence(context)
 			const { text: said } = await api('transcribeSpeech', {
-				body: { audio_base64: toBase64(encodeWav(samples)), ...(prompt ? { prompt } : {}) },
+				body: {
+					audio_base64: audio.base64,
+					format: audio.format,
+					...(prompt ? { prompt } : {})
+				},
 				timeoutMs: TRANSCRIBE_TIMEOUT_MS
 			})
 			return said
 		},
 		[context]
+	)
+
+	const transcribe = useCallback(
+		(samples: Float32Array) =>
+			transcribeAudio({ base64: toBase64(encodeWav(samples)), format: 'wav' }),
+		[transcribeAudio]
 	)
 
 	const send = useCallback(
@@ -133,9 +158,22 @@ export function useLiveTranscript(context?: string | null) {
 		return true
 	}, [append, transcribe])
 
+	/** Sends a phone's recording. False if it's still waiting. */
+	const sendHeld = useCallback(async () => {
+		if (!held.current) return true
+		try {
+			append(await transcribeAudio(held.current))
+			held.current = null
+			return true
+		} catch {
+			return false
+		}
+	}, [append, transcribeAudio])
+
 	const settle = useCallback(async () => {
 		await queue.current
-		if (backlog.current.length === 0 || (await drain())) {
+		const sent = (await sendHeld()) && (backlog.current.length === 0 || (await drain()))
+		if (sent) {
 			setPhase('idle')
 			return textRef.current
 		}
@@ -146,13 +184,15 @@ export function useLiveTranscript(context?: string | null) {
 		})
 		setPhase('failed')
 		return textRef.current
-	}, [drain])
+	}, [drain, sendHeld])
 
 	const stop = useCallback(async (): Promise<string> => {
 		const current = recording.current
 		if (!current) return textRef.current
 		recording.current = null
-		current.stop()
+		setPhase('finishing')
+		const audio = await current.stop()
+		if (audio) held.current = audio
 		segmenter.current?.flush()
 		segmenter.current = null
 		setPhase('finishing')
@@ -162,11 +202,10 @@ export function useLiveTranscript(context?: string | null) {
 	const start = useCallback(async () => {
 		if (recording.current) return
 		setFailure(null)
-		const pieces = createSegmenter(send)
+		const pieces = recorder.streams ? createSegmenter(send) : null
 		try {
-			const started = await startRecording({
-				onSamples: pieces.push,
-				keepAudio: false,
+			const started = await recorder.start({
+				...(pieces ? { onSamples: pieces.push, keepAudio: false } : {}),
 				maxSeconds: MAX_EXPLAIN_SECONDS,
 				onLimit: () => void stop()
 			})
@@ -184,12 +223,12 @@ export function useLiveTranscript(context?: string | null) {
 				reason,
 				message:
 					reason === 'denied'
-						? 'Your microphone is off. Type your explanation, or allow the microphone in your browser and try again.'
-						: 'This browser can’t record. Type your explanation instead.'
+						? `Your microphone is off. Type your explanation, or allow the microphone in ${MIC_SETTINGS} and try again.`
+						: 'This device can’t record. Type your explanation instead.'
 			})
 			setPhase('failed')
 		}
-	}, [send, stop])
+	}, [recorder, send, stop])
 
 	/** After a failure: send what's still held back. */
 	const retry = useCallback(async () => {
@@ -222,6 +261,8 @@ export function useLiveTranscript(context?: string | null) {
 		waveBars: WAVE_BARS,
 		/** Whether the person changed what was written down from what they said. */
 		edited: text.trim() !== spoken.current.trim(),
+		/** Whether the words appear while speaking (the web), or only once stopped (a phone). */
+		streams: recorder.streams,
 		/** Whether any of the text was spoken. */
 		spoke: spoken.current.length > 0,
 		start,
