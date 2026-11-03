@@ -4,13 +4,15 @@ import type { LayoutChangeEvent } from 'react-native'
 /**
  * Where a screen's sheet starts, as a share of its height, for PixelBackdrop's `floor`: put
  * `onScreenLayout` on the screen and `onSheetLayout` on the sheet's wrapper, and students stand
- * on the sheet's top edge wherever long content pushes it.
+ * on the sheet's top edge wherever long content pushes it. `screenHeight` is 0 until the screen
+ * has been laid out.
  */
 export function useSheetFloor() {
 	const [screenHeight, setScreenHeight] = useState(0)
 	const [sheetTop, setSheetTop] = useState(0)
 	return {
 		floor: screenHeight && sheetTop ? sheetTop / screenHeight : null,
+		screenHeight,
 		onScreenLayout: (e: LayoutChangeEvent) => setScreenHeight(e.nativeEvent.layout.height),
 		onSheetLayout: (e: LayoutChangeEvent) => setSheetTop(e.nativeEvent.layout.y)
 	}
