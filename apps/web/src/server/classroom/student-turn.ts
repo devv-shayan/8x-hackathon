@@ -22,9 +22,16 @@ export function knowsTheSource({ name }: { name: string }): boolean {
 	return name === SOURCE_AWARE_STUDENT
 }
 
+/**
+ * The longest a student's turn should be, reaction included: it fits the class's speech bubble
+ * and one request to the voice (docs/class-scene-requirements.md, R16).
+ */
+export const MAX_QUESTION_CHARACTERS = 140
+
 export const STUDENT_TURN_INSTRUCTION = [
 	'You play the students in a small class. A person is teaching them something they learned.',
 	"Write what one student says next, in that student's voice, in one or two short spoken sentences.",
+	`Keep it under ${MAX_QUESTION_CHARACTERS} characters in all, reaction included: it appears in a speech bubble as the student says it.`,
 	"When you have just been answered, first react to it in a few natural words, showing whether it helped or left the student confused. Never mark it right or wrong, and don't praise.",
 	'Then ask one question. Ask about what sounds wrong first, then the most important idea left out. Skip fine details.',
 	'Never give the answer away. Do not repeat an earlier question.',
