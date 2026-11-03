@@ -1,13 +1,11 @@
 import { createHash } from 'node:crypto'
 import { PASTE_TOPIC_PREFIX } from '@app/contract'
 import { ApiError } from '@/server/api/app-errors'
-import type { KeyConcept } from './key-concepts'
 import type { TranscriptSegment } from './transcript'
 
 // Shorter than this and there isn't enough to find a few ideas.
 const MIN_PASTE_CHARS = 80
 const TITLE_CHARS = 80
-const DEMO_CONCEPTS = 4
 
 /** Stable id for this text. The same paste from the same person is one topic. */
 export function pasteTopicId(text: string): string {
@@ -45,26 +43,4 @@ export function assertPasteLength(text: string): void {
 			'Paste a bit more of the text so we can find a few ideas.'
 		)
 	}
-}
-
-/** Local demo only: a few ideas taken from the text, with no video time. */
-export function demoConceptsFromPaste(segments: TranscriptSegment[]): KeyConcept[] {
-	const concepts = segments.slice(0, DEMO_CONCEPTS).flatMap((segment) => {
-		const words = segment.text.split(/\s+/).filter(Boolean)
-		if (words.length < 4) return []
-		return [
-			{
-				title: words.slice(0, 3).join(' '),
-				quote: words.slice(0, Math.min(12, words.length)).join(' '),
-				startSeconds: null
-			}
-		]
-	})
-	if (concepts.length < 3) {
-		throw new ApiError(
-			'video_unreadable',
-			"We couldn't find enough key ideas in this text. Paste a bit more."
-		)
-	}
-	return concepts
 }

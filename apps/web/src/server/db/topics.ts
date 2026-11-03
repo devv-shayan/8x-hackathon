@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { PrismaClient } from '@prisma/client'
-import { demoMemory, isLocalDemoUser } from '@/server/demo/local-demo'
 import { keyConceptSchema, type KeyConcept } from '@/server/video/key-concepts'
 import { transcriptSegmentSchema, type TranscriptSegment } from '@/server/video/transcript'
 import { db } from './client'
@@ -64,7 +63,6 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 	return {
 		/** The person's topic for a video, or null if they haven't added it. */
 		async find(userId: string, youtubeId: string): Promise<TopicRecord | null> {
-			if (isLocalDemoUser(userId)) return demoMemory.findTopic(userId, youtubeId)
 			const row = await client.topic.findUnique({
 				where: { userId_youtubeId: { userId, youtubeId } },
 				select: TOPIC
@@ -74,14 +72,12 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 
 		/** One of the person's topics by id, or null. */
 		async findById(userId: string, id: string): Promise<TopicRecord | null> {
-			if (isLocalDemoUser(userId)) return demoMemory.findTopicById(userId, id)
 			const row = await client.topic.findFirst({ where: { id, userId }, select: TOPIC })
 			return row ? toRecord(row) : null
 		},
 
 		/** Newest topics first. Title and youtube id only — no transcript. */
 		async list(userId: string): Promise<TopicListItem[]> {
-			if (isLocalDemoUser(userId)) return demoMemory.listTopics(userId, RECENT_TOPICS_LIMIT)
 			return client.topic.findMany({
 				where: { userId },
 				orderBy: { createdAt: 'desc' },
@@ -92,7 +88,6 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 
 		/** Saves a topic. If two reads of one video raced, the first one saved wins. */
 		async save(userId: string, topic: NewTopic): Promise<TopicRecord> {
-			if (isLocalDemoUser(userId)) return demoMemory.saveTopic(userId, topic)
 			const row = await client.topic.upsert({
 				where: { userId_youtubeId: { userId, youtubeId: topic.youtubeId } },
 				update: {},

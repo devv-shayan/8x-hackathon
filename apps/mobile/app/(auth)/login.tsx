@@ -26,7 +26,6 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-	DeviceEventEmitter,
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
@@ -533,30 +532,6 @@ export default function LoginScreen() {
 							</Animated.View>
 						)}
 
-						{__DEV__ ? (
-							<View style={s.dev}>
-								<Text variant="caption" tone="tertiary">
-									Development build
-								</Text>
-								<View style={s.devRow}>
-									<Button
-										label="Skip to the app"
-										variant="outline"
-										size="sm"
-										onPress={() => DeviceEventEmitter.emit('__dev_skip_auth__')}
-									/>
-									<Button
-										label="Skip to onboarding"
-										variant="outline"
-										size="sm"
-										onPress={() =>
-											DeviceEventEmitter.emit('__dev_skip_auth__', { onboarding: true })
-										}
-									/>
-								</View>
-							</View>
-						) : null}
-
 						<View style={s.legal}>
 							<Button
 								label="Privacy Policy"
@@ -600,15 +575,5 @@ const useStyles = makeStyles((c) => ({
 	appleButton: { width: '100%', height: PROVIDER_HEIGHT },
 	dimmed: { opacity: 0.5 },
 	otpActions: { flexDirection: 'row', justifyContent: 'center', gap: 4 },
-	dev: {
-		gap: 10,
-		marginTop: 20,
-		padding: 14,
-		borderRadius: 16,
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: c.borderSoft,
-		borderStyle: 'dashed'
-	},
-	devRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 	legal: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 }
 }))

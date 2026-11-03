@@ -6,8 +6,6 @@ import { classStore } from '@/server/db/classes'
 import { gapStore } from '@/server/db/gaps'
 import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
-import { isLocalDemoUser } from '@/server/demo/local-demo'
-import { demoStudentQuestion, scoreDemoExplanation } from '@/server/demo/score-demo-explanation'
 import { findStudentReactions } from './find-reactions'
 import { explainFromVideo } from './help'
 import { scoreAfterClass, scoreExplanation } from './find-explanation-score'
@@ -79,7 +77,6 @@ function waitingFrom(session: StoredClass, speaker: Student) {
 // Every student keeps a hand up with their question ready, and the person picks who to answer.
 // So a student only thinks of a new question once theirs has been dealt with.
 async function raiseHand(
-	userId: string,
 	topic: TopicRecord,
 	session: StoredClass,
 	students: Student[],
@@ -87,20 +84,6 @@ async function raiseHand(
 	answered?: StoredTurn
 ) {
 	if (session.turns.length >= MAX_CLASS_QUESTIONS) return
-	if (isLocalDemoUser(userId)) {
-		const focus = focusConcepts(topic, session.conceptResults)
-		await classStore.addTurn(
-			session.id,
-			speaker.id,
-			demoStudentQuestion({
-				studentName: speaker.name,
-				knowsSource: knowsTheSource(speaker),
-				focusConcepts: focus,
-				turnIndex: session.turns.length
-			})
-		)
-		return
-	}
 	const question = await nextQuestion({
 		...(await questionInput(topic, session, students)),
 		speaker,
@@ -114,13 +97,11 @@ async function raiseHand(
 // another student just raised. Only then does a waiting student change theirs. Best effort: the
 // one they have still works.
 async function rethinkWaiting(
-	userId: string,
 	topic: TopicRecord,
 	session: StoredClass,
 	students: Student[],
 	answeredStudentId: string
 ) {
-	if (isLocalDemoUser(userId)) return
 	const waiting = session.turns.filter(
 		(turn) => isOpen(turn) && turn.studentId !== answeredStudentId
 	)
@@ -235,7 +216,6 @@ async function tryScoreAfterClass(topic: TopicRecord, session: StoredClass) {
 // Runs once no question is left open: scores a class that failed to score when it started, then
 // counts what the person said while teaching.
 async function scoreFinishedClass(userId: string, classId: string) {
-	if (isLocalDemoUser(userId)) return
 	const session = await classStore.find(userId, classId)
 	if (!session || session.turns.some(isOpen)) return
 	if (session.conceptResults.some(({ resultAfterClass }) => resultAfterClass)) return
@@ -260,19 +240,6 @@ async function writeReactions(userId: string, classId: string) {
 	const speakers = students.filter(({ id }) => heard.some((turn) => turn.studentId === id))
 	if (speakers.length === 0) {
 		await classStore.saveReactions(classId, [])
-		return
-	}
-	if (isLocalDemoUser(userId)) {
-		await classStore.saveReactions(
-			classId,
-			speakers.map(({ id, name }) => ({
-				studentId: id,
-				text:
-					name === 'Omar'
-						? 'That cleared up the bit I was unsure about.'
-						: 'I think I get it now — thanks for walking me through it.'
-			}))
-		)
 		return
 	}
 	try {
@@ -309,7 +276,7 @@ async function rememberGaps(input: {
 	topic: TopicRecord
 	results: StoredClass['conceptResults']
 }) {
-	if (isLocalDemoUser(input.userId) || input.results.length === 0) return
+	if (input.results.length === 0) return
 	await gapStore.saveFromResults({
 		userId: input.userId,
 		topicId: input.topic.id,
@@ -328,16 +295,14 @@ export async function openClass(userId: string, topicId: string) {
 export async function startClass(userId: string, topicId: string, explanation: string) {
 	const topic = await topicStore.findById(userId, topicId)
 	if (!topic) throw notFound()
-	const conceptResults = isLocalDemoUser(userId)
-		? scoreDemoExplanation(explanation, topic.concepts)
-		: await tryScore(topic, explanation)
+	const conceptResults = await tryScore(topic, explanation)
 	const session = await classStore.create(topicId, explanation, conceptResults)
 	await rememberGaps({ userId, topic, results: conceptResults })
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	// One at a time, so a student who saw the video can steer clear of the question before theirs.
 	for (const student of students) {
 		const current = await classStore.find(userId, session.id)
-		await raiseHand(userId, topic, current ?? session, students, student)
+		await raiseHand(topic, current ?? session, students, student)
 	}
 	return toWireClass(userId, session.id)
 }
@@ -369,8 +334,8 @@ export async function answerTurn(
 		// waiting question that was just answered, and the new question already knows the
 		// answer. The reply still carries both, so the app never shows a replaced question.
 		await Promise.all([
-			raiseHand(userId, topic, updated, students, speaker, answered),
-			rethinkWaiting(userId, topic, updated, students, speaker.id)
+			raiseHand(topic, updated, students, speaker, answered),
+			rethinkWaiting(topic, updated, students, speaker.id)
 		])
 	}
 	return finishClass(userId, classId)

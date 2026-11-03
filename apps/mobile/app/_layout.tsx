@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Platform, DeviceEventEmitter } from 'react-native'
+import { View, Platform } from 'react-native'
 import { Stack, useNavigationContainerRef, usePathname } from 'expo-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
@@ -266,23 +266,6 @@ function RootLayout() {
 		})
 
 		return () => subscription.unsubscribe()
-	}, [])
-
-	// Development only: the login screen's "Skip" buttons land in the app (or in
-	// onboarding) without a backend, so every screen can be built and reviewed.
-	useEffect(() => {
-		if (!__DEV__) return
-		const sub = DeviceEventEmitter.addListener(
-			'__dev_skip_auth__',
-			(payload?: { onboarding?: boolean }) => {
-				void import('@/lib/demoAuth').then(async ({ enableLocalDemoAuth }) => {
-					await enableLocalDemoAuth()
-					setIsAuthed(true)
-					setOnboardingCompleted(!payload?.onboarding)
-				})
-			}
-		)
-		return () => sub.remove()
 	}, [])
 
 	const ready =

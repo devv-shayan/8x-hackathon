@@ -1,7 +1,6 @@
 import type { PrismaClient, TurnOutcome } from '@prisma/client'
 import { parseStoredReactions, type StoredReaction } from '@/server/classroom/reactions'
 import { parseStoredConceptResults, type ConceptResult } from '@/server/classroom/score-explanation'
-import { demoMemory, isLocalDemoUser } from '@/server/demo/local-demo'
 import { db } from './client'
 
 // The person's classes and students (prisma/schema/learning.prisma). Every method takes the
@@ -19,10 +18,11 @@ const CLASS = {
 } as const
 
 function withResults<T extends { conceptResults: unknown; reactions: unknown }>(row: T) {
+	const { conceptResults, reactions, ...rest } = row
 	return {
-		...row,
-		conceptResults: parseStoredConceptResults(row.conceptResults),
-		reactions: parseStoredReactions(row.reactions)
+		...rest,
+		conceptResults: parseStoredConceptResults(conceptResults),
+		reactions: parseStoredReactions(reactions)
 	}
 }
 
@@ -30,7 +30,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 	return {
 		/** The person's students, created the first time they teach. */
 		async studentsFor(userId: string, defaults: { name: string; persona: string }[]) {
-			if (isLocalDemoUser(userId)) return demoMemory.studentsFor(userId, defaults)
 			const students = await client.student.findMany({
 				where: { userId },
 				orderBy: { createdAt: 'asc' }
@@ -41,9 +40,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		},
 
 		async create(topicId: string, explanation: string, conceptResults: ConceptResult[]) {
-			if (demoMemory.hasTopic(topicId)) {
-				return demoMemory.createClass(topicId, explanation, conceptResults)
-			}
 			const row = await client.class.create({
 				data: { topicId, explanation, conceptResults },
 				select: CLASS
@@ -58,10 +54,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 
 		/** Closing lines after the class. Best effort: only write once. */
 		async saveReactions(classId: string, reactions: StoredReaction[]) {
-			if (demoMemory.hasClass(classId)) {
-				demoMemory.saveReactions(classId, reactions)
-				return
-			}
 			await client.class.update({
 				where: { id: classId },
 				data: { reactions }
@@ -69,23 +61,21 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		},
 
 		async find(userId: string, classId: string) {
-			if (isLocalDemoUser(userId)) return demoMemory.findClass(userId, classId)
 			const row = await client.class.findFirst({
 				where: { id: classId, topic: { userId } },
 				select: CLASS
 			})
-			return row && withResults(row)
+			return row ? withResults(row) : null
 		},
 
 		/** The newest class on this topic still waiting on an answer, or null. */
 		async findOpen(userId: string, topicId: string) {
-			if (isLocalDemoUser(userId)) return demoMemory.findOpenClass(userId, topicId)
 			const row = await client.class.findFirst({
 				where: { topicId, topic: { userId }, turns: { some: { outcome: null } } },
 				orderBy: { createdAt: 'desc' },
 				select: CLASS
 			})
-			return row && withResults(row)
+			return row ? withResults(row) : null
 		},
 
 		/**
@@ -101,7 +91,7 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			topicIds: string[]
 		): Promise<Map<string, { conceptResults: ConceptResult[]; createdAt: Date }>> {
 			const latest = new Map<string, { conceptResults: ConceptResult[]; createdAt: Date }>()
-			if (topicIds.length === 0 || isLocalDemoUser(userId)) return latest
+			if (topicIds.length === 0) return latest
 			const rows = await client.class.findMany({
 				where: {
 					topicId: { in: topicIds },
@@ -124,13 +114,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		async findOpenIdsForTopics(userId: string, topicIds: string[]): Promise<Map<string, string>> {
 			const open = new Map<string, string>()
 			if (topicIds.length === 0) return open
-			if (isLocalDemoUser(userId)) {
-				for (const topicId of topicIds) {
-					const row = demoMemory.findOpenClass(userId, topicId)
-					if (row) open.set(topicId, row.id)
-				}
-				return open
-			}
 			const rows = await client.class.findMany({
 				where: {
 					topicId: { in: topicIds },
@@ -147,16 +130,11 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		},
 
 		addTurn(classId: string, studentId: string, question: string) {
-			if (demoMemory.hasClass(classId)) {
-				demoMemory.addTurn(classId, studentId, question)
-				return
-			}
 			return client.classTurn.create({ data: { classId, studentId, question } })
 		},
 
 		/** Changes a question the person hasn't dealt with yet. */
 		async updateQuestion(turnId: string, question: string) {
-			if (demoMemory.updateQuestion(turnId, question)) return
 			await client.classTurn.updateMany({
 				where: { id: turnId, outcome: null },
 				data: { question }
@@ -169,9 +147,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			turnId: string,
 			answer: { answer: string | null; outcome: TurnOutcome }
 		) {
-			if (demoMemory.hasClass(classId)) {
-				return demoMemory.answerTurn(classId, turnId, answer)
-			}
 			const { count } = await client.classTurn.updateMany({
 				where: { id: turnId, classId, outcome: null },
 				data: { ...answer, answeredAt: new Date() }
@@ -181,10 +156,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 
 		/** Records that the person was given help on a question still waiting on an answer. */
 		async markHelpUsed(classId: string, turnId: string) {
-			if (demoMemory.hasClass(classId)) {
-				demoMemory.markHelpUsed(classId, turnId)
-				return
-			}
 			await client.classTurn.updateMany({
 				where: { id: turnId, classId, outcome: null },
 				data: { helpUsedAt: new Date() }
@@ -193,10 +164,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 
 		/** Removes the questions the person never picked. */
 		async dropOpenTurns(classId: string) {
-			if (demoMemory.hasClass(classId)) {
-				demoMemory.dropOpenTurns(classId)
-				return
-			}
 			await client.classTurn.deleteMany({ where: { classId, outcome: null } })
 		},
 
@@ -205,9 +172,6 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 		 * A question nobody picked was never heard, so it isn't part of that.
 		 */
 		pastTurns(studentIds: string[], classId: string, topicId: string) {
-			if (demoMemory.hasClass(classId) || demoMemory.hasTopic(topicId)) {
-				return demoMemory.pastTurns()
-			}
 			return client.classTurn.findMany({
 				where: {
 					studentId: { in: studentIds },
