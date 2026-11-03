@@ -1,6 +1,6 @@
 import 'server-only'
 import { generateContent } from '@/server/ai/gemini'
-import { toVideoError } from '@/server/video/read-video'
+import { AI_BUSY, toVideoError } from '@/server/video/read-video'
 import type { TranscriptSegment } from '@/server/video/transcript'
 import {
 	buildHelpPrompt,
@@ -32,6 +32,6 @@ export async function explainFromVideo(
 		)
 		return parseHelp(response.text, segments)
 	} catch (error) {
-		throw toVideoError(error)
+		throw toVideoError(error, AI_BUSY)
 	}
 }

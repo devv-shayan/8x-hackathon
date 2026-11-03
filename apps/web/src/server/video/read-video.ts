@@ -29,6 +29,11 @@ const TRANSCRIPT_PROMPT = [
 
 const oembedSchema = z.object({ title: z.string() })
 
+/** What a person sees when Gemini is busy while a video is being read. */
+const VIDEO_BUSY = 'Reading videos is busy right now. Try again in a minute.'
+/** And while a class or a warm-up is waiting on it: nothing is reading a video then. */
+export const AI_BUSY = 'Chalkback is busy right now. Try again in a minute.'
+
 export type VideoTranscript = {
 	videoId: string
 	title: string
@@ -89,7 +94,7 @@ function assertCanRead(info: YouTubeInfo | null) {
 	} catch (error) {
 		// Too long only without captions, and those may just be a retry away.
 		if (!info?.captionsRateLimited) throw error
-		throw new ApiError('unavailable', 'Reading videos is busy right now. Try again in a minute.')
+		throw new ApiError('unavailable', VIDEO_BUSY)
 	}
 }
 
@@ -126,13 +131,13 @@ async function transcribe(watchUrl: string, videoId: string) {
 	}
 }
 
-export function toVideoError(error: unknown): unknown {
+/**
+ * A Gemini failure as the error the person sees. `busyMessage` names what was busy: reading a
+ * video by default, or the class (`AI_BUSY`) for a call that reads none.
+ */
+export function toVideoError(error: unknown, busyMessage = VIDEO_BUSY): unknown {
 	if (error instanceof ApiError) return error
-	if (isGeminiBusy(error)) {
-		return new ApiError('unavailable', 'Reading videos is busy right now. Try again in a minute.', {
-			cause: error
-		})
-	}
+	if (isGeminiBusy(error)) return new ApiError('unavailable', busyMessage, { cause: error })
 	// An unlisted video passes the oEmbed check and only fails here.
 	const status = z.object({ status: z.number() }).safeParse(error).data?.status
 	if (status === 400 || status === 403) {
