@@ -1,6 +1,7 @@
 import 'server-only'
 import { isPastedTopic, MAX_CLASS_QUESTIONS, type ClassSession } from '@app/contract'
 import { notFound } from '@/server/api/app-route'
+import { setTimeout } from 'node:timers/promises'
 import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
 import { gapStore } from '@/server/db/gaps'
@@ -16,6 +17,16 @@ import { DEFAULT_STUDENTS, heardTurns, knowsTheSource } from './student-turn'
 type StoredClass = NonNullable<Awaited<ReturnType<typeof classStore.find>>>
 
 type Outcome = 'answered' | 'needed_help' | 'skipped'
+
+/**
+ * How long to wait before asking for the students' reactions once more when Gemini is busy
+ * (it has already been tried twice by then). A setting, so a test can skip the wait.
+ */
+export const reactionRetry = { delayMs: 3000 }
+
+function isBusy(error: unknown) {
+	return error instanceof ApiError && error.code === 'unavailable'
+}
 
 // Scoring never holds a class up: without a score the students ask about every concept, and the
 // class is scored again when it ends.
@@ -231,6 +242,17 @@ async function scoreFinishedClass(userId: string, classId: string) {
 	if (!hadScore) await rememberGaps({ userId, topic, results: first })
 }
 
+/** The students' reactions, asked for once more after a pause if Gemini is busy. */
+async function findReactionsOrRetry(input: Parameters<typeof findStudentReactions>[0]) {
+	try {
+		return await findStudentReactions(input)
+	} catch (error) {
+		if (!isBusy(error)) throw error
+		await setTimeout(reactionRetry.delayMs)
+		return findStudentReactions(input)
+	}
+}
+
 /** Best effort: a failure still returns the scored results with an empty reactions list. */
 async function writeReactions(userId: string, classId: string) {
 	const session = await classStore.find(userId, classId)
@@ -243,7 +265,7 @@ async function writeReactions(userId: string, classId: string) {
 		return
 	}
 	try {
-		const reactions = await findStudentReactions({
+		const reactions = await findReactionsOrRetry({
 			classId,
 			students: speakers.map(({ id, name, persona }) => ({ id, name, persona })),
 			turns: heard.map(({ studentId, question, answer, outcome }) => ({
@@ -258,6 +280,7 @@ async function writeReactions(userId: string, classId: string) {
 		log.warn('could not write class reactions', {
 			source: 'classroom/class-session',
 			class_id: classId,
+			busy: isBusy(error),
 			error: error instanceof Error ? error.message : String(error)
 		})
 		await classStore.saveReactions(classId, [])

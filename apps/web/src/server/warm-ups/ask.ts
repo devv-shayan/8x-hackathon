@@ -1,6 +1,6 @@
 import 'server-only'
 import { generateContent } from '@/server/ai/gemini'
-import { toVideoError } from '@/server/video/read-video'
+import { AI_BUSY, toVideoError } from '@/server/video/read-video'
 import {
 	buildWarmUpJudgePrompt,
 	buildWarmUpQuestionPrompt,
@@ -40,7 +40,7 @@ export async function askWarmUpQuestion(
 		)
 		return parseWarmUpQuestion(response.text)
 	} catch (error) {
-		throw warmUpReplyError(error, QUESTION_FAILED) ?? toVideoError(error)
+		throw warmUpReplyError(error, QUESTION_FAILED) ?? toVideoError(error, AI_BUSY)
 	}
 }
 
@@ -60,6 +60,6 @@ export async function judgeWarmUp(input: WarmUpJudgeInput & { gapId: string }): 
 		)
 		return parseWarmUpJudgment(response.text)
 	} catch (error) {
-		throw warmUpReplyError(error, JUDGE_FAILED) ?? toVideoError(error)
+		throw warmUpReplyError(error, JUDGE_FAILED) ?? toVideoError(error, AI_BUSY)
 	}
 }
