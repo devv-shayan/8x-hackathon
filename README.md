@@ -1,13 +1,93 @@
 # Chalkback
 
-Learn from a YouTube video by teaching it to AI students, who come back days later to check you
-still remember. See [docs/product/brief.md](docs/product/brief.md).
+**Don't just watch it. Teach it back.** Paste a YouTube video you watched, explain it in your own
+words, and two AI students, Maya and Omar, ask about what you missed. Every idea you miss comes
+back days later as a warm-up, until you've got it right twice.
 
-Built on 8x's monorepo template; the rest of this file is the template's guide. On top of the
-quickstart below, set `GEMINI_API_KEY` in `apps/web/.env.local` to read videos, and install
-[yt-dlp](https://github.com/yt-dlp/yt-dlp) or [uv](https://docs.astral.sh/uv/) so the server can
-fetch captions. Without either, every video goes through Gemini, which is slower and limited to
-30 minutes.
+- The app: <https://chalkback-app.vercel.app> · the website: <https://chalkback.vercel.app>
+- Built by Shayan Khan and Sayed Arif for 8x Playmakers, Cohort 2
+- The product brief: [docs/product/brief.md](docs/product/brief.md) · how the code fits
+  together: [docs/product/context.md](docs/product/context.md)
+
+The sketches below are drawn in the style of
+[Ian Xiaohei Illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations) (MIT).
+Xiaohei, the small black creature, does the work each one is about. All six, with where each
+lives in the code: [docs/architecture/sketches/](docs/architecture/sketches/README.md).
+
+## How it works
+
+![The learning loop: a video becomes an explanation and a class; missed ideas drop into the gap drawer and come back as warm-ups](docs/architecture/sketches/03-learning-loop.svg)
+
+1. **Paste a YouTube link.** The server reads the transcript and pulls out the video's key ideas,
+   each with its moment in the video (Gemini, with captions from Supadata or yt-dlp). The ideas
+   stay hidden: the point is to see what you remember. A video that can't be read can be pasted
+   as text instead.
+2. **Explain it in your own words**, typed or out loud. The explanation is scored against the
+   ideas.
+3. **Teach the class.** Maya never saw the video and asks about what you left out; Omar watched it
+   twice and asks about what you got wrong. A student asks only once you call on them. Stuck?
+   "I'll be back" opens private help: what the video says, and the moment to rewatch.
+4. **See what stuck.** The results show which ideas you taught, which you fixed in class, and
+   when each missed one comes back.
+5. **Warm-ups bring the gaps back.** Each missed idea becomes a gap. A student asks about it again
+   2 days later; a right answer pushes it 5 days out, and two right in a row closes it. Each
+   video's page shows its gaps and how every warm-up went.
+
+## Voice
+
+![Voice: what you say goes to Whisper and comes back as text you can fix; the students' questions come back as Orpheus voices](docs/architecture/sketches/05-voice.svg)
+
+The students say their questions out loud (Groq Orpheus), and you can explain and answer out
+loud (Groq Whisper). Hold to answer, check what you said, then send it. On the web, an
+explanation is written down as you speak; on a phone, when you tap stop. Typing is always one tap
+away, and audio is never stored. The free tier allows 100 student voices a day; after that the
+device's own voice reads the question. More: [docs/memory/groq-voice.md](docs/memory/groq-voice.md).
+
+## How it's built
+
+![System map: the Expo app reaches everything through one door, /api/app/v1](docs/architecture/sketches/01-system-map.svg)
+
+- **`apps/mobile`:** the Expo app (SDK 55). It runs as a web build on Vercel, in Expo Go, and in
+  store builds. It never touches tables: everything goes through the API.
+- **`apps/web`:** Next.js 15 on Vercel. The website, the admin panel, and the app's API at
+  `/api/app/v1`. Prisma writes to Postgres on Supabase; Supabase Auth only signs people in. AI
+  calls happen on the server only.
+- **`packages/contract`:** the Zod schema of every API route, shared by both apps.
+- **`packages/pixel`:** the dithered pixel backgrounds and students, drawn by the same code on the
+  website and in the app.
+- **`packages/brand`:** the colours, type and spacing both apps use.
+
+Every route runs the same four checks, so none can skip one:
+
+![One request: the four checks every route runs](docs/architecture/sketches/02-one-request.svg)
+
+The class is where the slow AI calls are. An answer is saved first; then the next question and a
+recheck of the other student's waiting question run at once. If the app gives up waiting, it
+reads the class back instead of retrying:
+
+![A class turn: saved first, two Gemini calls at once, and the catch-up after a timeout](docs/architecture/sketches/04-class-turn.svg)
+
+## Running it locally
+
+Follow the template's [quickstart](#quickstart) below, then, in `apps/web/.env.local`:
+
+- `GEMINI_API_KEY`: reads videos, scores explanations and writes the students' questions.
+- `GROQ_API_KEY`: voice. Accept Orpheus's terms once in the Groq console, or every voice fails.
+- Install [yt-dlp](https://github.com/yt-dlp/yt-dlp) or [uv](https://docs.astral.sh/uv/) for
+  captions. Without either, every video goes through Gemini, which is slower and limited to 30
+  minutes.
+
+To try a warm-up before one is due: `npm run db:seed-due-gap -- <your user id>`. To run the app on
+a real phone: [docs/memory/phone-dev-setup.md](docs/memory/phone-dev-setup.md).
+
+## Shipping
+
+![Shipping: a branch goes through the local gates and CI to main; for phones, an update or a store build](docs/architecture/sketches/06-shipping.svg)
+
+Work on a branch, run the local gates, open a pull request, and merge only when CI is green;
+nobody pushes to `main`. Vercel deploys `main`. For phones, a JavaScript-only change ships as an
+update; a native change (a new module, a permission, the icon) needs a store build. The rules
+are in [AGENTS.md](AGENTS.md).
 
 ---
 
@@ -35,6 +115,7 @@ every release), and the index of engineering rules in [`docs/rules/`](docs/rules
 | `@app/web`      | `apps/web/`          | Next.js 15 marketing site (landing, pricing, legal, support, account deletion), **admin panel**, the app's API (`/api/app/v1`), webhooks, the daily lifecycle cron, and the **Play Stats API**.  |
 | `@app/contract` | `packages/contract/` | The Zod schemas for every `/api/app/v1` route: the web validates with them, and the app parses every response with them.                                                                         |
 | `@app/brand`    | `packages/brand/`    | The single brand source: two presets (`dusk`, `daylight`), one accent, role-typed palettes, type, radii, elevation, motion. Web reads CSS variables + a Tailwind preset; mobile a ThemeProvider. |
+| `@app/pixel`    | `packages/pixel/`    | Chalkback's dithered pixel engine: the moving backgrounds, the students, the app icon. Pure TypeScript, drawn by the website on a canvas and by the app in a canvas or WebView.                  |
 
 Plus:
 
@@ -120,9 +201,11 @@ npm run web:dev        # http://localhost:3000
 npm run mobile:start   # Expo dev server
 ```
 
-The app runs in a development build (`expo-dev-client`) rather than Expo Go: build it once,
-and again after any native change, with `npx expo run:ios` or `npx expo run:android` from
-`apps/mobile` ([`apps/mobile/README.md`](apps/mobile/README.md#step-7--run-the-app)).
+The template expects a development build (`expo-dev-client`): build it once, and again after
+any native change, with `npx expo run:ios` or `npx expo run:android` from `apps/mobile`
+([`apps/mobile/README.md`](apps/mobile/README.md#step-7--run-the-app)). Chalkback also runs in
+Expo Go, since every native module it uses is in Expo Go
+([phone setup](docs/memory/phone-dev-setup.md)).
 
 **Signing in locally.** The stack sends no real email. The six-digit code the app asks for
 lands in the local mail catcher at <http://127.0.0.1:55324>; Studio is at
@@ -268,9 +351,10 @@ app-template/               # your play's name, once renamed
 │   └── web/                # Next.js site + admin + /api (@app/web)
 ├── packages/
 │   ├── brand/              # Shared brand tokens (@app/brand)
-│   └── contract/           # /api/app/v1 schemas (@app/contract)
+│   ├── contract/           # /api/app/v1 schemas (@app/contract)
+│   └── pixel/              # The pixel backgrounds and students (@app/pixel)
 ├── supabase/               # config.toml, seed.sql, frozen migrations/
-├── docs/                   # ENV_SETUP, LAUNCH_TODO, UPGRADING, EVENTS, PLAY_API, STANDARDS, rules/, memory/
+├── docs/                   # product/, architecture/sketches/, ENV_SETUP, LAUNCH_TODO, EVENTS, rules/, memory/
 ├── scripts/                # the check:* gates
 ├── .claude/                # settings (env deny list + hooks), session-brief.py, log-session.py, skills/
 ├── .claude-logs/           # Auto-written session logs (committed, in a play)
