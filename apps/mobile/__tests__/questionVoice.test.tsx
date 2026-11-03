@@ -62,8 +62,12 @@ beforeEach(() => {
 it("plays the student's voice once, and Replay plays it again without asking the server", async () => {
 	jest.mocked(api).mockResolvedValue({ audio_base64: 'UklGRg==', student_name: 'Omar' } as never)
 	const { result } = renderVoice()
-	await waitFor(() => expect(playWav).toHaveBeenCalledWith('UklGRg=='))
-	expect(result.current.state).toBe('speaking')
+	// playWav() runs, then setSpeaking(true) renders. Under load the mock is
+	// visible while the hook still reports the previous state, ready.
+	await waitFor(() => {
+		expect(playWav).toHaveBeenCalledWith('UklGRg==')
+		expect(result.current.state).toBe('speaking')
+	})
 	expect(api).toHaveBeenCalledWith('speakQuestion', {
 		body: { class_id: CLASS_ID, turn_id: TURN_ID },
 		timeoutMs: 30_000

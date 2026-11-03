@@ -147,7 +147,13 @@ test("a scene's students stand where it puts them, with a hand up on request", (
 test("the WebView's page is built from the current engine", async () => {
 	const { generatedModule } = await import('../scripts/build-backdrop.mjs')
 	const onDisk = readFileSync(new URL('./backdrop-html.generated.ts', import.meta.url), 'utf8')
-	assert.equal(onDisk, generatedModule(), 'run `npm run build:backdrop --workspace=@app/pixel`')
+	// The committed file is LF. Git on Windows checks it out as CRLF, and the
+	// generator writes LF, so a raw compare fails here while the page is current.
+	assert.equal(
+		onDisk.replaceAll('\r\n', '\n'),
+		generatedModule(),
+		'run `npm run build:backdrop --workspace=@app/pixel`'
+	)
 })
 
 test("the WebView's page runs: it starts a backdrop and takes updates", () => {
