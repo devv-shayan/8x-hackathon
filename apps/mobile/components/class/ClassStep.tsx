@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { Play } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MAX_CLASS_QUESTIONS, type ClassSession, type ClassTurn } from '@app/contract'
@@ -23,6 +23,11 @@ const WHO: Record<string, string> = {
 	Maya: 'Never saw the video',
 	Omar: 'Watched it twice'
 }
+
+/** How far the top buttons sit below the safe area, how tall they are, and the gap under them. */
+const BAR_TOP = 8
+const PILL_HEIGHT = 44
+const BAR_GAP = 8
 
 /** The pixel figure a student is drawn as: by name, or by seat for any other name. */
 function figureFor(session: ClassSession, studentId: string): StudentName {
@@ -76,7 +81,12 @@ export function ClassStep({
 	const { colors: c, elevation } = useTheme()
 	const insets = useSafeAreaInsets()
 	const busy = answering || ending
-	const { floor, onScreenLayout, onSheetLayout } = useSheetFloor()
+	const { floor, screenHeight, onScreenLayout, onSheetLayout } = useSheetFloor()
+	// The sheet never rises past the top buttons, however long the question or tall the
+	// keyboard: the question scrolls instead, and the answer stays above the keyboard.
+	const sheetMax = screenHeight
+		? screenHeight - (insets.top + BAR_TOP + PILL_HEIGHT + BAR_GAP)
+		: undefined
 	const raised: Raised = {}
 	for (const turn of hands) raised[figureFor(session, turn.student_id)] = 1
 	const name = openTurn ? studentName(session, openTurn) : null
@@ -116,7 +126,7 @@ export function ClassStep({
 		<View style={s.fill} onLayout={onScreenLayout}>
 			<PixelBackdrop scene="classroom" raised={raised} floor={floor} />
 			<StudentTargets scene="classroom" raised={raised} floor={floor} onPick={pick} />
-			<View style={[s.bar, { top: insets.top + 8 }]} pointerEvents="box-none">
+			<View style={[s.bar, { top: insets.top + BAR_TOP }]} pointerEvents="box-none">
 				<PressableScale
 					onPress={onEnd}
 					disabled={busy}
@@ -147,25 +157,35 @@ export function ClassStep({
 			<KeyboardAvoidingView
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 				onLayout={onSheetLayout}
+				style={{ maxHeight: sheetMax }}
 			>
-				<SheetCard>
+				<SheetCard style={s.shrink}>
 					{openTurn && name ? (
 						<>
-							{progress}
-							<Text variant="question" style={s.question} accessibilityRole="header">
-								{openTurn.question}
-							</Text>
-							<MonoLabel
-								style={s.who}
-								right={<QuestionVoice state={voice.state} student={name} onReplay={voice.replay} />}
+							<ScrollView
+								style={s.shrink}
+								bounces={false}
+								keyboardShouldPersistTaps="handled"
+								showsVerticalScrollIndicator={false}
 							>
-								{`${name} · ${WHO[name] ?? 'In your class'}`}
-							</MonoLabel>
-							{others.length > 0 ? (
-								<Text variant="caption" tone="secondary" style={s.others}>
-									{`${others.map((t) => studentName(session, t)).join(' and ')} has a hand up too. Tap ${others.length === 1 ? studentName(session, others[0]!) : 'a student'} to take that question instead.`}
+								{progress}
+								<Text variant="question" style={s.question} accessibilityRole="header">
+									{openTurn.question}
 								</Text>
-							) : null}
+								<MonoLabel
+									style={s.who}
+									right={
+										<QuestionVoice state={voice.state} student={name} onReplay={voice.replay} />
+									}
+								>
+									{`${name} · ${WHO[name] ?? 'In your class'}`}
+								</MonoLabel>
+								{others.length > 0 ? (
+									<Text variant="caption" tone="secondary" style={s.others}>
+										{`${others.map((t) => studentName(session, t)).join(' and ')} has a hand up too. Tap ${others.length === 1 ? studentName(session, others[0]!) : 'a student'} to take that question instead.`}
+									</Text>
+								) : null}
+							</ScrollView>
 							<VoiceAnswer
 								key={openTurn.id}
 								surface="class"
@@ -232,6 +252,7 @@ export function ClassStep({
 
 const s = StyleSheet.create({
 	fill: { flex: 1 },
+	shrink: { flexShrink: 1 },
 	bar: {
 		position: 'absolute',
 		left: 16,
@@ -241,7 +262,7 @@ const s = StyleSheet.create({
 		justifyContent: 'space-between'
 	},
 	pill: {
-		height: 44,
+		height: PILL_HEIGHT,
 		paddingHorizontal: 16,
 		borderRadius: 22,
 		flexDirection: 'row',
