@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocalSearchParams } from 'expo-router'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ClassSession, ClassTurn, TurnOutcome, Video } from '@app/contract'
+import { topicsQueryKey } from '@/components/RecentTopics'
 import { ClassStep } from '@/components/class/ClassStep'
 import { ExplainStep } from '@/components/class/ExplainStep'
 import { ResultsStep } from '@/components/class/ResultsStep'
@@ -31,6 +32,7 @@ type Reply = { turn: ClassTurn; outcome: TurnOutcome; text?: string; meta?: Answ
 
 export default function ClassScreen() {
 	const { topicId } = useLocalSearchParams<{ topicId: string }>()
+	const queryClient = useQueryClient()
 	const [current, setSession] = useState<ClassSession | null>(null)
 	const [answer, setAnswer] = useState('')
 	const [pickedId, setPickedId] = useState<string | null>(null)
@@ -115,6 +117,22 @@ export default function ClassScreen() {
 		onError: () => haptic.error()
 	})
 
+	const flag = useMutation({
+		mutationFn: (concept: string) =>
+			api('flagNotInVideo', {
+				params: { id: session?.id ?? '' },
+				body: { concept }
+			}),
+		onSuccess: ({ class: updated }, concept) => {
+			track('concept_not_in_video', { concept })
+			setSession(updated)
+			void queryClient.invalidateQueries({ queryKey: topicsQueryKey })
+			void queryClient.invalidateQueries({ queryKey: ['topic-gaps', topicId] })
+			haptic.success()
+		},
+		onError: () => haptic.error()
+	})
+
 	if (session && !session.finished) {
 		return (
 			<ClassStep
@@ -147,7 +165,16 @@ export default function ClassScreen() {
 		)
 	}
 
-	if (session) return <ResultsStep session={session} title={videoTitle} />
+	if (session) {
+		return (
+			<ResultsStep
+				session={session}
+				title={videoTitle}
+				onNotInVideo={(concept) => flag.mutate(concept)}
+				flaggingConcept={flag.isPending ? flag.variables : null}
+			/>
+		)
+	}
 
 	if (!open.isPending && !open.isError) {
 		return (

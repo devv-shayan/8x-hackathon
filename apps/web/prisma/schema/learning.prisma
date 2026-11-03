@@ -10,7 +10,9 @@ model Topic {
   title     String
   /// [{ startSeconds, text }]: see src/server/video/transcript.ts.
   segments  Json
-  /// [{ title, quote, startSeconds }]: see src/server/video/key-concepts.ts.
+  /// [{ title, quote, startSeconds, notInVideo? }]: see src/server/video/key-concepts.ts.
+  /// notInVideo is the person's "not in the video" flag. topics already has RLS, so the
+  /// flag needs no table of its own.
   concepts  Json
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)

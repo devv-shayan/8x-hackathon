@@ -1,7 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ApiError } from '@/server/api/app-errors'
-import { findQuoteStart, MAX_KEY_CONCEPTS, parseKeyConcepts } from './key-concepts'
+import {
+	conceptsStillInVideo,
+	findQuoteStart,
+	MAX_KEY_CONCEPTS,
+	parseKeyConcepts
+} from './key-concepts'
 
 const SEGMENTS = [
 	{ startSeconds: 0, text: 'Photosynthesis! You would be dead without plants.' },
@@ -70,6 +75,17 @@ test('parseKeyConcepts tells the user when too few concepts survive', () => {
 	assert.throws(
 		() => parseKeyConcepts(reply([XYLEM, STOMATA, invented]), SEGMENTS),
 		(error: unknown) => error instanceof ApiError && error.code === 'video_unreadable'
+	)
+})
+
+test('conceptsStillInVideo drops an idea the person flagged', () => {
+	const concepts = [
+		{ title: 'Xylem', quote: 'tissues called xylem', startSeconds: 89 },
+		{ title: 'Stomata', quote: 'through stomata', startSeconds: 92, notInVideo: true }
+	]
+	assert.deepEqual(
+		conceptsStillInVideo(concepts).map((concept) => concept.title),
+		['Xylem']
 	)
 })
 
