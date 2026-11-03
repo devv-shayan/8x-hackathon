@@ -6,7 +6,7 @@ import { BAYER_4, ditherIndex, hexToRgb, renderField } from './dither'
 import { createFbm, createSimplex } from './noise'
 import { PIXEL_FIELDS } from './fields'
 import { FIGURE_COLOURS, figureAt, SEATS, shadeAt } from './students'
-import { placeStudents, renderScene, SCENES, studentBounds } from './scenes'
+import { placeStudents, renderScene, SCENES, studentBounds, studentHeads } from './scenes'
 import { BACKDROP_HTML } from './backdrop-html.generated'
 import { readFileSync } from 'node:fs'
 
@@ -197,6 +197,85 @@ test("the WebView's page runs: it starts a backdrop and takes updates", () => {
 	;(window.__backdrop as (s: object) => void)({ scene: 'results' })
 	assert.equal(canvas.width, Math.round(402 / 4))
 	assert.equal(drawn.length, 2)
+})
+
+/** A phone-sized frame of the class, and the colour at a point in points. */
+function classFrame(stage: Parameters<typeof renderScene>[7], floor = 0.68) {
+	const width = 80
+	const height = 175
+	const pixels = new Uint8ClampedArray(width * height * 4)
+	renderScene(pixels, width, height, SCENES.classroom, 2.2, { Maya: 1, Omar: 1 }, floor, stage)
+	return { width, height, pixels }
+}
+
+test('on a stage the class draws only its own colours, opaque', () => {
+	const allowed = new Set(
+		[
+			...PIXEL_FIELDS[SCENES.classroom.field].palette.map(hexToRgb),
+			...Object.values(FIGURE_COLOURS).flat()
+		].map((c) => c.join(','))
+	)
+	for (const asking of ['Maya', 'Omar', null] as const) {
+		const { pixels } = classFrame({ asking, talking: true })
+		for (let o = 0; o < pixels.length; o += 4) {
+			assert.equal(pixels[o + 3], 255)
+			assert.ok(allowed.has(`${pixels[o]},${pixels[o + 1]},${pixels[o + 2]}`), `${asking} colour`)
+		}
+	}
+})
+
+test('without a stage the class draws exactly as before', () => {
+	assert.deepEqual(classFrame(null).pixels, classFrame(undefined).pixels)
+})
+
+test('the asker stands lit in front, and the other sits at a desk with a hand up to tap', () => {
+	const width = 402
+	const height = 874
+	const stage = { asking: 'Maya' as const, talking: true }
+	const boxes = studentBounds(SCENES.classroom, width, height, 0.68, stage)
+	const maya = boxes.find((b) => b.name === 'Maya')!
+	const omar = boxes.find((b) => b.name === 'Omar')!
+	// Omar sits further back: smaller than Maya, and the middle of his tap box clear of hers.
+	// (The app leaves out the asker's box while they ask, so the edges may overlap.)
+	assert.ok(omar.width < maya.width && omar.height < maya.height)
+	assert.ok(omar.left + omar.width / 2 > maya.left + maya.width)
+	// His box holds his raised hand and his desk; the frame shows lime and wood inside it.
+	const { pixels } = classFrame(stage)
+	const scale = 80 / width
+	const inBox = (box: typeof omar, colours: readonly (readonly number[])[]) => {
+		const keys = new Set(colours.map((c) => c.join(',')))
+		for (let y = Math.floor(box.top * scale); y < (box.top + box.height) * scale; y++)
+			for (let x = Math.floor(box.left * scale); x < (box.left + box.width) * scale; x++) {
+				const o = (y * 80 + x) * 4
+				if (keys.has(`${pixels[o]},${pixels[o + 1]},${pixels[o + 2]}`)) return true
+			}
+		return false
+	}
+	assert.ok(inBox(omar, FIGURE_COLOURS.raisedHand), 'his raised hand is in his box')
+	assert.ok(inBox(omar, FIGURE_COLOURS.wood), 'his desk is in his box')
+	assert.ok(!inBox(maya, FIGURE_COLOURS.raisedHand), 'the asker’s hand is down')
+	// The beam is brighter over Maya than the room over Omar, above their heads.
+	const brightness = (x: number) => {
+		const o = (Math.round(0.1 * 175) * 80 + Math.round(x)) * 4
+		return pixels[o]! + pixels[o + 1]! + pixels[o + 2]!
+	}
+	const mayaX = ((maya.left + maya.width / 2) * scale) | 0
+	const omarX = ((omar.left + omar.width / 2) * scale) | 0
+	assert.ok(brightness(mayaX) > brightness(omarX))
+})
+
+test("each student's head is where the bubble's tail can point, inside their tap box", () => {
+	const width = 402
+	const height = 874
+	for (const asking of ['Maya', 'Omar', null] as const) {
+		const stage = { asking, talking: false }
+		const boxes = studentBounds(SCENES.classroom, width, height, 0.68, stage)
+		for (const head of studentHeads(SCENES.classroom, width, height, 0.68, stage)) {
+			const box = boxes.find((b) => b.name === head.name)!
+			assert.ok(box.left < head.x && head.x < box.left + box.width)
+			assert.ok(box.top <= head.reach && head.reach <= head.top && head.top < box.top + box.height)
+		}
+	}
 })
 
 test('with a floor, students stand just above the sheet, smaller only when they must', () => {
