@@ -66,10 +66,11 @@ saves a gap for each concept that was missed or wrong, due two days later
 (`apps/web/src/server/gaps/schedule.ts`). Explore, Activity and the items, tasks and
 notifications code are template demos: don't build on them.
 
-Voice runs on the web build only (docs/voice-requirements.md): the students say their questions
-(Groq Orpheus), and people hold to answer and explain out loud, written down as they speak (Groq
-Whisper). In the class, nobody asks until the person calls on a student. Phones keep typing until
-a store build adds recording; see `docs/memory/groq-voice.md` for limits and traps.
+Voice (docs/voice-requirements.md): the students say their questions (Groq Orpheus), and people
+hold to answer and explain out loud (Groq Whisper). On the web an explanation is written down as
+it's said; on a phone (expo-audio, in Expo Go and any build) it's written down at stop. In the
+class, nobody asks until the person calls on a student. See `docs/memory/groq-voice.md` for limits
+and traps.
 
 ## Run it
 

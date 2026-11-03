@@ -3,6 +3,8 @@
 Status, 2026-11-02: phases 1–4 shipped (#41–#44); phase 5 is the notes and the demo script.
 Along the way, the class stopped picking a raised hand by itself (a student asks only once
 called on), and a slow answer no longer leaves the class stuck (#42).
+Voice then came to phones (#46): expo-audio, with an explanation written down at stop rather
+than live. That needs a store build for installed phones; it runs in Expo Go now.
 
 Goes with [voice-requirements.md](voice-requirements.md). The demo on Thursday 5 Nov runs on the
 web build, so every phase targets the web. All of it is JavaScript and server code: it ships to

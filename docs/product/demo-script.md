@@ -5,7 +5,8 @@ answering be live instead of typing. Lead with the first, show the second.
 
 ## Before the call
 
-1. Use the web build that's already signed in. Production sign-in by email is limited to the
+1. Use the web build that's already signed in (voice also works in Expo Go on a phone, but an
+   explanation there is written down at stop, not as you speak). Production sign-in by email is limited to the
    Supabase team's addresses until custom SMTP is set up, so don't sign out.
 2. Check `GROQ_API_KEY` is set wherever you demo (`apps/web/.env.local` locally, Vercel for the
    deployed app). Without it, voice falls back to typing and the browser's voice.
@@ -38,7 +39,7 @@ you fixed in class, when each missed idea comes back.
 
 **SHAYAN, the topic page and next steps (30 s)**
 "Each video shows its gaps and when they come back. Next: a reminder when a warm-up is due, a
-weekly check-in on home, and voice on phones with the store build."
+weekly check-in on home, and the store build that puts voice in the phone app for everyone."
 
 ## Words to say if you blank
 

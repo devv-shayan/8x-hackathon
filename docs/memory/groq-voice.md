@@ -1,6 +1,6 @@
 ---
 name: groq-voice
-description: Voice runs on Groq (Whisper for speech to text, Orpheus for the students' voices); the limits, the voices, and the traps found setting it up
+description: Voice runs on Groq (Whisper for speech to text, Orpheus for the students' voices), on the web and in the phone app; the limits, the voices, and the traps found setting it up
 metadata:
   type: project
 ---
@@ -22,10 +22,13 @@ the app never needs it, so keep it out of `apps/mobile/.env.local`.
   requests a minute and 2,000 a day per organisation; Orpheus 10 a minute and **100 a day**. A
   class uses about 4–6 voice requests, so Orpheus runs out after roughly 15–20 classes a day and
   the students fall back to the browser's own voice. Real use needs Groq's paid tier.
-- **Phones have no voice yet.** There is no recording or playback module, and `app.json`'s
-  `updates.url` is still the `REPLACE_WITH_YOUR_EAS_PROJECT_ID` placeholder, so no store build or
-  OTA exists. The first store build should add a recording module, the microphone purpose string,
-  and Audio data in the store privacy labels.
+- **Phones (#46, 2026-11-03):** expo-audio records 16 kHz mono AAC m4a (Android can't record WAV),
+  sent whole at stop, so a phone explanation is written down at the end, not live. Shayan confirmed
+  it works in Expo Go on a real phone. Installed builds need a store build for it, and none exists:
+  `app.json`'s `updates.url` is still the `REPLACE_WITH_YOUR_EAS_PROJECT_ID` placeholder. With
+  that build, the privacy labels and Play's Data safety form must add Audio data.
+- **expo-audio turns background playback on by default** (an iOS background mode and an Android
+  foreground service that both stores ask you to justify): `app.json` turns it off explicitly.
 - **Testing without a microphone:** in the browser, replace `navigator.mediaDevices.getUserMedia`
   with a stream from a WAV (`say -o x.wav --file-format=WAVE --data-format=LEI16@16000 "…"`, with
   `[[slnc 900]]` for pauses). That's how phases 3 and 4 were checked live.
