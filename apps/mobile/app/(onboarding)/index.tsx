@@ -13,7 +13,7 @@
  * onboarding_step_viewed event fires by itself.
  */
 import { useEffect, useRef, useState } from 'react'
-import { DeviceEventEmitter, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { DISPLAY_NAME_MAX } from '@app/contract'
 import Animated, { FadeInLeft, FadeInRight, FadeOut, ReduceMotion } from 'react-native-reanimated'
@@ -27,7 +27,7 @@ import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
 import { haptic } from '@/lib/haptics'
 import { Durations, Easings } from '@/lib/motion'
-import { isSupabaseEnabled, supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 const STEPS = ['meet', 'name'] as const
 type Step = (typeof STEPS)[number]
@@ -72,13 +72,6 @@ export default function OnboardingScreen() {
 		setSaving(true)
 		setError(null)
 		const fullName = skippedName ? undefined : name.trim() || undefined
-
-		// Development without a backend: finish locally so the app can be reviewed.
-		if (__DEV__ && !isSupabaseEnabled) {
-			track('onboarding_completed', { skipped_name: !fullName })
-			DeviceEventEmitter.emit('__dev_skip_auth__')
-			return
-		}
 
 		// The name first: if it can't be saved, onboarding isn't finished, and the
 		// person sees why (the API's message) and can try again. The route makes

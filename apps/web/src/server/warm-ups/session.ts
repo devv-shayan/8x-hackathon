@@ -8,11 +8,8 @@ import { DEFAULT_STUDENTS } from '@/server/classroom/student-turn'
 import { toDueWarmUp } from './due'
 import { classStore } from '@/server/db/classes'
 import { warmUpStore, type StoredWarmUp } from '@/server/db/warm-ups'
-import { isLocalDemoUser } from '@/server/demo/local-demo'
 import { isGapDue, scheduleAfterJudgment } from '@/server/gaps/schedule'
 import { askWarmUpQuestion, judgeWarmUp } from './ask'
-
-const NOTHING_DUE = 'Nothing is due for a warm-up right now.'
 
 function toWarmUp(row: StoredWarmUp): WarmUp {
 	return {
@@ -40,7 +37,6 @@ async function studentFor(userId: string, topicId: string) {
 }
 
 export async function listDueWarmUps(userId: string, now = new Date()): Promise<DueWarmUp[]> {
-	if (isLocalDemoUser(userId)) return []
 	const gaps = await warmUpStore.listDue(userId, now)
 	return Promise.all(
 		gaps.map(async (gap) =>
@@ -57,7 +53,6 @@ export async function startWarmUp(input: {
 }): Promise<{ warmUp: WarmUp; created: boolean }> {
 	const { userId, gapId } = input
 	const now = input.now ?? new Date()
-	if (isLocalDemoUser(userId)) throw new ApiError('not_found', NOTHING_DUE)
 
 	const gap = await warmUpStore.findGap(userId, gapId)
 	if (!gap) throw notFound()
@@ -99,7 +94,6 @@ export async function answerWarmUp(input: {
 }): Promise<AnswerWarmUpResult> {
 	const { userId, warmUpId, answer } = input
 	const now = input.now ?? new Date()
-	if (isLocalDemoUser(userId)) throw new ApiError('not_found', NOTHING_DUE)
 
 	const row = await warmUpStore.findForAnswer(userId, warmUpId)
 	if (!row) throw notFound()

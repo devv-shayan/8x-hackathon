@@ -159,6 +159,14 @@ test('no token, another scheme, or an empty one: 401, and Supabase is never aske
 	assert.equal(handled, 0)
 })
 
+test('the old local-demo bearer is refused like any other bad token: 401', async () => {
+	const res = await call(echoRoute, { auth: 'Bearer local-demo', body: '{"name":"a"}' })
+	assert.equal(res.status, 401)
+	assert.equal((await res.json()).error.code, 'unauthorized')
+	assert.equal(handled, 0)
+	assert.deepEqual(authCalls, ['local-demo'])
+})
+
 test('a token Supabase refuses (malformed, expired, revoked, user deleted): 401', async () => {
 	const res = await call(echoRoute, { auth: 'Bearer expired-or-revoked', body: '{"name":"a"}' })
 	assert.equal(res.status, 401)

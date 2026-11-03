@@ -1,12 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { isPastedTopic } from '@app/contract'
-import {
-	demoConceptsFromPaste,
-	pasteTopicId,
-	segmentsFromPaste,
-	titleFromPaste
-} from './paste-text'
+import { pasteTopicId, segmentsFromPaste, titleFromPaste } from './paste-text'
 
 const NOTES = [
 	'Working memory is the mental workspace you use to hold information right now.',
@@ -32,11 +27,4 @@ test('a pasted title is the first line', () => {
 		titleFromPaste(NOTES),
 		'Working memory is the mental workspace you use to hold information right now.'
 	)
-})
-
-test('demo concepts from a paste have no timestamp', () => {
-	const concepts = demoConceptsFromPaste(segmentsFromPaste(NOTES))
-	assert.equal(concepts.length, 3)
-	assert.ok(concepts.every((concept) => concept.startSeconds === null))
-	assert.ok(concepts.every((concept) => NOTES.includes(concept.quote)))
 })

@@ -1,7 +1,6 @@
 import type { AuthOnlySupabaseClient } from '@/lib/supabase/auth-only'
 import { createSecretKeyClient, isAuthRetryableFetchError } from '@/lib/supabase/secret-key'
 import { ApiError } from '@/server/api/app-errors'
-import { isLocalDemoBearer, LOCAL_DEMO_USER } from '@/server/demo/local-demo'
 
 /** The person a verified access token belongs to. The only identity a route uses. */
 export type AppUser = {
@@ -37,16 +36,6 @@ export async function requireUser(req: Request): Promise<AppUser> {
 	// token, it falls back to the client's own session.
 	const token = match?.[1]?.trim()
 	if (!token) throw unauthorized()
-
-	// Local demo only: sign-in is skipped in the app, and this bearer reaches the class
-	// and scoring path without Supabase. Never true in production.
-	if (isLocalDemoBearer(token)) {
-		return {
-			id: LOCAL_DEMO_USER.id,
-			email: LOCAL_DEMO_USER.email,
-			fullName: LOCAL_DEMO_USER.fullName
-		}
-	}
 
 	let client: AuthOnlySupabaseClient
 	try {
