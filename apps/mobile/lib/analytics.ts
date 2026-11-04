@@ -71,6 +71,11 @@ type EventName =
 	// moment in the video. start_seconds discriminates, so two moments in one class both count.
 	| 'class_help_opened'
 	| 'class_help_clip_opened'
+	// class_question_shown_all { student: string }: they tapped the speech bubble to read the
+	// whole question before the student had finished saying it. Answers whether the word-by-
+	// word reveal is too slow (docs/class-scene-requirements.md). student discriminates, so
+	// Maya and Omar each count on the same day.
+	| 'class_question_shown_all'
 	| 'class_answered'
 	| 'class_finished'
 	// Assessment — judged on whether people who finish a class see what they missed, and on

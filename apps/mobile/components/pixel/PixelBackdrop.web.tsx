@@ -10,7 +10,13 @@ import type { PixelBackdropProps } from './types'
  * the same engine as the website. It draws only while the screen is focused and the tab is
  * visible, and holds one still frame under Reduce Motion.
  */
-export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackdropProps) {
+export function PixelBackdrop({
+	scene,
+	raised,
+	floor = null,
+	stage = null,
+	style
+}: PixelBackdropProps) {
 	const canvas = useRef<HTMLCanvasElement>(null)
 	const backdrop = useRef<Backdrop | null>(null)
 	const focused = useIsFocused()
@@ -18,6 +24,7 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 	const [visible, setVisible] = useState(() => document.visibilityState === 'visible')
 	const playing = focused && visible
 	const raisedKey = JSON.stringify(raised ?? {})
+	const stageKey = JSON.stringify(stage)
 
 	useEffect(() => {
 		const onChange = () => setVisible(document.visibilityState === 'visible')
@@ -32,7 +39,8 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 			raised: JSON.parse(raisedKey),
 			playing,
 			still,
-			floor
+			floor,
+			stage: JSON.parse(stageKey)
 		})
 		return () => backdrop.current?.stop()
 		// Started once; later changes go through update() below.
@@ -40,8 +48,15 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 	}, [])
 
 	useEffect(() => {
-		backdrop.current?.update({ scene, raised: JSON.parse(raisedKey), playing, still, floor })
-	}, [scene, raisedKey, playing, still, floor])
+		backdrop.current?.update({
+			scene,
+			raised: JSON.parse(raisedKey),
+			playing,
+			still,
+			floor,
+			stage: JSON.parse(stageKey)
+		})
+	}, [scene, raisedKey, playing, still, floor, stageKey])
 
 	return (
 		<View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>

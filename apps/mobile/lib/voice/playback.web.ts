@@ -3,10 +3,22 @@
 // adds an audio module.
 
 /**
- * Something playing, which can be stopped. `started` rejects if the browser won't start it
- * (autoplay before any tap); `done` settles when it ends, is stopped or fails.
+ * How far something has played: seconds in, its length once known, and for a voice that says
+ * which word it's on, how many characters of the text it has reached.
  */
-export type Playing = { stop: () => void; started: Promise<void>; done: Promise<void> }
+export type Progress = { elapsed: number; duration: number | null; spokenChars?: number }
+
+/**
+ * Something playing, which can be stopped. `started` rejects if the browser won't start it
+ * (autoplay before any tap); `done` settles when it ends, is stopped or fails. `progress` is
+ * read while it plays, so the question can be shown word by word in time with it.
+ */
+export type Playing = {
+	stop: () => void
+	started: Promise<void>
+	done: Promise<void>
+	progress: () => Progress
+}
 
 /** Whether this build can play a student's voice at all. */
 export const canPlayVoice = typeof window !== 'undefined' && typeof window.Audio === 'function'
@@ -27,7 +39,11 @@ export function playWav(base64: string): Playing {
 			audio.removeAttribute('src')
 		},
 		started,
-		done
+		done,
+		progress: () => ({
+			elapsed: audio.currentTime,
+			duration: Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : null
+		})
 	}
 }
 
@@ -38,10 +54,21 @@ export function speakWithDevice(text: string): Playing | null {
 	synth.cancel()
 	const utterance = new window.SpeechSynthesisUtterance(text)
 	utterance.lang = 'en-US'
+	const startedAt = Date.now()
+	// The browser says which word it's starting, so the words follow it exactly.
+	let spokenChars: number | undefined
+	utterance.onboundary = (event) => {
+		if (event.name === 'word' || event.name === undefined) spokenChars = event.charIndex + 1
+	}
 	const done = new Promise<void>((resolve) => {
 		utterance.onend = () => resolve()
 		utterance.onerror = () => resolve()
 	})
 	synth.speak(utterance)
-	return { stop: () => synth.cancel(), started: Promise.resolve(), done }
+	return {
+		stop: () => synth.cancel(),
+		started: Promise.resolve(),
+		done,
+		progress: () => ({ elapsed: (Date.now() - startedAt) / 1000, duration: null, spokenChars })
+	}
 }
