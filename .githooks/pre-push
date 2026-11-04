@@ -10,6 +10,9 @@
 # Checked in package.json rather than with --if-present, which yarn has no
 # equivalent for and pnpm forwards to the script when it follows the name.
 # Genuine exception (a check that can only run in a real CI runner): git push --no-verify
+# Git sets an absolute GIT_DIR for a hook run from a worktree. The gates' tests run git in
+# throwaway repositories, and with it set their `git init` reached this one and made it bare.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_PREFIX
 if [ -f pnpm-lock.yaml ]; then RUN="pnpm run"; elif [ -f yarn.lock ]; then RUN="yarn run"; else RUN="npm run"; fi
 echo "pre-push: running required local gates via '$RUN' (format, lint, typecheck, env, events, tests)…"
 fail=0
