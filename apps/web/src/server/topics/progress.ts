@@ -1,5 +1,6 @@
 import type { TopicGap } from '@app/contract'
 import type { ConceptResult } from '@/server/classroom/score-explanation'
+import { RIGHTS_TO_CLOSE } from '@/server/gaps/schedule'
 import type { KeyConcept } from '@/server/video/key-concepts'
 
 // One video's progress, from its latest finished class and its gaps: what Home's rows and the
@@ -10,8 +11,15 @@ export type StoredGap = {
 	concept: KeyConcept
 	nextDueAt: Date
 	closedAt: Date | null
+	rightStreak: number
 	/** Answered warm-ups, oldest first. */
-	warmUps: { createdAt: Date; studentName: string; isRight: boolean }[]
+	warmUps: {
+		createdAt: Date
+		studentName: string
+		question: string
+		answer: string | null
+		isRight: boolean
+	}[]
 }
 
 export type Score = { correct: number; total: number }
@@ -51,13 +59,18 @@ export function topicGaps(
 		.map((gap) => ({
 			id: gap.id,
 			concept_title: gap.concept.title,
+			quote: gap.concept.quote,
+			right_streak: gap.rightStreak,
+			rights_to_close: RIGHTS_TO_CLOSE,
 			start_seconds: gap.concept.startSeconds ?? null,
 			closed: gap.closedAt !== null,
 			next_due_at: gap.closedAt ? null : gap.nextDueAt.toISOString(),
 			taught_last_class: taught.has(gap.concept.title),
-			warm_ups: gap.warmUps.map(({ createdAt, studentName, isRight }) => ({
+			warm_ups: gap.warmUps.map(({ createdAt, studentName, question, answer, isRight }) => ({
 				asked_at: createdAt.toISOString(),
 				student_name: studentName,
+				question,
+				answer,
 				is_right: isRight
 			}))
 		}))

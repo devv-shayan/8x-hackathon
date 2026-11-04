@@ -205,9 +205,13 @@ type EventName =
 	// people check a video's progress and teach it again.
 	//   topic_viewed              the page opens. metadata: { topic_id, open_gaps: number }
 	//   topic_teach_again_tapped  "Teach it again". metadata: { topic_id }
+	//   topic_warm_ups_opened     a gap's full warm-up history (each question and what the
+	//                             person said). metadata: { topic_id, warm_up_count: number }.
+	//                             Answers whether people look back at their own answers.
 	// topic_id discriminates, so two videos the same day both count.
 	| 'topic_viewed'
 	| 'topic_teach_again_tapped'
+	| 'topic_warm_ups_opened'
 	// Voice (docs/voice-requirements.md) — explaining and answering out loud, and the
 	// students speaking their questions. Judged on whether people teach by voice: THE
 	// metric is class_answered with method 'voice'. class_started, class_answered and

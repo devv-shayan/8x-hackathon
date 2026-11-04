@@ -1,7 +1,8 @@
 /**
- * The topic page: each gap's warm-up history, and a closed gap reading as closed.
+ * The topic page: each gap's warm-ups with the question and what the person said, the latest
+ * shown and the rest a tap away, and a closed gap reading as closed.
  */
-import { render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen } from '@testing-library/react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { TopicGaps } from '@app/contract'
 import TopicScreen from '@/app/topic/[id]'
@@ -36,18 +37,36 @@ const PAGE: TopicGaps = {
 		{
 			id: 'open',
 			concept_title: 'Writing a Novel in a Month',
+			quote: 'write 1,667 words a day',
+			right_streak: 1,
+			rights_to_close: 2,
 			start_seconds: 111,
 			closed: false,
 			next_due_at: '2026-11-07T08:00:00.000Z',
 			taught_last_class: false,
 			warm_ups: [
-				{ asked_at: '2026-10-31T12:00:00.000Z', student_name: 'Maya', is_right: false },
-				{ asked_at: '2026-11-02T12:00:00.000Z', student_name: 'Omar', is_right: true }
+				{
+					asked_at: '2026-10-31T12:00:00.000Z',
+					student_name: 'Maya',
+					question: 'How many words a day?',
+					answer: "I don't remember.",
+					is_right: false
+				},
+				{
+					asked_at: '2026-11-02T12:00:00.000Z',
+					student_name: 'Omar',
+					question: 'So how did he finish it?',
+					answer: 'He wrote 1,667 words every day.',
+					is_right: true
+				}
 			]
 		},
 		{
 			id: 'closed',
 			concept_title: 'Growing Self-Confidence',
+			quote: 'my self-confidence grew',
+			right_streak: 2,
+			rights_to_close: 2,
 			start_seconds: 66,
 			closed: true,
 			next_due_at: null,
@@ -71,12 +90,20 @@ async function renderPage() {
 }
 
 describe('the topic page', () => {
-	it('shows who asked each warm-up and how it went, oldest first', async () => {
+	it("shows the latest warm-up's question and what you said, and the rest on a tap", async () => {
 		await renderPage()
-		const lines = screen.getAllByText(/^(Maya|Omar), .*: (right|not quite)$/)
-		expect(lines).toHaveLength(2)
-		expect(lines[0]).toHaveTextContent(/^Maya, .*: not quite$/)
-		expect(lines[1]).toHaveTextContent(/^Omar, .*: right$/)
+		expect(screen.getByText('“write 1,667 words a day”')).toBeTruthy()
+		expect(screen.getByText('1 of 2 right')).toBeTruthy()
+		expect(screen.getByText('“So how did he finish it?”')).toBeTruthy()
+		expect(screen.getByText('He wrote 1,667 words every day.')).toBeTruthy()
+		// The older one waits behind "1 earlier".
+		expect(screen.queryByText("I don't remember.")).toBeNull()
+		fireEvent.press(screen.getByText('1 earlier ›'))
+		expect(screen.getByText("I don't remember.")).toBeTruthy()
+		expect(track).toHaveBeenCalledWith('topic_warm_ups_opened', {
+			topic_id: 'topic',
+			warm_up_count: 2
+		})
 	})
 
 	it('reads a closed gap as closed, and counts only open ones', async () => {
