@@ -1,11 +1,15 @@
 import 'server-only'
 import { isPastedTopic, MAX_CLASS_QUESTIONS, type ClassSession } from '@app/contract'
 import { notFound } from '@/server/api/app-route'
+import { setTimeout } from 'node:timers/promises'
 import { ApiError } from '@/server/api/app-errors'
 import { classStore } from '@/server/db/classes'
 import { gapStore } from '@/server/db/gaps'
 import { log } from '@/server/lib/logger'
 import { topicStore, type TopicRecord } from '@/server/db/topics'
+import { conceptsStillInVideo } from '@/server/video/key-concepts'
+import { NOT_IN_VIDEO_EVENTS } from '@/lib/analytics/events'
+import { recordUserEvent } from '@/lib/analytics/record'
 import { findStudentReactions } from './find-reactions'
 import { explainFromVideo } from './help'
 import { scoreAfterClass, scoreExplanation } from './find-explanation-score'
@@ -17,6 +21,16 @@ type StoredClass = NonNullable<Awaited<ReturnType<typeof classStore.find>>>
 
 type Outcome = 'answered' | 'needed_help' | 'skipped'
 
+/**
+ * How long to wait before asking for the students' reactions once more when Gemini is busy
+ * (it has already been tried twice by then). A setting, so a test can skip the wait.
+ */
+export const reactionRetry = { delayMs: 3000 }
+
+function isBusy(error: unknown) {
+	return error instanceof ApiError && error.code === 'unavailable'
+}
+
 // Scoring never holds a class up: without a score the students ask about every concept, and the
 // class is scored again when it ends.
 async function tryScore(topic: TopicRecord, explanation: string) {
@@ -24,7 +38,7 @@ async function tryScore(topic: TopicRecord, explanation: string) {
 		return await scoreExplanation({
 			topicId: topic.id,
 			segments: topic.segments,
-			concepts: topic.concepts,
+			concepts: conceptsStillInVideo(topic.concepts),
 			explanation
 		})
 	} catch (error) {
@@ -38,7 +52,7 @@ async function tryScore(topic: TopicRecord, explanation: string) {
 }
 
 function focusConcepts(topic: TopicRecord, results: StoredClass['conceptResults']): string[] {
-	return focusConceptLines(topic.concepts, results)
+	return focusConceptLines(conceptsStillInVideo(topic.concepts), results)
 }
 
 type StoredTurn = StoredClass['turns'][number]
@@ -169,16 +183,18 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 		finished,
 		// Scoring stays off the wire until the class ends (docs/product/context.md).
 		concept_results: finished
-			? session.conceptResults.map(({ concept, result, resultAfterClass }) => {
-					const stored = byTitle.get(concept)
-					return {
-						concept,
-						result,
-						result_after_class: resultAfterClass ?? null,
-						start_seconds: stored?.startSeconds ?? null,
-						quote: stored?.quote ?? null
-					}
-				})
+			? session.conceptResults
+					.filter(({ concept }) => byTitle.get(concept)?.notInVideo !== true)
+					.map(({ concept, result, resultAfterClass }) => {
+						const stored = byTitle.get(concept)
+						return {
+							concept,
+							result,
+							result_after_class: resultAfterClass ?? null,
+							start_seconds: stored?.startSeconds ?? null,
+							quote: stored?.quote ?? null
+						}
+					})
 			: null,
 		reactions: finished
 			? (session.reactions ?? []).map(({ studentId, text }) => ({
@@ -199,7 +215,7 @@ async function tryScoreAfterClass(topic: TopicRecord, session: StoredClass) {
 		return await scoreAfterClass({
 			topicId: topic.id,
 			segments: topic.segments,
-			concepts: topic.concepts,
+			concepts: conceptsStillInVideo(topic.concepts),
 			explanation: session.explanation,
 			answers
 		})
@@ -231,6 +247,17 @@ async function scoreFinishedClass(userId: string, classId: string) {
 	if (!hadScore) await rememberGaps({ userId, topic, results: first })
 }
 
+/** The students' reactions, asked for once more after a pause if Gemini is busy. */
+async function findReactionsOrRetry(input: Parameters<typeof findStudentReactions>[0]) {
+	try {
+		return await findStudentReactions(input)
+	} catch (error) {
+		if (!isBusy(error)) throw error
+		await setTimeout(reactionRetry.delayMs)
+		return findStudentReactions(input)
+	}
+}
+
 /** Best effort: a failure still returns the scored results with an empty reactions list. */
 async function writeReactions(userId: string, classId: string) {
 	const session = await classStore.find(userId, classId)
@@ -243,7 +270,7 @@ async function writeReactions(userId: string, classId: string) {
 		return
 	}
 	try {
-		const reactions = await findStudentReactions({
+		const reactions = await findReactionsOrRetry({
 			classId,
 			students: speakers.map(({ id, name, persona }) => ({ id, name, persona })),
 			turns: heard.map(({ studentId, question, answer, outcome }) => ({
@@ -258,6 +285,7 @@ async function writeReactions(userId: string, classId: string) {
 		log.warn('could not write class reactions', {
 			source: 'classroom/class-session',
 			class_id: classId,
+			busy: isBusy(error),
 			error: error instanceof Error ? error.message : String(error)
 		})
 		await classStore.saveReactions(classId, [])
@@ -280,7 +308,7 @@ async function rememberGaps(input: {
 	await gapStore.saveFromResults({
 		userId: input.userId,
 		topicId: input.topic.id,
-		concepts: input.topic.concepts,
+		concepts: conceptsStillInVideo(input.topic.concepts),
 		results: input.results,
 		foundAt: new Date()
 	})
@@ -339,6 +367,33 @@ export async function answerTurn(
 		])
 	}
 	return finishClass(userId, classId)
+}
+
+/**
+ * The person says one scored idea was not in the video. It leaves this topic's
+ * results and its open warm-ups, and a later class is not scored on it again.
+ */
+export async function flagNotInVideo(userId: string, classId: string, concept: string) {
+	const session = await classStore.find(userId, classId)
+	if (!session) throw notFound()
+	if (session.turns.some(isOpen)) {
+		throw new ApiError('invalid_request', 'Finish the class before flagging an idea.')
+	}
+	if (!session.conceptResults.some((item) => item.concept === concept)) {
+		throw new ApiError('invalid_request', "That idea isn't in this class.")
+	}
+	const marked = await topicStore.markNotInVideo(userId, session.topicId, concept)
+	if (marked === 'missing') throw notFound()
+	await classStore.dropConcept(session.topicId, concept)
+	await gapStore.closeOpenByTitle(userId, session.topicId, concept)
+	if (marked === 'marked') {
+		await recordUserEvent(userId, NOT_IN_VIDEO_EVENTS.flagged, {
+			path: '/api/app/v1/classes',
+			metadata: { concept },
+			dedupeMatch: { concept }
+		})
+	}
+	return toWireClass(userId, classId)
 }
 
 /** One of the person's classes as it stands now, so the app can catch up after a timeout. */

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -30,27 +30,93 @@ function leave() {
 	else router.replace('/(tabs)')
 }
 
-/** One past warm-up on a gap: who asked, when, and how it went. */
-function WarmUpLine({ warmUp }: { warmUp: TopicGapWarmUp }) {
+/**
+ * One past warm-up on a gap: who asked and when, how it went, the student's question and what
+ * the person said back.
+ */
+function WarmUpCard({ warmUp }: { warmUp: TopicGapWarmUp }) {
+	const { colors: c, radii } = useTheme()
 	const when = new Date(warmUp.asked_at).toLocaleDateString(undefined, {
 		day: 'numeric',
 		month: 'short'
 	})
+	const result = warmUp.is_right ? 'Right' : 'Not quite'
 	return (
-		<Text variant="caption" tone={warmUp.is_right ? 'primary' : 'tertiary'}>
-			{`${warmUp.student_name}, ${when}: ${warmUp.is_right ? 'right' : 'not quite'}`}
-		</Text>
+		<View
+			style={[s.warmUp, { backgroundColor: c.well, borderRadius: radii.xl }]}
+			accessible
+			accessibilityLabel={`${warmUp.student_name}, ${when}, ${result}. Asked: ${warmUp.question}${warmUp.answer ? `. You said: ${warmUp.answer}` : ''}`}
+		>
+			<MonoLabel
+				right={
+					<View
+						style={[
+							s.result,
+							{
+								backgroundColor: warmUp.is_right ? c.brandFill : c.surface3,
+								borderRadius: radii.sm
+							}
+						]}
+					>
+						<Text
+							variant="eyebrow"
+							style={{ color: warmUp.is_right ? c.onBrand : c.textSecondary }}
+						>
+							{result}
+						</Text>
+					</View>
+				}
+			>
+				{`${warmUp.student_name} · ${when}`}
+			</MonoLabel>
+			<Text variant="caption" tone="secondary">{`“${warmUp.question}”`}</Text>
+			{warmUp.answer ? (
+				<View style={s.said}>
+					<Text variant="eyebrow" tone="secondary">
+						You said
+					</Text>
+					<Text variant="bodySm">{warmUp.answer}</Text>
+				</View>
+			) : null}
+		</View>
 	)
 }
 
-function GapRow({ gap }: { gap: TopicGap }) {
+/** How close an open gap is to closing: one pip per right answer it needs. */
+function Streak({ gap }: { gap: TopicGap }) {
 	const { colors: c } = useTheme()
+	return (
+		<View
+			style={s.streak}
+			accessible
+			accessibilityLabel={`${gap.right_streak} of ${gap.rights_to_close} right`}
+		>
+			{Array.from({ length: gap.rights_to_close }, (_, i) => (
+				<View
+					key={i}
+					style={[s.pip, { backgroundColor: i < gap.right_streak ? c.textPrimary : c.surface3 }]}
+				/>
+			))}
+			<Text variant="caption" tone="secondary">
+				{`${gap.right_streak} of ${gap.rights_to_close} right`}
+			</Text>
+		</View>
+	)
+}
+
+function GapRow({ gap, onOpenWarmUps }: { gap: TopicGap; onOpenWarmUps: (count: number) => void }) {
+	const { colors: c } = useTheme()
+	const [all, setAll] = useState(false)
 	const when = gap.next_due_at ? dueDay(gap.next_due_at) : null
 	const note = gap.closed
 		? 'Closed: right twice in warm-ups'
 		: gap.taught_last_class
 			? `Taught last class · checks it stuck ${when}`
 			: `Missed · warm-up ${when}`
+	// Newest first. An open gap shows its latest warm-up; a closed one folds them all away.
+	const newest = [...gap.warm_ups].reverse()
+	const shown = all ? newest : gap.closed ? [] : newest.slice(0, 1)
+	const hidden = newest.length - shown.length
 	return (
 		<View style={[s.gap, { borderTopColor: c.borderHairline }]}>
 			<View
@@ -70,12 +136,34 @@ function GapRow({ gap }: { gap: TopicGap }) {
 				<Text variant="label" style={s.gapTitle}>
 					{gap.concept_title}
 				</Text>
+				<Text variant="caption" tone="secondary" style={s.quote}>
+					{`“${gap.quote}”`}
+				</Text>
 				<Text variant="caption" tone="secondary">
 					{note}
 				</Text>
-				{gap.warm_ups.map((warmUp) => (
-					<WarmUpLine key={warmUp.asked_at} warmUp={warmUp} />
+				{gap.closed ? null : <Streak gap={gap} />}
+				{shown.map((warmUp) => (
+					<WarmUpCard key={warmUp.asked_at} warmUp={warmUp} />
 				))}
+				{hidden > 0 ? (
+					<PressableScale
+						onPress={() => {
+							setAll(true)
+							onOpenWarmUps(gap.warm_ups.length)
+						}}
+						accessibilityRole="button"
+						accessibilityLabel={`Show ${hidden} more ${hidden === 1 ? 'warm-up' : 'warm-ups'}`}
+						hitSlop={8}
+						style={s.more}
+					>
+						<Text variant="label" style={s.moreText}>
+							{gap.closed && shown.length === 0
+								? `${hidden} ${hidden === 1 ? 'warm-up' : 'warm-ups'} ›`
+								: `${hidden} earlier ›`}
+						</Text>
+					</PressableScale>
+				) : null}
 			</View>
 			{gap.start_seconds != null ? (
 				<Text variant="eyebrow" tone="secondary">
@@ -224,7 +312,13 @@ export default function TopicScreen() {
 							{data && data.gaps.length > 0 ? (
 								<View style={s.list}>
 									{data.gaps.map((gap) => (
-										<GapRow key={gap.id} gap={gap} />
+										<GapRow
+											key={gap.id}
+											gap={gap}
+											onOpenWarmUps={(count) =>
+												track('topic_warm_ups_opened', { topic_id: id, warm_up_count: count })
+											}
+										/>
 									))}
 								</View>
 							) : null}
@@ -283,5 +377,13 @@ const s = StyleSheet.create({
 	},
 	gapCopy: { flex: 1, gap: 2 },
 	gapTitle: { fontSize: 15, lineHeight: 20 },
+	quote: { fontStyle: 'italic' },
+	streak: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+	pip: { width: 14, height: 4 },
+	warmUp: { marginTop: 8, padding: 12, gap: 4 },
+	result: { paddingHorizontal: 6, paddingVertical: 1 },
+	said: { marginTop: 4, gap: 1 },
+	more: { marginTop: 8, alignSelf: 'flex-start' },
+	moreText: { fontSize: 14 },
 	cta: { marginTop: 20 }
 })

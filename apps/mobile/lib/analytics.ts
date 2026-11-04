@@ -71,9 +71,12 @@ type EventName =
 	// Metadata: assessment_viewed { correct_count: number, final_correct_count: number,
 	// fixed_count: number, concept_count: number }. correct_count is the first explanation's.
 	// assessment_clip_opened { concept }: they opened the video at a missed idea's timestamp.
-	// concept discriminates so two clips the same day both count.
+	// concept_not_in_video { concept }: they flagged an idea as not in the video, and it
+	// left the score. That flag is the metric. concept discriminates so two ideas the
+	// same day both count. assessment_viewed without a flag is the drop-off.
 	| 'assessment_viewed'
 	| 'assessment_clip_opened'
+	| 'concept_not_in_video'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:
 	//   { method: 'email' | 'apple' | 'google' }
@@ -207,9 +210,13 @@ type EventName =
 	// people check a video's progress and teach it again.
 	//   topic_viewed              the page opens. metadata: { topic_id, open_gaps: number }
 	//   topic_teach_again_tapped  "Teach it again". metadata: { topic_id }
+	//   topic_warm_ups_opened     a gap's full warm-up history (each question and what the
+	//                             person said). metadata: { topic_id, warm_up_count: number }.
+	//                             Answers whether people look back at their own answers.
 	// topic_id discriminates, so two videos the same day both count.
 	| 'topic_viewed'
 	| 'topic_teach_again_tapped'
+	| 'topic_warm_ups_opened'
 	// Voice (docs/voice-requirements.md) — explaining and answering out loud, and the
 	// students speaking their questions. Judged on whether people teach by voice: THE
 	// metric is class_answered with method 'voice'. class_started, class_answered and

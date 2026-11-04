@@ -24,6 +24,7 @@ const gap = (
 	concept: { title, quote: title.toLowerCase(), startSeconds: 60 },
 	nextDueAt,
 	closedAt,
+	rightStreak: 0,
 	warmUps: []
 })
 
@@ -56,17 +57,45 @@ test('gaps list open ones soonest first, then closed, and mark what the last cla
 	assert.equal(listed[0]!.next_due_at, WED.toISOString())
 })
 
-test("a gap carries its answered warm-ups, in the order they're stored", () => {
-	const first = { createdAt: MON, studentName: 'Maya', isRight: false }
-	const second = { createdAt: WED, studentName: 'Omar', isRight: true }
+test("a gap carries its answered warm-ups, in the order they're stored, with what was said", () => {
+	const first = {
+		createdAt: MON,
+		studentName: 'Maya',
+		question: 'Why a novel?',
+		answer: "I don't remember.",
+		isRight: false
+	}
+	const second = {
+		createdAt: WED,
+		studentName: 'Omar',
+		question: 'And the word count?',
+		answer: '1,667 words a day.',
+		isRight: true
+	}
 	const [listed] = topicGaps(
-		[{ ...gap('novel', 'A novel', SAT), warmUps: [first, second] }],
+		[{ ...gap('novel', 'A novel', SAT), rightStreak: 1, warmUps: [first, second] }],
 		RESULTS
 	)
 	assert.deepEqual(listed!.warm_ups, [
-		{ asked_at: MON.toISOString(), student_name: 'Maya', is_right: false },
-		{ asked_at: WED.toISOString(), student_name: 'Omar', is_right: true }
+		{
+			asked_at: MON.toISOString(),
+			student_name: 'Maya',
+			question: 'Why a novel?',
+			answer: "I don't remember.",
+			is_right: false
+		},
+		{
+			asked_at: WED.toISOString(),
+			student_name: 'Omar',
+			question: 'And the word count?',
+			answer: '1,667 words a day.',
+			is_right: true
+		}
 	])
+	// The video's words for the idea, and how close it is to closing.
+	assert.equal(listed!.quote, 'a novel')
+	assert.equal(listed!.right_streak, 1)
+	assert.equal(listed!.rights_to_close, 2)
 })
 
 test("a video's row counts ideas taught after class and its next warm-up", () => {

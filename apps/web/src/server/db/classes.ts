@@ -52,6 +52,20 @@ export function createClassStore(client: Pick<PrismaClient, 'class' | 'classTurn
 			await client.class.update({ where: { id: classId }, data: { conceptResults } })
 		},
 
+		/** Drops one idea from every class on a topic, so the score no longer counts it. */
+		async dropConcept(topicId: string, title: string) {
+			const rows = await client.class.findMany({
+				where: { topicId },
+				select: { id: true, conceptResults: true }
+			})
+			for (const row of rows) {
+				const results = parseStoredConceptResults(row.conceptResults)
+				const next = results.filter((item) => item.concept !== title)
+				if (next.length === results.length) continue
+				await client.class.update({ where: { id: row.id }, data: { conceptResults: next } })
+			}
+		},
+
 		/** Closing lines after the class. Best effort: only write once. */
 		async saveReactions(classId: string, reactions: StoredReaction[]) {
 			await client.class.update({

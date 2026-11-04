@@ -1,7 +1,7 @@
 import 'server-only'
 import { generateContent } from '@/server/ai/gemini'
 import type { KeyConcept } from '@/server/video/key-concepts'
-import { toVideoError } from '@/server/video/read-video'
+import { AI_BUSY, toVideoError } from '@/server/video/read-video'
 import type { TranscriptSegment } from '@/server/video/transcript'
 import {
 	buildAfterClassPrompt,
@@ -48,7 +48,7 @@ async function score(
 		)
 		return parseExplanationScore(response.text, concepts)
 	} catch (error) {
-		throw toVideoError(error)
+		throw toVideoError(error, AI_BUSY)
 	}
 }
 

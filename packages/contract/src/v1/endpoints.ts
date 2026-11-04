@@ -44,6 +44,7 @@ import {
 	classResponse,
 	classTurnParams,
 	endClassBody,
+	notInVideoBody,
 	openClassQuery,
 	openClassResponse,
 	startClassBody
@@ -118,6 +119,15 @@ export const endpoints = {
 		auth: 'user',
 		params: classParams,
 		body: endClassBody,
+		response: classResponse,
+		status: 200
+	},
+	flagNotInVideo: {
+		method: 'POST',
+		path: '/api/app/v1/classes/:id/not-in-video',
+		auth: 'user',
+		params: classParams,
+		body: notInVideoBody,
 		response: classResponse,
 		status: 200
 	},
