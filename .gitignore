@@ -77,6 +77,10 @@ desktop.ini
 # Test coverage
 coverage/
 
+# Local browser walk. The steps are in docs/memory/browser-cycles.md. The runner
+# and its reports stay on the machine.
+cycles/
+
 # Misc
 *.tgz
 

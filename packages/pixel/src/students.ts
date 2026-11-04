@@ -17,6 +17,18 @@ const PALETTES = {
 	wood: ['#24140a', '#4e2c0f', '#7a4818', '#a8702a', '#d9a75a']
 } as const
 
+/**
+ * A classroom chalkboard. Illustration colours, not UI tokens.
+ * The pixel fields' greens are lime and olive, which is a different green.
+ */
+export const CLASSROOM_BOARD = {
+	wood: PALETTES.wood,
+	green: '#146B48',
+	chalk: '#F4F0E4',
+	/** A chalk swipe behind a word. Not the brand's lime highlight. */
+	mark: '#E6D48A'
+} as const
+
 export type Material = keyof typeof PALETTES
 
 const COLOURS = Object.fromEntries(

@@ -137,6 +137,24 @@ export const getTopicGapsResponse = z.object({
 	gaps: z.array(topicGapSchema)
 })
 
+/** One gap on Maya's board. Ideas explained right the first time are not here: they have no date. */
+export const memoryIdeaSchema = z.object({
+	gap_id: uuid,
+	topic_id: uuid,
+	topic_title: z.string(),
+	concept_title: z.string(),
+	closed: z.boolean(),
+	/** When it comes back as a warm-up; null once closed. */
+	next_due_at: isoDateTime.nullable(),
+	/** A warm-up has been judged. A fresh gap fades over two days; a judged one over five. */
+	judged: z.boolean()
+})
+
+export const listMemoryResponse = z.object({
+	ideas: z.array(memoryIdeaSchema)
+})
+
+export type MemoryIdea = z.infer<typeof memoryIdeaSchema>
 export type Video = z.infer<typeof videoSchema>
 export type KeyConcept = z.infer<typeof keyConceptSchema>
 export type TopicSummary = z.infer<typeof topicSummarySchema>

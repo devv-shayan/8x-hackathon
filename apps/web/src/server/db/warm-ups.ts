@@ -4,6 +4,7 @@ import { keyConceptSchema, type KeyConcept } from '@/server/video/key-concepts'
 import { transcriptSegmentSchema, type TranscriptSegment } from '@/server/video/transcript'
 import type { ScheduledGap } from '@/server/gaps/schedule'
 import { db } from './client'
+import { rememberOpeningMark } from './memory-reminders'
 
 // The person's due gaps and the warm-ups asked about them. Every method takes
 // the user id the route verified. A failed query throws; an empty due list is
@@ -234,7 +235,8 @@ export function createWarmUpStore(client: PrismaClient) {
 			schedule: ScheduledGap
 		}): Promise<'saved' | 'missing' | 'answered'> {
 			const { userId, warmUpId, answer, isRight, schedule } = input
-			return client.$transaction(async (tx) => {
+			let openingGapId: string | null = null
+			const outcome = await client.$transaction(async (tx) => {
 				const row = await tx.warmUp.findFirst({
 					where: { id: warmUpId, gap: { userId } },
 					select: {
@@ -266,8 +268,20 @@ export function createWarmUpStore(client: PrismaClient) {
 				if (moved.count === 0) {
 					throw new ApiError('conflict', 'That gap is already closed.')
 				}
-				return 'saved'
+				// A closed gap is done. An open one starts full: that mark is the answer
+				// they just gave, so it is not a reminder.
+				if (schedule.closedAt == null) openingGapId = row.gapId
+				return 'saved' as const
 			})
+			if (outcome === 'saved' && openingGapId) {
+				await rememberOpeningMark(client, {
+					gapId: openingGapId,
+					userId,
+					dueAt: schedule.nextDueAt,
+					at: new Date()
+				})
+			}
+			return outcome
 		}
 	}
 }

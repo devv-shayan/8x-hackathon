@@ -19,9 +19,11 @@ import {
 	transcribeSpeechResponse
 } from './speech'
 import { createUploadBody, createUploadResponse } from './uploads'
+import { registerPushTokenBody, registerPushTokenResponse } from './push'
 import {
 	getTopicGapsResponse,
 	getTopicResponse,
+	listMemoryResponse,
 	listTopicsResponse,
 	pasteTextBody,
 	readVideoBody,
@@ -168,6 +170,21 @@ export const endpoints = {
 		auth: 'user',
 		params: topicParams,
 		response: getTopicGapsResponse,
+		status: 200
+	},
+	listMemory: {
+		method: 'GET',
+		path: '/api/app/v1/memory',
+		auth: 'user',
+		response: listMemoryResponse,
+		status: 200
+	},
+	registerPushToken: {
+		method: 'POST',
+		path: '/api/app/v1/push-token',
+		auth: 'user',
+		body: registerPushTokenBody,
+		response: registerPushTokenResponse,
 		status: 200
 	},
 	getConfig: {

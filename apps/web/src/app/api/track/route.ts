@@ -27,7 +27,8 @@ const EVENT_DISCRIMINATORS: Record<string, readonly string[]> = {
 	store_badge_clicked: ['store'],
 	cta_clicked: ['cta'],
 	faq_opened: ['question'],
-	concept_not_in_video: ['concept']
+	concept_not_in_video: ['concept'],
+	memory_reminder_sent: ['gap_id', 'stage']
 }
 
 const MAX_VALUE_LEN = 64

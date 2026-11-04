@@ -116,6 +116,13 @@
 			"@sentry/react-native",
 			"expo-web-browser",
 			[
+				"expo-notifications",
+				{
+					"//": "Reminders that an idea on Maya's memory is fading. Permission is asked on that screen, not at launch. This is native, so it needs a store build.",
+					"color": "#146B48"
+				}
+			],
+			[
 				"expo-audio",
 				{
 					"//": "Voice (docs/voice-requirements.md): the microphone for answers and explanations, never in the background. iOS keeps one microphone string, so the research widget and the image picker say the same.",

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { isPastedTopic, parseYouTubeVideoId, type DueWarmUp, type Video } from '@app/contract'
 import { DueWarmUps, openWarmUp } from '@/components/DueWarmUps'
+import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { ReadingView, type ReadingPhase } from '@/components/reading/ReadingView'
 import { RecentTopics, topicsQueryKey } from '@/components/RecentTopics'
@@ -287,6 +288,15 @@ export default function HomeScreen() {
 				<SheetCard style={s.sheet}>
 					{/* Ready sits above warm-ups so a fresh read isn't pushed down by "Nothing due". */}
 					{video ? <ReadyToTeach video={video} /> : null}
+					<PressableScale
+						onPress={() => router.push('/memory')}
+						accessibilityRole="button"
+						accessibilityLabel="Maya's memory"
+						scaleTo="card"
+					>
+						<MonoLabel>Maya&apos;s memory</MonoLabel>
+						<Text variant="body">What she might forget</Text>
+					</PressableScale>
 					<DueWarmUps />
 					<RecentTopics />
 				</SheetCard>
