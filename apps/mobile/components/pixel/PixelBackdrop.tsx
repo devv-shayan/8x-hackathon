@@ -26,6 +26,8 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 		floor
 	})
 	const initial = useRef(state).current
+	const latest = useRef(state)
+	latest.current = state
 
 	useEffect(() => {
 		web.current?.injectJavaScript(`window.__backdrop&&window.__backdrop(${state});true;`)
@@ -39,7 +41,14 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 					originWhitelist={['*']}
 					source={{ html: BACKDROP_HTML }}
 					injectedJavaScriptBeforeContentLoaded={`window.__initial=${initial};true;`}
-					onLoadEnd={() => setLoaded(true)}
+					onLoadEnd={() => {
+						// A change made while the page loaded never reached it (the sheet's floor is
+						// measured after the first render): send the latest.
+						web.current?.injectJavaScript(
+							`window.__backdrop&&window.__backdrop(${latest.current});true;`
+						)
+						setLoaded(true)
+					}}
 					scrollEnabled={false}
 					bounces={false}
 					overScrollMode="never"
