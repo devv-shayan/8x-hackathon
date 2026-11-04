@@ -67,11 +67,14 @@ export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 					concept: true,
 					nextDueAt: true,
 					closedAt: true,
+					rightStreak: true,
 					warmUps: {
 						where: { isRight: { not: null } },
 						orderBy: { createdAt: 'asc' },
 						select: {
 							createdAt: true,
+							question: true,
+							answer: true,
 							isRight: true,
 							student: { select: { name: true } }
 						}
@@ -85,9 +88,12 @@ export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 					concept: keyConceptSchema.parse(row.concept),
 					nextDueAt: row.nextDueAt,
 					closedAt: row.closedAt,
+					rightStreak: row.rightStreak,
 					warmUps: row.warmUps.map((warmUp) => ({
 						createdAt: warmUp.createdAt,
 						studentName: warmUp.student.name,
+						question: warmUp.question,
+						answer: warmUp.answer,
 						isRight: warmUp.isRight === true
 					}))
 				})

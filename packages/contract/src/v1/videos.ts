@@ -90,10 +90,16 @@ const scoreSchema = z.object({
 	total: z.number().int().nonnegative()
 })
 
-/** One answered warm-up on a gap: when it was asked, by whom, and if the answer was right. */
+/**
+ * One answered warm-up on a gap: when it was asked, by whom, the question, what the person said
+ * and if it was right. Only the person's own words and the student's question: no transcript.
+ */
 export const topicGapWarmUpSchema = z.object({
 	asked_at: isoDateTime,
 	student_name: z.string(),
+	question: z.string(),
+	/** Null for a warm-up answered before answers were kept. */
+	answer: z.string().nullable(),
 	is_right: z.boolean()
 })
 
@@ -101,6 +107,11 @@ export const topicGapWarmUpSchema = z.object({
 export const topicGapSchema = z.object({
 	id: uuid,
 	concept_title: z.string(),
+	/** What the video says about it, in its own words. */
+	quote: z.string(),
+	/** Right answers in a row so far, and how many close it. */
+	right_streak: z.number().int().nonnegative(),
+	rights_to_close: z.number().int().positive(),
 	/** Null when the idea came from pasted text and has no moment in a video. */
 	start_seconds: z.number().int().nonnegative().nullable(),
 	closed: z.boolean(),
