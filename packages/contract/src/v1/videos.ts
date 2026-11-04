@@ -144,3 +144,33 @@ export type ListedTopic = z.infer<typeof listedTopicSchema>
 export type TopicGap = z.infer<typeof topicGapSchema>
 export type TopicGapWarmUp = z.infer<typeof topicGapWarmUpSchema>
 export type TopicGaps = z.infer<typeof getTopicGapsResponse>
+
+const YOUTUBE_ID = /^[\w-]{11}$/
+const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com'])
+const ID_PATH_PREFIXES = ['embed', 'shorts', 'live']
+
+/**
+ * The video id in a YouTube link (watch, youtu.be, shorts, embed, live), or null. Shared so the
+ * app can show a video's thumbnail the moment a link is pasted, and the server reads it the
+ * same way.
+ */
+export function parseYouTubeVideoId(input: string): string | null {
+	let url: URL
+	try {
+		url = new URL(input.trim())
+	} catch {
+		return null
+	}
+	const [first, second] = url.pathname.split('/').filter(Boolean)
+	const id =
+		url.hostname === 'youtu.be'
+			? first
+			: !YOUTUBE_HOSTS.has(url.hostname)
+				? undefined
+				: first === 'watch'
+					? url.searchParams.get('v')
+					: ID_PATH_PREFIXES.includes(first ?? '')
+						? second
+						: undefined
+	return id && YOUTUBE_ID.test(id) ? id : null
+}

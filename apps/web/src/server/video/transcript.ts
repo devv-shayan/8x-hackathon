@@ -12,9 +12,6 @@ const MAX_CAPTIONED_MINUTES = 90
 const MAX_UNCAPTIONED_MINUTES = 30
 
 const SECONDS_PER_MINUTE = 60
-const YOUTUBE_ID = /^[\w-]{11}$/
-const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com'])
-const ID_PATH_PREFIXES = ['embed', 'shorts', 'live']
 
 export const transcriptSegmentSchema = z.object({
 	startSeconds: z.number().int().nonnegative(),
@@ -74,27 +71,6 @@ export function assertTranscriptFinished(finishReason: string | undefined): void
 	throw new ApiError('video_unreadable', "We couldn't read this video. Try another one.")
 }
 
-export function parseYouTubeVideoId(input: string): string | null {
-	let url: URL
-	try {
-		url = new URL(input.trim())
-	} catch {
-		return null
-	}
-	const [first, second] = url.pathname.split('/').filter(Boolean)
-	const id =
-		url.hostname === 'youtu.be'
-			? first
-			: !YOUTUBE_HOSTS.has(url.hostname)
-				? undefined
-				: first === 'watch'
-					? url.searchParams.get('v')
-					: ID_PATH_PREFIXES.includes(first ?? '')
-						? second
-						: undefined
-	return id && YOUTUBE_ID.test(id) ? id : null
-}
-
 export function parseTimestamp(timestamp: string): number | null {
 	const parts = timestamp.trim().split(':')
 	const isValid = (parts.length === 2 || parts.length === 3) && parts.every((p) => /^\d+$/.test(p))
@@ -126,3 +102,6 @@ export function parseTranscript(raw: string | undefined): TranscriptSegment[] {
 	assertVideoLength(last.startSeconds, false)
 	return transcript
 }
+
+/** One reading of a YouTube link for the app and the server (@app/contract). */
+export { parseYouTubeVideoId } from '@app/contract'

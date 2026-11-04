@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
-import { router } from 'expo-router'
+import { router, useNavigation } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
-import { isPastedTopic, type Video } from '@app/contract'
+import { isPastedTopic, parseYouTubeVideoId, type DueWarmUp, type Video } from '@app/contract'
 import { DueWarmUps, openWarmUp } from '@/components/DueWarmUps'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
+import { ReadingView, type ReadingPhase } from '@/components/reading/ReadingView'
 import { RecentTopics, topicsQueryKey } from '@/components/RecentTopics'
 import { useTabBarClearance } from '@/components/TabBar'
 import { Button } from '@/components/ui/Button'
@@ -16,6 +17,7 @@ import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useVideoTitle } from '@/hooks/useVideoTitle'
 import { useDueWarmUps } from '@/hooks/useWarmUps'
 import { track } from '@/lib/analytics'
 import { api, errorCode, errorMessage } from '@/lib/api'
@@ -53,10 +55,15 @@ function ReadyToTeach({ video }: { video: Video }) {
 	)
 }
 
+/** How often the reading screen moves on while a video reads. */
+const READING_TICK_MS = 500
+/** The server's words for a link that isn't a video, said before it's ever sent. */
+const NOT_A_VIDEO = "That doesn't look like a YouTube video link."
+
 /**
  * Home, on the website's closing lime: what did you learn today, a box for the link, and a
- * sheet with the warm-up that's due and the videos taught before. Reading a video opens a due
- * warm-up to fill the wait.
+ * sheet with the warm-up that's due and the videos taught before. Reading a video shows the
+ * class watching it come in on a board (8X-49), with a due warm-up offered to fill the wait.
  */
 export default function HomeScreen() {
 	const { t } = useTranslation()
@@ -68,11 +75,12 @@ export default function HomeScreen() {
 	const [url, setUrl] = useState('')
 	const [paste, setPaste] = useState('')
 	const offered = useRef(false)
-
-	function fillTheWait() {
-		const first = due.data?.[0]
-		if (first) openWarmUp(first)
-	}
+	const [watching, setWatching] = useState(false)
+	const [linkError, setLinkError] = useState<string | null>(null)
+	const [guess, setGuess] = useState<number | null>(null)
+	const [readSeconds, setReadSeconds] = useState(0)
+	const [now, setNow] = useState(() => Date.now())
+	const reader = useRef<AbortController | null>(null)
 
 	function onRead(video: Video) {
 		queryClient.setQueryData(topicQueryKey(video.id), video)
@@ -83,12 +91,62 @@ export default function HomeScreen() {
 
 	const readVideo = useMutation({
 		mutationKey: READ_VIDEO_KEY,
-		mutationFn: () =>
-			api('readVideo', { body: { url }, timeoutMs: READ_VIDEO_TIMEOUT_MS }).then((r) => r.video),
-		onMutate: fillTheWait,
-		onSuccess: onRead,
+		mutationFn: (link: string) => {
+			reader.current = new AbortController()
+			return api('readVideo', {
+				body: { url: link },
+				signal: reader.current.signal,
+				timeoutMs: READ_VIDEO_TIMEOUT_MS
+			}).then((r) => r.video)
+		},
+		onSuccess: (video, _link, _context) => {
+			setReadSeconds((Date.now() - (readVideo.submittedAt || Date.now())) / 1000)
+			onRead(video)
+		},
 		onError: () => haptic.error()
 	})
+	const readingId = readVideo.variables ? parseYouTubeVideoId(readVideo.variables) : null
+	const title = useVideoTitle(watching ? readingId : null)
+	const seconds = readVideo.submittedAt ? (now - readVideo.submittedAt) / 1000 : 0
+
+	// The reading screen moves on twice a second while it's open and the video reads.
+	useEffect(() => {
+		if (!watching || !readVideo.isPending) return
+		setNow(Date.now())
+		const id = setInterval(() => setNow(Date.now()), READING_TICK_MS)
+		return () => clearInterval(id)
+	}, [watching, readVideo.isPending])
+
+	function startReading() {
+		const link = url.trim()
+		// A link that isn't a video never opens the class: say so under the box instead.
+		if (!parseYouTubeVideoId(link)) {
+			setLinkError(NOT_A_VIDEO)
+			haptic.error()
+			return
+		}
+		setLinkError(null)
+		setGuess(null)
+		setWatching(true)
+		track('reading_started', { warm_up_due: (due.data?.length ?? 0) > 0 })
+		readVideo.mutate(link)
+	}
+
+	function cancelReading() {
+		track('reading_cancelled', { seconds: Math.round(seconds) })
+		reader.current?.abort()
+		readVideo.reset()
+		setWatching(false)
+	}
+
+	function leaveReading() {
+		if (readVideo.isPending) track('reading_left', { seconds: Math.round(seconds) })
+		setWatching(false)
+	}
+
+	function answerWarmUp(gap: DueWarmUp) {
+		openWarmUp(gap)
+	}
 	const pasteText = useMutation({
 		mutationKey: READ_VIDEO_KEY,
 		mutationFn: () =>
@@ -102,11 +160,90 @@ export default function HomeScreen() {
 	const video = readVideo.data ?? pasteText.data
 	const offerPaste = errorCode(readVideo.error) === 'video_unreadable' && !readVideo.isPending
 
+	const phase: ReadingPhase | null = readVideo.isPending
+		? { kind: 'reading', seconds }
+		: readVideo.isSuccess
+			? { kind: 'ready', video: readVideo.data, seconds: readSeconds }
+			: readVideo.isError
+				? offerPaste
+					? { kind: 'unreadable' }
+					: {
+							kind: 'failed',
+							message: errorMessage(readVideo.error),
+							busy: errorCode(readVideo.error) === 'unavailable'
+						}
+				: null
+
+	// The reading screen takes the whole screen: it has its own way back, so the tab bar goes.
+	const navigation = useNavigation()
+	const takeover = watching && phase !== null
+	useEffect(() => {
+		navigation.setOptions({ tabBarStyle: takeover ? { display: 'none' } : undefined })
+	}, [navigation, takeover])
+
+	// A pasted text that reads becomes the ready card on Home, like a video.
+	useEffect(() => {
+		if (pasteText.isSuccess) setWatching(false)
+	}, [pasteText.isSuccess])
+
 	useEffect(() => {
 		if (!offerPaste || offered.current) return
 		offered.current = true
 		track('text_paste_offered')
 	}, [offerPaste])
+
+	const pasteForm = (
+		<>
+			<Text variant="bodySm" tone="secondary">
+				{t('Home.pasteHint')}
+			</Text>
+			<TextInputField
+				label={t('Home.pasteLabel')}
+				placeholder={t('Home.pastePlaceholder')}
+				value={paste}
+				onChangeText={setPaste}
+				multiline
+				numberOfLines={6}
+				textAlignVertical="top"
+				error={pasteText.isError ? errorMessage(pasteText.error) : null}
+			/>
+			<Button
+				label={pasteText.isPending ? t('Home.pasteButtonBusy') : t('Home.pasteButton')}
+				variant="ink"
+				size="lg"
+				fullWidth
+				loading={pasteText.isPending}
+				disabled={!paste.trim() || pasteText.isPending}
+				onPress={() => pasteText.mutate()}
+			/>
+		</>
+	)
+
+	if (watching && phase) {
+		return (
+			<ReadingView
+				youtubeId={readingId}
+				title={title}
+				phase={phase}
+				warmUp={due.data?.[0] ?? null}
+				guess={guess}
+				onGuess={(n) => {
+					setGuess(n)
+					haptic.select()
+					track('reading_guess_made', { guess: n })
+				}}
+				onAnswerWarmUp={answerWarmUp}
+				onCancel={cancelReading}
+				onBack={leaveReading}
+				onTeach={(read) => {
+					setWatching(false)
+					router.push(`/class/${read.id}`)
+				}}
+				onRetry={startReading}
+				unreadable={pasteForm}
+			/>
+		)
+	}
 
 	return (
 		<View style={s.fill}>
@@ -127,47 +264,24 @@ export default function HomeScreen() {
 							accessibilityLabel="YouTube link"
 							placeholder="Paste a YouTube link"
 							value={url}
-							onChangeText={setUrl}
+							onChangeText={(next) => {
+								setUrl(next)
+								setLinkError(null)
+							}}
 							autoCapitalize="none"
 							autoCorrect={false}
 							keyboardType="url"
-							error={readVideo.isError ? errorMessage(readVideo.error) : null}
+							error={linkError ?? (readVideo.isError ? errorMessage(readVideo.error) : null)}
 						/>
 						<Button
-							label={readVideo.isPending ? 'Reading the video…' : 'Teach it'}
+							label={readVideo.isPending ? 'Reading… watch the class' : 'Teach it'}
 							variant="ink"
 							size="lg"
 							fullWidth
-							loading={readVideo.isPending}
-							disabled={!url.trim() || readVideo.isPending}
-							onPress={() => readVideo.mutate()}
+							disabled={!url.trim() && !readVideo.isPending}
+							onPress={() => (readVideo.isPending ? setWatching(true) : startReading())}
 						/>
-						{offerPaste ? (
-							<>
-								<Text variant="bodySm" tone="secondary">
-									{t('Home.pasteHint')}
-								</Text>
-								<TextInputField
-									label={t('Home.pasteLabel')}
-									placeholder={t('Home.pastePlaceholder')}
-									value={paste}
-									onChangeText={setPaste}
-									multiline
-									numberOfLines={6}
-									textAlignVertical="top"
-									error={pasteText.isError ? errorMessage(pasteText.error) : null}
-								/>
-								<Button
-									label={pasteText.isPending ? t('Home.pasteButtonBusy') : t('Home.pasteButton')}
-									variant="ink"
-									size="lg"
-									fullWidth
-									loading={pasteText.isPending}
-									disabled={!paste.trim() || pasteText.isPending}
-									onPress={() => pasteText.mutate()}
-								/>
-							</>
-						) : null}
+						{offerPaste ? pasteForm : null}
 					</View>
 				</View>
 				<SheetCard style={s.sheet}>

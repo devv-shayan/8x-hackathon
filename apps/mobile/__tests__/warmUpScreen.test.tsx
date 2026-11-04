@@ -30,6 +30,10 @@ jest.mock('@/lib/voice/playback', () => ({
 jest.mock('react-native-safe-area-context', () => ({
 	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }))
+jest.mock('@/components/reading/ReadingPill', () => ({
+	ReadingPill: () => null,
+	useReadingJob: () => null
+}))
 jest.mock('@/components/pixel/PixelBackdrop', () => ({ PixelBackdrop: () => null }))
 jest.mock('@/components/motion/PressableScale', () => ({
 	PressableScale: jest.requireActual('react-native').Pressable
