@@ -12,6 +12,7 @@ import {
 } from '@app/contract'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
+import { ReadingPill, useReadingJob } from '@/components/reading/ReadingPill'
 import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
@@ -73,6 +74,7 @@ export default function WarmUpScreen() {
 		select: (mutation) => mutation.state.data as Video | undefined
 	}).at(-1)
 	const ready = wasReading && !reading && read ? read : null
+	const job = useReadingJob()
 
 	// Answering refetches the due list, which no longer has this gap: keep the answered one.
 	const gap = due.data?.find((item) => item.gap_id === gapId) ?? answered?.gap ?? null
@@ -132,18 +134,16 @@ export default function WarmUpScreen() {
 					</Text>
 				</PressableScale>
 			</View>
-			{wasReading ? (
+			{wasReading && job ? (
 				<View
-					style={[s.reading, { top: insets.top + 64, backgroundColor: c.surface }, elevation.soft]}
+					style={[s.reading, { top: insets.top + 64 }]}
 					accessibilityLiveRegion="polite"
 					onLayout={onCeilingLayout}
 				>
-					<MonoLabel>{ready ? 'Your video is ready' : 'Reading your video'}</MonoLabel>
-					<View style={[s.track, { backgroundColor: c.surface3 }]}>
-						<View
-							style={[s.progress, { backgroundColor: c.brandFill, width: ready ? '100%' : '62%' }]}
-						/>
-					</View>
+					<ReadingPill
+						job={job}
+						onOpen={(read) => (read ? router.replace(`/class/${read.id}`) : leave())}
+					/>
 				</View>
 			) : null}
 			<View style={s.fill} pointerEvents="none" />
@@ -261,17 +261,7 @@ const s = StyleSheet.create({
 	bar: { position: 'absolute', left: 16, right: 16, zIndex: 2, flexDirection: 'row' },
 	pill: { height: 44, paddingHorizontal: 16, borderRadius: 22, justifyContent: 'center' },
 	pillText: { fontSize: 15 },
-	reading: {
-		position: 'absolute',
-		left: 16,
-		right: 16,
-		zIndex: 2,
-		gap: 10,
-		padding: 14,
-		borderRadius: 18
-	},
-	track: { height: 4 },
-	progress: { height: 4 },
+	reading: { position: 'absolute', left: 16, right: 16, zIndex: 2 },
 	question: { marginTop: 14 },
 	lede: { marginTop: 8 },
 	cta: { marginTop: 16 }

@@ -70,6 +70,16 @@ export default function TabBar({ state, navigation, descriptors }: BottomTabBarP
 	}
 
 	const glass = Platform.OS !== 'android'
+	// A screen hides the bar the standard way, `tabBarStyle: { display: 'none' }`, while it
+	// takes the whole screen (Home while the class watches a video read).
+	const focused = state.routes[state.index]
+	const barStyle = focused ? descriptors[focused.key]?.options.tabBarStyle : undefined
+	const hidden =
+		typeof barStyle === 'object' &&
+		barStyle !== null &&
+		'display' in barStyle &&
+		barStyle.display === 'none'
+	if (hidden) return null
 
 	return (
 		<View

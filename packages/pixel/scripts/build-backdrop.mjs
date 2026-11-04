@@ -11,7 +11,17 @@ import ts from 'typescript'
 const SRC = new URL('../src/', import.meta.url)
 const OUT = new URL('../src/backdrop-html.generated.ts', import.meta.url)
 /** Every module the page needs; the last one is the entry. */
-const MODULES = ['noise', 'dither', 'fields', 'students', 'scenes', 'backdrop', 'backdrop-page']
+const MODULES = [
+	'noise',
+	'dither',
+	'fields',
+	'students',
+	'scenes',
+	'backdrop',
+	'reveal',
+	'board',
+	'backdrop-page'
+]
 
 export function buildBackdropHtml() {
 	const definitions = MODULES.map((name) => {

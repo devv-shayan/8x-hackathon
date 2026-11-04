@@ -8,6 +8,7 @@ import { PIXEL_FIELDS } from './fields'
 import { FIGURE_COLOURS, figureAt, SEATS, shadeAt } from './students'
 import { placeStudents, renderScene, SCENES, studentBounds, studentHeads } from './scenes'
 import { BACKDROP_HTML } from './backdrop-html.generated'
+import { luminance, renderReveal, revealColours, revealStage } from './reveal'
 import { readFileSync } from 'node:fs'
 
 test('noise is seeded: the same seed gives the same field, another seed a different one', () => {
@@ -318,4 +319,75 @@ test("the app's icons, its splash and the website's favicon are drawn from the c
 			`${name} is stale: run \`npm run build:icons --workspace=@app/pixel\``
 		)
 	}
+})
+
+/** A 32x18 picture: green, with a white bar across the middle third (like a title). */
+function titleCard() {
+	const width = 32
+	const height = 18
+	const data = new Uint8ClampedArray(width * height * 4)
+	for (let y = 0; y < height; y++)
+		for (let x = 0; x < width; x++) {
+			const o = (y * width + x) * 4
+			const white = y >= 6 && y < 12
+			data[o] = white ? 250 : 59
+			data[o + 1] = white ? 250 : 180
+			data[o + 2] = white ? 245 : 74
+			data[o + 3] = 255
+		}
+	return { data, width, height }
+}
+
+test("the board's ramp is built from the thumbnail's dominant colour, dark to light", () => {
+	const colours = revealColours(titleCard())
+	const [r, g, b] = colours.dominant
+	assert.ok(Math.abs(r - 59) < 4 && Math.abs(g - 180) < 4 && Math.abs(b - 74) < 4, 'green wins')
+	assert.deepEqual(colours.ramp[2], colours.dominant)
+	const lights = colours.ramp.map(luminance)
+	for (let i = 1; i < lights.length; i++) assert.ok(lights[i]! > lights[i - 1]!, 'ramp goes up')
+})
+
+test('the board opens as a field of the dominant colour and brings the picture out of it', () => {
+	const picture = titleCard()
+	const colours = revealColours(picture)
+	const columns = 32
+	const rows = 18
+	// Clamped arrays round halves to even, so a pixel is within a step of its ramp colour.
+	const inRamp = (r: number, g: number, b: number) =>
+		colours.ramp.some(
+			(c) => Math.abs(c[0] - r) <= 1 && Math.abs(c[1] - g) <= 1 && Math.abs(c[2] - b) <= 1
+		)
+	const draw = (progress: number) => {
+		const pixels = new Uint8ClampedArray(columns * rows * 4)
+		renderReveal(pixels, columns, rows, picture, colours, revealStage(progress), 1)
+		return pixels
+	}
+	const lightAt = (pixels: Uint8ClampedArray, y: number) => {
+		let sum = 0
+		for (let x = 0; x < columns; x++) {
+			const o = (y * columns + x) * 4
+			sum += luminance([pixels[o]!, pixels[o + 1]!, pixels[o + 2]!])
+		}
+		return sum / columns
+	}
+	const opening = draw(0)
+	const half = draw(0.55)
+	for (const pixels of [opening, half])
+		for (let o = 0; o < pixels.length; o += 4) {
+			assert.ok(inRamp(pixels[o]!, pixels[o + 1]!, pixels[o + 2]!), 'only the ramp')
+			assert.equal(pixels[o + 3], 255)
+		}
+	// Opening: the title row is about as bright as the rest. Halfway: clearly brighter.
+	assert.ok(Math.abs(lightAt(opening, 9) - lightAt(opening, 2)) < 0.15)
+	assert.ok(lightAt(half, 9) - lightAt(half, 2) > 0.3)
+})
+
+test('the board gets finer and more detailed as the read goes on', () => {
+	const steps = [0, 0.15, 0.35, 0.55, 0.75, 0.9].map(revealStage)
+	assert.equal(steps[0]!.contrast, 0)
+	for (let i = 1; i < steps.length; i++) {
+		assert.ok(steps[i]!.columns >= steps[i - 1]!.columns)
+		assert.ok(steps[i]!.contrast >= steps[i - 1]!.contrast)
+	}
+	assert.equal(steps.at(-1)!.hues, 1)
 })
