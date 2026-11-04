@@ -77,7 +77,6 @@ export default function HomeScreen() {
 	const offered = useRef(false)
 	const [watching, setWatching] = useState(false)
 	const [linkError, setLinkError] = useState<string | null>(null)
-	const [guess, setGuess] = useState<number | null>(null)
 	const [readSeconds, setReadSeconds] = useState(0)
 	const [now, setNow] = useState(() => Date.now())
 	const reader = useRef<AbortController | null>(null)
@@ -126,7 +125,6 @@ export default function HomeScreen() {
 			return
 		}
 		setLinkError(null)
-		setGuess(null)
 		setWatching(true)
 		track('reading_started', { warm_up_due: (due.data?.length ?? 0) > 0 })
 		readVideo.mutate(link)
@@ -226,12 +224,6 @@ export default function HomeScreen() {
 				title={title}
 				phase={phase}
 				warmUp={due.data?.[0] ?? null}
-				guess={guess}
-				onGuess={(n) => {
-					setGuess(n)
-					haptic.select()
-					track('reading_guess_made', { guess: n })
-				}}
 				onAnswerWarmUp={answerWarmUp}
 				onCancel={cancelReading}
 				onBack={leaveReading}

@@ -20,18 +20,10 @@ export type ReadingPhase =
 	| { kind: 'unreadable' }
 	| { kind: 'failed'; message: string; busy: boolean }
 
-/** The guesses on offer for how many key ideas a video has; the last means "or more". */
-export const GUESSES = [3, 4, 5, 6] as const
-
 /** The board's width on a phone, and its share of a narrow screen. */
 const BOARD_MAX = 300
 const BOARD_SIDE_ROOM = 100
 const BEZEL = 8
-/**
- * The bar's three steps, roughly as long as each usually takes; opening is really a second or
- * two, but drawn wide enough to hold its name.
- */
-const STEP_WEIGHTS = [3, 10, 3]
 /**
  * The sheet's least height, as a share of the screen. The class stands where the scene puts it,
  * just under the bubbles, so the sheet must reach up past their waists in every state.
@@ -39,7 +31,6 @@ const STEP_WEIGHTS = [3, 10, 3]
 const SHEET_MIN_SHARE = 0.4
 /** Past this percent, stopping throws away more than it saves. */
 const HALFWAY = 50
-const STEP_NAMES = ['Open', 'Read', 'Ideas']
 
 function omarLine(phase: ReadingPhase): string {
 	if (phase.kind === 'ready') {
@@ -88,51 +79,6 @@ function Chip({ text, tone }: { text: string; tone: 'ink' | 'lime' | 'error' }) 
 	)
 }
 
-/** The bar: three steps, each as wide as it usually takes, the current one filling. */
-function Steps({ seconds }: { seconds: number }) {
-	const { colors: c } = useTheme()
-	const at = readingAt(seconds)
-	const current = ['opening', 'reading', 'ideas'].indexOf(at.step)
-	// How far into the current step the bar is, from the overall estimate.
-	const bounds = [0, 0.05, 0.75, 0.95]
-	const within = Math.min(
-		1,
-		(at.progress - bounds[current]!) / (bounds[current + 1]! - bounds[current]!)
-	)
-	return (
-		<View style={s.stepsWrap} accessible accessibilityLabel={`Step ${current + 1} of 3`}>
-			<View style={s.steps}>
-				{STEP_WEIGHTS.map((weight, i) => (
-					<View key={i} style={[s.step, { flex: weight, backgroundColor: c.surface3 }]}>
-						<View
-							style={[
-								s.stepFill,
-								{
-									backgroundColor: c.textPrimary,
-									width: `${i < current ? 100 : i === current ? Math.round(within * 100) : 0}%`
-								}
-							]}
-						/>
-					</View>
-				))}
-			</View>
-			<View style={s.steps}>
-				{STEP_WEIGHTS.map((weight, i) => (
-					<Text
-						key={i}
-						variant="eyebrow"
-						tone={i === current ? 'primary' : 'secondary'}
-						numberOfLines={1}
-						style={[{ flex: weight }, i === 2 && s.right]}
-					>
-						{STEP_NAMES[i]}
-					</Text>
-				))}
-			</View>
-		</View>
-	)
-}
-
 function WarmUpOffer({
 	gap,
 	lead,
@@ -151,6 +97,9 @@ function WarmUpOffer({
 			<MonoLabel right="1 min">{`${student} · warm-up`}</MonoLabel>
 			<Text variant="label" style={s.offerText}>
 				{`${lead} ${student} has a question about ${gap.concept_title}.`}
+			</Text>
+			<Text variant="caption" tone="secondary" numberOfLines={1}>
+				{`From ${gap.topic_title}`}
 			</Text>
 			<View style={s.row}>
 				<Button label="Answer" variant="ink" size="sm" onPress={onAnswer} />
@@ -174,17 +123,15 @@ function Link({ label, onPress, tone }: { label: string; onPress: () => void; to
 /**
  * Reading a video (8X-49): the class watches it come in on a board above them, in the app's
  * pixel pattern built from the video's own main colour, while Omar says what's happening. The
- * sheet holds the steps, then a due warm-up to fill the wait (Maya's hand goes up) or, with
- * nothing due, a guess at how many key ideas it has. Ready, can't read, busy and cancel each
- * have their own words; `unreadable` is where the paste fallback goes.
+ * sheet holds the video's title, then a due warm-up to fill the wait (Maya's hand goes up).
+ * Ready, can't read, busy and cancel each have their own words; `unreadable` is where the
+ * paste fallback goes.
  */
 export function ReadingView({
 	youtubeId,
 	title,
 	phase,
 	warmUp,
-	guess,
-	onGuess,
 	onAnswerWarmUp,
 	onCancel,
 	onBack,
@@ -196,8 +143,6 @@ export function ReadingView({
 	title: string | null
 	phase: ReadingPhase
 	warmUp: DueWarmUp | null
-	guess: number | null
-	onGuess: (guess: number) => void
 	onAnswerWarmUp: (gap: DueWarmUp) => void
 	onCancel: () => void
 	onBack: () => void
@@ -301,12 +246,11 @@ export function ReadingView({
 										: `about ${Math.max(5, Math.round((USUAL_READ_SECONDS - phase.seconds) / 5) * 5)} s`
 							}
 						>
-							{`Step ${['opening', 'reading', 'ideas'].indexOf(readingAt(phase.seconds).step) + 1} of 3`}
+							Now reading
 						</MonoLabel>
 						<Text variant="label" numberOfLines={2} style={s.title}>
 							{shownTitle}
 						</Text>
-						<Steps seconds={phase.seconds} />
 						{readingAt(phase.seconds).longer ? (
 							<View style={s.block}>
 								<Text variant="label">Longer than usual.</Text>
@@ -328,34 +272,7 @@ export function ReadingView({
 								onAnswer={() => onAnswerWarmUp(offer)}
 								onLater={() => setLater(true)}
 							/>
-						) : (
-							<View style={s.block}>
-								<MonoLabel>How many key ideas, do you think?</MonoLabel>
-								<View style={s.row}>
-									{GUESSES.map((n) => (
-										<Pressable
-											key={n}
-											onPress={() => onGuess(n)}
-											accessibilityRole="button"
-											accessibilityState={{ selected: guess === n }}
-											accessibilityLabel={n === 6 ? '6 or more' : String(n)}
-											style={[
-												s.guess,
-												{
-													borderRadius: radii.xl,
-													backgroundColor: guess === n ? c.brandFill : c.well,
-													borderColor: guess === n ? c.brandBorder : 'transparent'
-												}
-											]}
-										>
-											<Text variant="h3" style={guess === n ? { color: c.onBrand } : undefined}>
-												{n === 6 ? '6+' : String(n)}
-											</Text>
-										</Pressable>
-									))}
-								</View>
-							</View>
-						)}
+						) : null}
 						<Link label="Cancel" onPress={() => setConfirming(true)} />
 					</>
 				) : phase.kind === 'ready' ? (
@@ -372,7 +289,7 @@ export function ReadingView({
 								/>
 							))}
 							<Text variant="label" style={s.ideasText}>
-								{`${phase.video.concepts.length} key ideas${guess ? ` · you guessed ${guess === 6 ? '6+' : guess}` : ''}`}
+								{`${phase.video.concepts.length} key ideas`}
 							</Text>
 						</View>
 						<Button
@@ -474,16 +391,10 @@ const s = StyleSheet.create({
 	bubbleText: { fontWeight: '600' },
 	title: { marginTop: 10 },
 	lede: { marginTop: 6 },
-	stepsWrap: { marginTop: 14, gap: 6 },
-	steps: { flexDirection: 'row', gap: 4 },
-	step: { height: 8, overflow: 'hidden' },
-	stepFill: { height: 8 },
-	right: { textAlign: 'right' },
 	block: { marginTop: 16, gap: 10 },
 	row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
 	offer: { marginTop: 16, padding: 14, gap: 8 },
 	offerText: { fontSize: 15, lineHeight: 20 },
-	guess: { flex: 1, height: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
 	ideas: { marginTop: 14, flexWrap: 'wrap' },
 	idea: { width: 20, height: 20, borderWidth: 1.5 },
 	ideasText: { marginLeft: 6, fontSize: 14 },
