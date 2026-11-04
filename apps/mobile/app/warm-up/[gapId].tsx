@@ -63,7 +63,7 @@ export default function WarmUpScreen() {
 		null
 	)
 	const result = answered?.result ?? null
-	const { floor, onScreenLayout, onSheetLayout } = useSheetFloor()
+	const { floor, ceiling, onScreenLayout, onSheetLayout, onCeilingLayout } = useSheetFloor()
 	const started = useRef(false)
 
 	// The read home started, if there is one: still going, or the video it produced.
@@ -122,7 +122,7 @@ export default function WarmUpScreen() {
 	return (
 		<View style={[s.fill, { backgroundColor: c.hero }]} onLayout={onScreenLayout}>
 			<StatusBar style="light" />
-			<PixelBackdrop scene={scene} raised={raised} floor={floor} />
+			<PixelBackdrop scene={scene} raised={raised} floor={floor} ceiling={ceiling} />
 			<View style={[s.bar, { top: insets.top + 8 }]} pointerEvents="box-none">
 				<PressableScale
 					onPress={leave}
@@ -135,7 +135,11 @@ export default function WarmUpScreen() {
 				</PressableScale>
 			</View>
 			{wasReading && job ? (
-				<View style={[s.reading, { top: insets.top + 64 }]} accessibilityLiveRegion="polite">
+				<View
+					style={[s.reading, { top: insets.top + 64 }]}
+					accessibilityLiveRegion="polite"
+					onLayout={onCeilingLayout}
+				>
 					<ReadingPill
 						job={job}
 						onOpen={(read) => (read ? router.replace(`/class/${read.id}`) : leave())}

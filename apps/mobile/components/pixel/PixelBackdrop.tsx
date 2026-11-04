@@ -17,6 +17,7 @@ export function PixelBackdrop({
 	raised,
 	floor = null,
 	stage = null,
+	ceiling = null,
 	style
 }: PixelBackdropProps) {
 	const web = useRef<WebView>(null)
@@ -30,7 +31,8 @@ export function PixelBackdrop({
 		playing: focused,
 		still,
 		floor,
-		stage
+		stage,
+		ceiling
 	})
 	const initial = useRef(state).current
 	const latest = useRef(state)

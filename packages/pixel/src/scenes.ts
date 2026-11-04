@@ -182,9 +182,11 @@ function figures(
 	aspect: number,
 	raised: Raised,
 	floor?: number | null,
-	stage?: Stage | null
+	stage?: Stage | null,
+	ceiling?: number | null
 ): Figure[] {
-	const { headY, scale } = placeStudents(scene, floor, stage?.ceiling ?? CEILING)
+	const top = Math.max(stage?.ceiling ?? CEILING, ceiling ?? CEILING)
+	const { headY, scale } = placeStudents(scene, floor, top)
 	// Where a seated student's shoes go: just above the sheet, or where a standing one's waist is.
 	const feet = (floor ?? headY + (BELOW_HEAD - BEHIND) * scale) - 0.008
 	return scene.students.map((student, i) => {
@@ -224,7 +226,11 @@ function layerOf(f: Figure, front?: boolean) {
 	return front ? 2 : 1
 }
 
-/** Draws one frame of `scene` into RGBA `pixels`, `width` by `height`. */
+/**
+ * Draws one frame of `scene` into RGBA `pixels`, `width` by `height`. `ceiling` is the room's
+ * top on a screen without a stage, when something floats below the top buttons (the warm-up's
+ * reading pill): students stand below it, smaller if they must.
+ */
 export function renderScene(
 	pixels: Uint8ClampedArray,
 	width: number,
@@ -233,12 +239,13 @@ export function renderScene(
 	t: number,
 	raised: Raised = {},
 	floor?: number | null,
-	stage?: Stage | null
+	stage?: Stage | null,
+	ceiling?: number | null
 ): void {
 	const aspect = width / height
 	const field = PIXEL_FIELDS[scene.field].field
 	const fieldColours = FIELD_COLOURS[scene.field]
-	const people = figures(scene, aspect, raised, floor, stage)
+	const people = figures(scene, aspect, raised, floor, stage, ceiling)
 	const asker = stage?.asking ? people.find((f) => f.name === stage.asking) : undefined
 	const seated = people.filter((f) => f.pose === 'seated')
 	// Where each halo sits: the middle of the student's head and chest. On a stage, only the

@@ -17,6 +17,8 @@ export interface BackdropState {
 	floor?: number | null
 	/** The class: who is asking and whether they're talking (scenes.ts). */
 	stage?: Stage | null
+	/** Where the room above the sheet starts, if something floats lower than the top buttons. */
+	ceiling?: number | null
 }
 
 export interface Backdrop {
@@ -57,7 +59,8 @@ export function startBackdrop(canvas: HTMLCanvasElement, initial: BackdropState)
 			seconds,
 			lifts,
 			state.floor,
-			state.stage
+			state.stage,
+			state.ceiling
 		)
 		ctx.putImageData(image, 0, 0)
 	}

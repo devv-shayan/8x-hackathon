@@ -291,6 +291,25 @@ test('with a floor, students stand just above the sheet, smaller only when they 
 	assert.deepEqual(placeStudents(scene), { headY: scene.headY, scale: scene.scale })
 })
 
+test('a ceiling without a stage keeps a student below it, still on the sheet', () => {
+	const scene = SCENES.warmUpMaya
+	const [w, h] = [40, 80]
+	// The first row any student pixel is drawn in, as a share of the height.
+	const topRow = (ceiling?: number) => {
+		const pixels = new Uint8ClampedArray(w * h * 4)
+		const plain = new Uint8ClampedArray(w * h * 4)
+		renderScene(pixels, w, h, scene, 0, { Maya: 1 }, 0.44, null, ceiling)
+		renderScene(plain, w, h, { ...scene, students: [] }, 0, {}, 0.44)
+		for (let i = 0; i < pixels.length; i += 4)
+			if (pixels[i] !== plain[i] || pixels[i + 1] !== plain[i + 1]) return Math.floor(i / 4 / w) / h
+		return 1
+	}
+	assert.ok(topRow() < 0.23)
+	assert.ok(topRow(0.23) >= 0.23 - 1 / h)
+	// They still stand on the sheet, only smaller.
+	assert.ok(placeStudents(scene, 0.44, 0.23).scale < placeStudents(scene, 0.44).scale)
+})
+
 test("the app's icons, its splash and the website's favicon are drawn from the current engine", async () => {
 	const { ICONS, ICON_DIR, iconFile } = await import('../scripts/build-icons.mjs')
 	for (const name of Object.keys(ICONS)) {

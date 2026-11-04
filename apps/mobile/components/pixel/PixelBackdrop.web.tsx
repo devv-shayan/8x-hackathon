@@ -15,6 +15,7 @@ export function PixelBackdrop({
 	raised,
 	floor = null,
 	stage = null,
+	ceiling = null,
 	style
 }: PixelBackdropProps) {
 	const canvas = useRef<HTMLCanvasElement>(null)
@@ -40,7 +41,8 @@ export function PixelBackdrop({
 			playing,
 			still,
 			floor,
-			stage: JSON.parse(stageKey)
+			stage: JSON.parse(stageKey),
+			ceiling
 		})
 		return () => backdrop.current?.stop()
 		// Started once; later changes go through update() below.
@@ -54,9 +56,10 @@ export function PixelBackdrop({
 			playing,
 			still,
 			floor,
-			stage: JSON.parse(stageKey)
+			stage: JSON.parse(stageKey),
+			ceiling
 		})
-	}, [scene, raisedKey, playing, still, floor, stageKey])
+	}, [scene, raisedKey, playing, still, floor, stageKey, ceiling])
 
 	return (
 		<View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
