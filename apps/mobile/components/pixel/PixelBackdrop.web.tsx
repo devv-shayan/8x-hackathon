@@ -14,6 +14,7 @@ export function PixelBackdrop({
 	scene,
 	raised,
 	floor = null,
+	stage = null,
 	ceiling = null,
 	style
 }: PixelBackdropProps) {
@@ -24,6 +25,7 @@ export function PixelBackdrop({
 	const [visible, setVisible] = useState(() => document.visibilityState === 'visible')
 	const playing = focused && visible
 	const raisedKey = JSON.stringify(raised ?? {})
+	const stageKey = JSON.stringify(stage)
 
 	useEffect(() => {
 		const onChange = () => setVisible(document.visibilityState === 'visible')
@@ -39,6 +41,7 @@ export function PixelBackdrop({
 			playing,
 			still,
 			floor,
+			stage: JSON.parse(stageKey),
 			ceiling
 		})
 		return () => backdrop.current?.stop()
@@ -53,9 +56,10 @@ export function PixelBackdrop({
 			playing,
 			still,
 			floor,
+			stage: JSON.parse(stageKey),
 			ceiling
 		})
-	}, [scene, raisedKey, playing, still, floor, ceiling])
+	}, [scene, raisedKey, playing, still, floor, stageKey, ceiling])
 
 	return (
 		<View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>

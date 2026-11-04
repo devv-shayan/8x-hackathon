@@ -72,6 +72,12 @@ it's said; on a phone (expo-audio, in Expo Go and any build) it's written down a
 class, nobody asks until the person calls on a student. See `docs/memory/groq-voice.md` for limits
 and traps.
 
+The class scene (docs/class-scene-requirements.md): the student asking stands under a spotlight and
+their question appears word by word in a speech bubble as they say it; the student waiting sits at
+a desk, hand up to tap. The pixel engine draws it from a `stage` (`packages/pixel/src/scenes.ts`);
+after changing the engine, run `npm run build:backdrop --workspace=@app/pixel` or phones keep the
+old page.
+
 ## Run it
 
 Use Node 22. You also need `yt-dlp` or `uv`, or every video goes through Gemini.

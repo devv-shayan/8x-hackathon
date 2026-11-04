@@ -5,9 +5,11 @@ import {
 	buildFollowUpPrompt,
 	buildStudentTurnPrompt,
 	heardTurns,
+	MAX_QUESTION_CHARACTERS,
 	parseWaitingCheck,
 	parseFollowUp,
-	parseStudentTurn
+	parseStudentTurn,
+	STUDENT_TURN_INSTRUCTION
 } from './student-turn'
 
 const MAYA = { id: 'maya', name: 'Maya', persona: 'A beginner.' }
@@ -106,4 +108,10 @@ test('the waiting check only accepts its three results', () => {
 test('a student whose question was answered says so before asking something new', () => {
 	const prompt = buildStudentTurnPrompt(INPUT, MAYA, 'question_answered')
 	assert.ok(prompt.includes('just answered what you were going to ask'))
+})
+
+test('students are asked to keep a turn short enough for the speech bubble and one voice request', () => {
+	assert.ok(STUDENT_TURN_INSTRUCTION.includes(`under ${MAX_QUESTION_CHARACTERS} characters`))
+	// Orpheus takes 200 characters a request; a turn should never need two.
+	assert.ok(MAX_QUESTION_CHARACTERS < 200)
 })
