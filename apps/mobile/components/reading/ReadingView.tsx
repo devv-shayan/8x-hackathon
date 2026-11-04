@@ -5,7 +5,6 @@ import type { DueWarmUp, Video } from '@app/contract'
 import type { Raised } from '@app/pixel'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { PixelBoard } from '@/components/pixel/PixelBoard'
-import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
@@ -28,8 +27,18 @@ export const GUESSES = [3, 4, 5, 6] as const
 const BOARD_MAX = 300
 const BOARD_SIDE_ROOM = 100
 const BEZEL = 8
-/** The bar's three steps, in proportion to how long each usually takes. */
-const STEP_WEIGHTS = [1, 12, 3]
+/**
+ * The bar's three steps, roughly as long as each usually takes; opening is really a second or
+ * two, but drawn wide enough to hold its name.
+ */
+const STEP_WEIGHTS = [3, 10, 3]
+/**
+ * The sheet's least height, as a share of the screen. The class stands where the scene puts it,
+ * just under the bubbles, so the sheet must reach up past their waists in every state.
+ */
+const SHEET_MIN_SHARE = 0.4
+/** Past this percent, stopping throws away more than it saves. */
+const HALFWAY = 50
 const STEP_NAMES = ['Open', 'Read', 'Ideas']
 
 function omarLine(phase: ReadingPhase): string {
@@ -39,9 +48,7 @@ function omarLine(phase: ReadingPhase): string {
 	}
 	if (phase.kind === 'unreadable') return 'Hmm. I can’t open this one.'
 	if (phase.kind === 'failed')
-		return phase.busy
-			? 'Too many videos at once. Give me a minute.'
-			: 'Something went wrong on my end.'
+		return phase.busy ? 'Too many videos at once. Give me a minute.' : 'Hmm. That didn’t work.'
 	const at = readingAt(phase.seconds)
 	if (at.longer) return 'It’s a long one. Still going!'
 	if (at.step === 'opening') return 'Ooh, a new one. Opening it…'
@@ -115,6 +122,7 @@ function Steps({ seconds }: { seconds: number }) {
 						key={i}
 						variant="eyebrow"
 						tone={i === current ? 'primary' : 'secondary'}
+						numberOfLines={1}
 						style={[{ flex: weight }, i === 2 && s.right]}
 					>
 						{STEP_NAMES[i]}
@@ -199,8 +207,7 @@ export function ReadingView({
 }) {
 	const { colors: c, radii } = useTheme()
 	const insets = useSafeAreaInsets()
-	const { width } = useWindowDimensions()
-	const { floor, onScreenLayout, onSheetLayout } = useSheetFloor()
+	const { width, height } = useWindowDimensions()
 	const [later, setLater] = useState(false)
 	const [confirming, setConfirming] = useState(false)
 
@@ -222,8 +229,8 @@ export function ReadingView({
 	const shownTitle = phase.kind === 'ready' ? phase.video.title : (title ?? 'Reading your video')
 
 	return (
-		<View style={s.fill} onLayout={onScreenLayout}>
-			<PixelBackdrop scene="reading" raised={raised} floor={floor} />
+		<View style={s.fill}>
+			<PixelBackdrop scene="reading" raised={raised} />
 			<View
 				style={[
 					s.board,
@@ -271,8 +278,8 @@ export function ReadingView({
 				{phase.kind === 'unreadable' || phase.kind === 'failed' ? (
 					<View style={s.chipCentre}>
 						<Chip
-							text={phase.kind === 'unreadable' ? 'No signal' : 'Busy'}
-							tone={phase.kind === 'unreadable' ? 'error' : 'ink'}
+							text={phase.kind === 'unreadable' ? 'No signal' : phase.busy ? 'Busy' : 'Off air'}
+							tone={phase.kind === 'failed' && phase.busy ? 'ink' : 'error'}
 						/>
 					</View>
 				) : null}
@@ -282,147 +289,144 @@ export function ReadingView({
 				<Bubble text={omarLine(phase)} side="right" />
 			</View>
 			<View style={s.fill} pointerEvents="none" />
-			<View onLayout={onSheetLayout}>
-				<SheetCard>
-					{phase.kind === 'reading' ? (
-						<>
-							<MonoLabel
-								right={
-									readingAt(phase.seconds).longer
-										? clock(phase.seconds)
-										: readingAt(phase.seconds).step === 'ideas'
-											? 'almost there'
-											: `about ${Math.max(5, Math.round((USUAL_READ_SECONDS - phase.seconds) / 5) * 5)} s`
-								}
-							>
-								{`Step ${['opening', 'reading', 'ideas'].indexOf(readingAt(phase.seconds).step) + 1} of 3`}
-							</MonoLabel>
-							<Text variant="label" numberOfLines={2} style={s.title}>
-								{shownTitle}
-							</Text>
-							<Steps seconds={phase.seconds} />
-							{readingAt(phase.seconds).longer ? (
-								<View style={s.block}>
-									<Text variant="label">Longer than usual.</Text>
-									<Text variant="caption" tone="secondary">
-										Long videos can take a few minutes. You can leave: it keeps
-										readingAt(phase.seconds).
-									</Text>
-									<Button
-										label="Back to Home"
-										variant="secondary"
-										size="lg"
-										fullWidth
-										onPress={onBack}
-									/>
-								</View>
-							) : offer ? (
-								<WarmUpOffer
-									gap={offer}
-									lead="Hand up:"
-									onAnswer={() => onAnswerWarmUp(offer)}
-									onLater={() => setLater(true)}
-								/>
-							) : (
-								<View style={s.block}>
-									<MonoLabel>How many key ideas, do you think?</MonoLabel>
-									<View style={s.row}>
-										{GUESSES.map((n) => (
-											<Pressable
-												key={n}
-												onPress={() => onGuess(n)}
-												accessibilityRole="button"
-												accessibilityState={{ selected: guess === n }}
-												accessibilityLabel={n === 6 ? '6 or more' : String(n)}
-												style={[
-													s.guess,
-													{
-														borderRadius: radii.xl,
-														backgroundColor: guess === n ? c.brandFill : c.well,
-														borderColor: guess === n ? c.brandBorder : 'transparent'
-													}
-												]}
-											>
-												<Text variant="h3" style={guess === n ? { color: c.onBrand } : undefined}>
-													{n === 6 ? '6+' : String(n)}
-												</Text>
-											</Pressable>
-										))}
-									</View>
-								</View>
-							)}
-							<Link label="Cancel" onPress={() => setConfirming(true)} />
-						</>
-					) : phase.kind === 'ready' ? (
-						<>
-							<MonoLabel right={`read in ${clock(phase.seconds)}`}>Ready to teach</MonoLabel>
-							<Text variant="label" numberOfLines={2} style={s.title}>
-								{shownTitle}
-							</Text>
-							<View style={[s.row, s.ideas]}>
-								{phase.video.concepts.map((concept) => (
-									<View
-										key={concept.title}
-										style={[s.idea, { backgroundColor: c.brandFill, borderColor: c.brandBorder }]}
-									/>
-								))}
-								<Text variant="label" style={s.ideasText}>
-									{`${phase.video.concepts.length} key ideas${guess ? ` · you guessed ${guess === 6 ? '6+' : guess}` : ''}`}
+			<SheetCard style={{ minHeight: height * SHEET_MIN_SHARE }}>
+				{phase.kind === 'reading' ? (
+					<>
+						<MonoLabel
+							right={
+								readingAt(phase.seconds).longer
+									? clock(phase.seconds)
+									: readingAt(phase.seconds).step === 'ideas'
+										? 'almost there'
+										: `about ${Math.max(5, Math.round((USUAL_READ_SECONDS - phase.seconds) / 5) * 5)} s`
+							}
+						>
+							{`Step ${['opening', 'reading', 'ideas'].indexOf(readingAt(phase.seconds).step) + 1} of 3`}
+						</MonoLabel>
+						<Text variant="label" numberOfLines={2} style={s.title}>
+							{shownTitle}
+						</Text>
+						<Steps seconds={phase.seconds} />
+						{readingAt(phase.seconds).longer ? (
+							<View style={s.block}>
+								<Text variant="label">Longer than usual.</Text>
+								<Text variant="caption" tone="secondary">
+									Long videos can take a few minutes. You can leave: it keeps reading.
 								</Text>
+								<Button
+									label="Back to Home"
+									variant="secondary"
+									size="lg"
+									fullWidth
+									onPress={onBack}
+								/>
 							</View>
-							<Button
-								label="Teach it"
-								variant="ink"
-								size="lg"
-								fullWidth
-								onPress={() => onTeach(phase.video)}
-								style={s.cta}
+						) : offer ? (
+							<WarmUpOffer
+								gap={offer}
+								lead="Hand up:"
+								onAnswer={() => onAnswerWarmUp(offer)}
+								onLater={() => setLater(true)}
 							/>
-							<Link label="Back to Home" onPress={onBack} />
-						</>
-					) : phase.kind === 'unreadable' ? (
-						<>
-							<MonoLabel>Couldn’t read it</MonoLabel>
-							<Text variant="h3" style={s.title}>
-								We can’t read this video.
+						) : (
+							<View style={s.block}>
+								<MonoLabel>How many key ideas, do you think?</MonoLabel>
+								<View style={s.row}>
+									{GUESSES.map((n) => (
+										<Pressable
+											key={n}
+											onPress={() => onGuess(n)}
+											accessibilityRole="button"
+											accessibilityState={{ selected: guess === n }}
+											accessibilityLabel={n === 6 ? '6 or more' : String(n)}
+											style={[
+												s.guess,
+												{
+													borderRadius: radii.xl,
+													backgroundColor: guess === n ? c.brandFill : c.well,
+													borderColor: guess === n ? c.brandBorder : 'transparent'
+												}
+											]}
+										>
+											<Text variant="h3" style={guess === n ? { color: c.onBrand } : undefined}>
+												{n === 6 ? '6+' : String(n)}
+											</Text>
+										</Pressable>
+									))}
+								</View>
+							</View>
+						)}
+						<Link label="Cancel" onPress={() => setConfirming(true)} />
+					</>
+				) : phase.kind === 'ready' ? (
+					<>
+						<MonoLabel right={`read in ${clock(phase.seconds)}`}>Ready to teach</MonoLabel>
+						<Text variant="label" numberOfLines={2} style={s.title}>
+							{shownTitle}
+						</Text>
+						<View style={[s.row, s.ideas]}>
+							{phase.video.concepts.map((concept) => (
+								<View
+									key={concept.title}
+									style={[s.idea, { backgroundColor: c.brandFill, borderColor: c.brandBorder }]}
+								/>
+							))}
+							<Text variant="label" style={s.ideasText}>
+								{`${phase.video.concepts.length} key ideas${guess ? ` · you guessed ${guess === 6 ? '6+' : guess}` : ''}`}
 							</Text>
-							<Text variant="caption" tone="secondary">
-								It may be private or blocked. Paste what it says and teach that instead.
-							</Text>
-							<View style={s.block}>{unreadable}</View>
-							<Link label="Try another link" onPress={onBack} />
-						</>
-					) : (
-						<>
-							<Text variant="h3">{phase.message}</Text>
-							<Text variant="caption" tone="secondary" style={s.lede}>
-								{phase.busy
-									? 'Nothing’s lost. Try again in a minute.'
-									: 'Try again, or try another link.'}
-							</Text>
-							<Button
-								label="Try again"
-								variant="ink"
-								size="lg"
-								fullWidth
-								onPress={onRetry}
-								style={s.cta}
-							/>
-							{offer ? (
-								<WarmUpOffer gap={offer} lead="Meanwhile:" onAnswer={() => onAnswerWarmUp(offer)} />
-							) : null}
-							<Link label="Back to Home" onPress={onBack} />
-						</>
-					)}
-				</SheetCard>
-			</View>
+						</View>
+						<Button
+							label="Teach it"
+							variant="ink"
+							size="lg"
+							fullWidth
+							onPress={() => onTeach(phase.video)}
+							style={s.cta}
+						/>
+						<Link label="Back to Home" onPress={onBack} />
+					</>
+				) : phase.kind === 'unreadable' ? (
+					<>
+						<MonoLabel>Couldn’t read it</MonoLabel>
+						<Text variant="h3" style={s.title}>
+							We can’t read this video.
+						</Text>
+						<Text variant="caption" tone="secondary">
+							It may be private or blocked. Paste what it says and teach that instead.
+						</Text>
+						<View style={s.block}>{unreadable}</View>
+						<Link label="Try another link" onPress={onBack} />
+					</>
+				) : (
+					<>
+						<Text variant="h3">{phase.message}</Text>
+						<Text variant="caption" tone="secondary" style={s.lede}>
+							{phase.busy
+								? 'Nothing’s lost. Try again in a minute.'
+								: 'Try again, or try another link.'}
+						</Text>
+						<Button
+							label="Try again"
+							variant="ink"
+							size="lg"
+							fullWidth
+							onPress={onRetry}
+							style={s.cta}
+						/>
+						{offer ? (
+							<WarmUpOffer gap={offer} lead="Meanwhile:" onAnswer={() => onAnswerWarmUp(offer)} />
+						) : null}
+						<Link label="Back to Home" onPress={onBack} />
+					</>
+				)}
+			</SheetCard>
 			{confirming ? (
 				<View style={[StyleSheet.absoluteFill, s.scrim, { backgroundColor: c.overlay }]}>
 					<View style={s.fill} />
 					<SheetCard>
 						<Text variant="h3">Stop reading this video?</Text>
 						<Text variant="caption" tone="secondary" style={s.lede}>
-							Omar’s halfway. You can start again any time.
+							{`${percent >= HALFWAY ? 'Omar’s more than halfway.' : 'Omar’s only started.'} You can start again any time.`}
 						</Text>
 						<Button
 							label="Keep reading"

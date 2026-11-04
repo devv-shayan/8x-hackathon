@@ -99,7 +99,8 @@ export const SCENES = {
 			{ name: 'Maya', at: 0.28 },
 			{ name: 'Omar', at: 0.72 }
 		],
-		headY: 0.47,
+		// Fixed, not on the sheet: the bubbles above them are placed under the board.
+		headY: 0.5,
 		scale: 0.36,
 		halo: 0.97
 	},

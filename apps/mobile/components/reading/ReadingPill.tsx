@@ -57,7 +57,7 @@ export function ReadingPill({
 	const ideas = job.video?.concepts.length ?? 0
 	const line = ready ? `Omar: “Done. ${ideas} big ideas.”` : 'Omar: “Still reading…”'
 	const sub = ready
-		? 'Ready to teach · tap when you’re done'
+		? 'Ready · tap when you’re done'
 		: `${Math.round(at.progress * 100)}% · ${clock(seconds)}`
 
 	return (
@@ -92,6 +92,7 @@ export function ReadingPill({
 				</Text>
 				<Text
 					variant="eyebrow"
+					numberOfLines={1}
 					tone={ready ? undefined : 'secondary'}
 					style={ready ? { color: c.onBrand } : undefined}
 				>

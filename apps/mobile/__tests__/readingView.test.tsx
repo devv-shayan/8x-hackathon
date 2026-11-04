@@ -95,6 +95,7 @@ it('asks before cancelling', () => {
 	const { onCancel } = show({ kind: 'reading', seconds: 20 })
 	fireEvent.press(screen.getByText('Cancel'))
 	expect(screen.getByText('Stop reading this video?')).toBeTruthy()
+	expect(screen.getByText('Omar’s more than halfway. You can start again any time.')).toBeTruthy()
 	fireEvent.press(screen.getByText('Keep reading'))
 	expect(onCancel).not.toHaveBeenCalled()
 	fireEvent.press(screen.getByText('Cancel'))
@@ -122,7 +123,16 @@ it('busy: nothing is lost, try again', () => {
 		message: 'Reading videos is busy right now.',
 		busy: true
 	})
+	expect(screen.getByText('Busy')).toBeTruthy()
+	expect(screen.getByText('Too many videos at once. Give me a minute.')).toBeTruthy()
 	expect(screen.getByText('Nothing’s lost. Try again in a minute.')).toBeTruthy()
 	fireEvent.press(screen.getByText('Try again'))
 	expect(onRetry).toHaveBeenCalled()
+})
+
+it("any other failure doesn't call it busy", () => {
+	show({ kind: 'failed', message: 'Something went wrong.', busy: false })
+	expect(screen.queryByText('Busy')).toBeNull()
+	expect(screen.getByText('Off air')).toBeTruthy()
+	expect(screen.getByText('Hmm. That didn’t work.')).toBeTruthy()
 })

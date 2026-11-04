@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
-import { router } from 'expo-router'
+import { router, useNavigation } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
@@ -57,6 +57,8 @@ function ReadyToTeach({ video }: { video: Video }) {
 
 /** How often the reading screen moves on while a video reads. */
 const READING_TICK_MS = 500
+/** The server's words for a link that isn't a video, said before it's ever sent. */
+const NOT_A_VIDEO = "That doesn't look like a YouTube video link."
 
 /**
  * Home, on the website's closing lime: what did you learn today, a box for the link, and a
@@ -74,6 +76,7 @@ export default function HomeScreen() {
 	const [paste, setPaste] = useState('')
 	const offered = useRef(false)
 	const [watching, setWatching] = useState(false)
+	const [linkError, setLinkError] = useState<string | null>(null)
 	const [guess, setGuess] = useState<number | null>(null)
 	const [readSeconds, setReadSeconds] = useState(0)
 	const [now, setNow] = useState(() => Date.now())
@@ -116,6 +119,13 @@ export default function HomeScreen() {
 
 	function startReading() {
 		const link = url.trim()
+		// A link that isn't a video never opens the class: say so under the box instead.
+		if (!parseYouTubeVideoId(link)) {
+			setLinkError(NOT_A_VIDEO)
+			haptic.error()
+			return
+		}
+		setLinkError(null)
 		setGuess(null)
 		setWatching(true)
 		track('reading_started', { warm_up_due: (due.data?.length ?? 0) > 0 })
@@ -163,6 +173,13 @@ export default function HomeScreen() {
 							busy: errorCode(readVideo.error) === 'unavailable'
 						}
 				: null
+
+	// The reading screen takes the whole screen: it has its own way back, so the tab bar goes.
+	const navigation = useNavigation()
+	const takeover = watching && phase !== null
+	useEffect(() => {
+		navigation.setOptions({ tabBarStyle: takeover ? { display: 'none' } : undefined })
+	}, [navigation, takeover])
 
 	// A pasted text that reads becomes the ready card on Home, like a video.
 	useEffect(() => {
@@ -247,11 +264,14 @@ export default function HomeScreen() {
 							accessibilityLabel="YouTube link"
 							placeholder="Paste a YouTube link"
 							value={url}
-							onChangeText={setUrl}
+							onChangeText={(next) => {
+								setUrl(next)
+								setLinkError(null)
+							}}
 							autoCapitalize="none"
 							autoCorrect={false}
 							keyboardType="url"
-							error={readVideo.isError ? errorMessage(readVideo.error) : null}
+							error={linkError ?? (readVideo.isError ? errorMessage(readVideo.error) : null)}
 						/>
 						<Button
 							label={readVideo.isPending ? 'Reading… watch the class' : 'Teach it'}
