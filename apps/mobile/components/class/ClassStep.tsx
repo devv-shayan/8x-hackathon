@@ -1,8 +1,9 @@
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { Play } from 'lucide-react-native'
+import { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MAX_CLASS_QUESTIONS, type ClassSession, type ClassTurn } from '@app/contract'
-import type { Raised, StudentName } from '@app/pixel'
+import { SCENES, studentHeads, type Raised, type Stage, type StudentName } from '@app/pixel'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { StudentTargets } from '@/components/pixel/StudentTargets'
@@ -14,8 +15,12 @@ import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useKeyboardShown } from '@/hooks/useKeyboardShown'
+import { useQuestionReveal } from '@/hooks/useQuestionReveal'
 import { usePrefetchQuestionVoices, useQuestionVoice } from '@/hooks/useQuestionVoice'
+import { track } from '@/lib/analytics'
 import { HelpSheet } from './HelpSheet'
+import { QuestionBubble } from './QuestionBubble'
 import { studentName } from './shared'
 
 /** Who each student is, in a line under their question. */
@@ -28,6 +33,10 @@ const WHO: Record<string, string> = {
 const BAR_TOP = 8
 const PILL_HEIGHT = 44
 const BAR_GAP = 8
+/** The most of the screen the question's bubble takes; a longer question scrolls inside it. */
+const BUBBLE_SHARE = 0.36
+/** The space kept between the bubble's tail and the students below it. */
+const BUBBLE_CLEARANCE = 6
 
 /** The pixel figure a student is drawn as: by name, or by seat for any other name. */
 function figureFor(session: ClassSession, studentId: string): StudentName {
@@ -38,10 +47,12 @@ function figureFor(session: ClassSession, studentId: string): StudentName {
 }
 
 /**
- * The class: Maya and Omar on the Teach section's gold, with a hand up for each question
- * waiting. Nobody asks until the person calls on them, by tapping the student or their
- * button; then the sheet holds that one question, and tapping another student with a hand up
- * answers theirs instead. "I’ll be back" opens private help.
+ * The class: Maya and Omar on the Teach section's gold, each at a desk with a hand up for each
+ * question waiting. Nobody asks until the person calls on them, by tapping the student or their
+ * button. Then that student stands into the light and asks, their question appearing in a speech
+ * bubble as they say it, while the sheet holds the answer; tapping another student with a hand
+ * up answers theirs instead (docs/class-scene-requirements.md). "I’ll be back" opens private
+ * help.
  */
 export function ClassStep({
 	session,
@@ -81,12 +92,11 @@ export function ClassStep({
 	const { colors: c, elevation } = useTheme()
 	const insets = useSafeAreaInsets()
 	const busy = answering || ending
-	const { floor, screenHeight, onScreenLayout, onSheetLayout } = useSheetFloor()
-	// The sheet never rises past the top buttons, however long the question or tall the
-	// keyboard: the question scrolls instead, and the answer stays above the keyboard.
-	const sheetMax = screenHeight
-		? screenHeight - (insets.top + BAR_TOP + PILL_HEIGHT + BAR_GAP)
-		: undefined
+	const keyboard = useKeyboardShown()
+	const { floor, screenWidth, screenHeight, onScreenLayout, onSheetLayout } = useSheetFloor({
+		hold: keyboard
+	})
+	const [bubbleBottom, setBubbleBottom] = useState(0)
 	const raised: Raised = {}
 	for (const turn of hands) raised[figureFor(session, turn.student_id)] = 1
 	const name = openTurn ? studentName(session, openTurn) : null
@@ -99,6 +109,26 @@ export function ClassStep({
 		text: openTurn?.question ?? null,
 		student: name
 	})
+	const reveal = useQuestionReveal({ text: openTurn?.question ?? null, voice })
+	const asking = openTurn ? figureFor(session, openTurn.student_id) : null
+	// The bubble starts under the top buttons and takes the room its question needs; the
+	// students stand below it, smaller if they must, so it never covers them.
+	const bubbleTop = insets.top + BAR_TOP + PILL_HEIGHT + BAR_GAP
+	const bubbleMax = screenHeight ? screenHeight * BUBBLE_SHARE : undefined
+	const ceiling =
+		openTurn && bubbleBottom && screenHeight
+			? (bubbleBottom + BUBBLE_CLEARANCE) / screenHeight
+			: null
+	const stage: Stage = { asking, talking: voice.state === 'speaking', ceiling }
+	const heads =
+		screenWidth && screenHeight
+			? studentHeads(SCENES.classroom, screenWidth, screenHeight, floor, stage)
+			: []
+	const tailX = heads.find((h) => h.name === asking)?.x ?? null
+	// The sheet never rises past the bubble (or, with no question, the top buttons), however
+	// tall the keyboard: what's in it scrolls instead, and the answer stays above the keyboard.
+	const sheetTop = openTurn && bubbleBottom ? bubbleBottom + BAR_GAP : bubbleTop
+	const sheetMax = screenHeight ? screenHeight - sheetTop : undefined
 
 	const progress = (
 		<MonoLabel
@@ -124,8 +154,8 @@ export function ClassStep({
 
 	return (
 		<View style={s.fill} onLayout={onScreenLayout}>
-			<PixelBackdrop scene="classroom" raised={raised} floor={floor} />
-			<StudentTargets scene="classroom" raised={raised} floor={floor} onPick={pick} />
+			<PixelBackdrop scene="classroom" raised={raised} floor={floor} stage={stage} />
+			<StudentTargets scene="classroom" raised={raised} floor={floor} stage={stage} onPick={pick} />
 			<View style={[s.bar, { top: insets.top + BAR_TOP }]} pointerEvents="box-none">
 				<PressableScale
 					onPress={onEnd}
@@ -153,6 +183,21 @@ export function ClassStep({
 					</PressableScale>
 				) : null}
 			</View>
+			{openTurn && name ? (
+				<QuestionBubble
+					question={openTurn.question}
+					student={name}
+					reveal={reveal}
+					top={bubbleTop}
+					maxHeight={bubbleMax}
+					tailX={tailX}
+					showName={keyboard}
+					onShowAll={() => {
+						if (reveal.showAll()) track('class_question_shown_all', { student: name })
+					}}
+					onLayout={(e) => setBubbleBottom(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
+				/>
+			) : null}
 			<View style={s.fill} pointerEvents="none" />
 			<KeyboardAvoidingView
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -169,9 +214,6 @@ export function ClassStep({
 								showsVerticalScrollIndicator={false}
 							>
 								{progress}
-								<Text variant="question" style={s.question} accessibilityRole="header">
-									{openTurn.question}
-								</Text>
 								<MonoLabel
 									style={s.who}
 									right={

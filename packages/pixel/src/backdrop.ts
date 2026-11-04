@@ -1,5 +1,5 @@
 import { PIXEL_FIELDS } from './fields'
-import { renderScene, SCENES, type Raised, type SceneName } from './scenes'
+import { renderScene, SCENES, type Raised, type SceneName, type Stage } from './scenes'
 
 // Runs a scene on a canvas: sizes it to the screen in the field's cells, draws at a steady
 // frame rate, eases hands up and down, and stops drawing while paused. The website-style
@@ -15,6 +15,8 @@ export interface BackdropState {
 	still: boolean
 	/** Where the sheet's top edge is, as a share of the height, so students stand above it. */
 	floor?: number | null
+	/** The class: who is asking and whether they're talking (scenes.ts). */
+	stage?: Stage | null
 }
 
 export interface Backdrop {
@@ -54,7 +56,8 @@ export function startBackdrop(canvas: HTMLCanvasElement, initial: BackdropState)
 			SCENES[state.scene],
 			seconds,
 			lifts,
-			state.floor
+			state.floor,
+			state.stage
 		)
 		ctx.putImageData(image, 0, 0)
 	}

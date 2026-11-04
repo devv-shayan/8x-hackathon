@@ -12,7 +12,13 @@ import type { PixelBackdropProps } from './types'
  * with no native code of its own. Touches pass through to the screen. It stays hidden until
  * the page has loaded, so there's no white flash, and pauses when the screen isn't focused.
  */
-export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackdropProps) {
+export function PixelBackdrop({
+	scene,
+	raised,
+	floor = null,
+	stage = null,
+	style
+}: PixelBackdropProps) {
 	const web = useRef<WebView>(null)
 	const focused = useIsFocused()
 	const still = useReducedMotion()
@@ -23,9 +29,12 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 		raised: JSON.parse(raisedKey),
 		playing: focused,
 		still,
-		floor
+		floor,
+		stage
 	})
 	const initial = useRef(state).current
+	const latest = useRef(state)
+	latest.current = state
 
 	useEffect(() => {
 		web.current?.injectJavaScript(`window.__backdrop&&window.__backdrop(${state});true;`)
@@ -39,7 +48,13 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 					originWhitelist={['*']}
 					source={{ html: BACKDROP_HTML }}
 					injectedJavaScriptBeforeContentLoaded={`window.__initial=${initial};true;`}
-					onLoadEnd={() => setLoaded(true)}
+					onLoadEnd={() => {
+						// A change made while the page was loading never reached it: send the latest.
+						web.current?.injectJavaScript(
+							`window.__backdrop&&window.__backdrop(${latest.current});true;`
+						)
+						setLoaded(true)
+					}}
 					scrollEnabled={false}
 					bounces={false}
 					overScrollMode="never"

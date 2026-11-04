@@ -7,10 +7,22 @@ import * as Speech from 'expo-speech'
 // server has none. The web build plays them in the browser (playback.web.ts).
 
 /**
- * Something playing, which can be stopped. `started` rejects if it can't start; `done`
- * settles when it ends, is stopped or fails.
+ * How far something has played: seconds in, its length once known, and for a voice that says
+ * which word it's on, how many characters of the text it has reached.
  */
-export type Playing = { stop: () => void; started: Promise<void>; done: Promise<void> }
+export type Progress = { elapsed: number; duration: number | null; spokenChars?: number }
+
+/**
+ * Something playing, which can be stopped. `started` rejects if it can't start; `done`
+ * settles when it ends, is stopped or fails. `progress` is read while it plays, so the
+ * question can be shown word by word in time with it.
+ */
+export type Playing = {
+	stop: () => void
+	started: Promise<void>
+	done: Promise<void>
+	progress: () => Progress
+}
 
 export const canPlayVoice = true
 
@@ -49,12 +61,17 @@ export function playWav(base64: string): Playing {
 			finish()
 		},
 		started,
-		done
+		done,
+		progress: () => ({
+			elapsed: player.currentTime,
+			duration: player.duration > 0 ? player.duration : null
+		})
 	}
 }
 
 /** Reads `text` with the phone's own voice. */
 export function speakWithDevice(text: string): Playing | null {
+	const startedAt = Date.now()
 	const done = new Promise<void>((resolve) => {
 		Speech.speak(text, {
 			language: 'en-US',
@@ -63,5 +80,11 @@ export function speakWithDevice(text: string): Playing | null {
 			onError: () => resolve()
 		})
 	})
-	return { stop: () => void Speech.stop(), started: Promise.resolve(), done }
+	return {
+		stop: () => void Speech.stop(),
+		started: Promise.resolve(),
+		done,
+		// The phone's voice doesn't say how long it will take, so the words keep a speaking pace.
+		progress: () => ({ elapsed: (Date.now() - startedAt) / 1000, duration: null })
+	}
 }
