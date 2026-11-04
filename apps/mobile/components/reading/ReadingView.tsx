@@ -20,6 +20,9 @@ export type ReadingPhase =
 	| { kind: 'unreadable' }
 	| { kind: 'failed'; message: string; busy: boolean }
 
+/** The guesses on offer for how many key ideas a video has; the last means "or more". */
+export const GUESSES = [3, 4, 5, 6] as const
+
 /** The board's width on a phone, and its share of a narrow screen. */
 const BOARD_MAX = 300
 const BOARD_SIDE_ROOM = 100
@@ -123,15 +126,17 @@ function Link({ label, onPress, tone }: { label: string; onPress: () => void; to
 /**
  * Reading a video (8X-49): the class watches it come in on a board above them, in the app's
  * pixel pattern built from the video's own main colour, while Omar says what's happening. The
- * sheet holds the video's title, then a due warm-up to fill the wait (Maya's hand goes up).
- * Ready, can't read, busy and cancel each have their own words; `unreadable` is where the
- * paste fallback goes.
+ * sheet holds the video's title, then a due warm-up to fill the wait (Maya's hand goes up) or, with
+ * nothing due, a guess at how many key ideas it has. Ready, can't read, busy and cancel each
+ * have their own words; `unreadable` is where the paste fallback goes.
  */
 export function ReadingView({
 	youtubeId,
 	title,
 	phase,
 	warmUp,
+	guess,
+	onGuess,
 	onAnswerWarmUp,
 	onCancel,
 	onBack,
@@ -143,6 +148,8 @@ export function ReadingView({
 	title: string | null
 	phase: ReadingPhase
 	warmUp: DueWarmUp | null
+	guess: number | null
+	onGuess: (guess: number) => void
 	onAnswerWarmUp: (gap: DueWarmUp) => void
 	onCancel: () => void
 	onBack: () => void
@@ -272,7 +279,34 @@ export function ReadingView({
 								onAnswer={() => onAnswerWarmUp(offer)}
 								onLater={() => setLater(true)}
 							/>
-						) : null}
+						) : (
+							<View style={s.block}>
+								<MonoLabel>How many key ideas, do you think?</MonoLabel>
+								<View style={s.row}>
+									{GUESSES.map((n) => (
+										<Pressable
+											key={n}
+											onPress={() => onGuess(n)}
+											accessibilityRole="button"
+											accessibilityState={{ selected: guess === n }}
+											accessibilityLabel={n === 6 ? '6 or more' : String(n)}
+											style={[
+												s.guess,
+												{
+													borderRadius: radii.xl,
+													backgroundColor: guess === n ? c.brandFill : c.well,
+													borderColor: guess === n ? c.brandBorder : 'transparent'
+												}
+											]}
+										>
+											<Text variant="h3" style={guess === n ? { color: c.onBrand } : undefined}>
+												{n === 6 ? '6+' : String(n)}
+											</Text>
+										</Pressable>
+									))}
+								</View>
+							</View>
+						)}
 						<Link label="Cancel" onPress={() => setConfirming(true)} />
 					</>
 				) : phase.kind === 'ready' ? (
@@ -289,7 +323,7 @@ export function ReadingView({
 								/>
 							))}
 							<Text variant="label" style={s.ideasText}>
-								{`${phase.video.concepts.length} key ideas`}
+								{`${phase.video.concepts.length} key ideas${guess ? ` · you guessed ${guess === 6 ? '6+' : guess}` : ''}`}
 							</Text>
 						</View>
 						<Button
@@ -395,6 +429,7 @@ const s = StyleSheet.create({
 	row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
 	offer: { marginTop: 16, padding: 14, gap: 8 },
 	offerText: { fontSize: 15, lineHeight: 20 },
+	guess: { flex: 1, height: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
 	ideas: { marginTop: 14, flexWrap: 'wrap' },
 	idea: { width: 20, height: 20, borderWidth: 1.5 },
 	ideasText: { marginLeft: 6, fontSize: 14 },

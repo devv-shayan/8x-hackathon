@@ -35,6 +35,7 @@ const VIDEO = {
 
 function show(phase: ReadingPhase, extra: Partial<Parameters<typeof ReadingView>[0]> = {}) {
 	const handlers = {
+		onGuess: jest.fn(),
 		onAnswerWarmUp: jest.fn(),
 		onCancel: jest.fn(),
 		onBack: jest.fn(),
@@ -47,6 +48,7 @@ function show(phase: ReadingPhase, extra: Partial<Parameters<typeof ReadingView>
 			title="How do vaccines work?"
 			phase={phase}
 			warmUp={null}
+			guess={null}
 			unreadable={<Text>paste form</Text>}
 			{...handlers}
 			{...extra}
@@ -68,11 +70,10 @@ it('opens, then reads, then picks out the key ideas', () => {
 	expect(screen.getByText('Picking out the big ideas now.')).toBeTruthy()
 })
 
-it('with nothing due, shows only the title and Cancel', () => {
-	show({ kind: 'reading', seconds: 20 })
-	expect(screen.getByText('How do vaccines work?')).toBeTruthy()
-	expect(screen.getByText('Cancel')).toBeTruthy()
-	expect(screen.queryByText('Answer')).toBeNull()
+it('with nothing due, offers a guess at how many key ideas', () => {
+	const { onGuess } = show({ kind: 'reading', seconds: 20 })
+	fireEvent.press(screen.getByLabelText('4'))
+	expect(onGuess).toHaveBeenCalledWith(4)
 })
 
 it('with a warm-up due, Maya offers it, and Later puts it away', () => {
@@ -104,10 +105,10 @@ it('asks before cancelling', () => {
 	expect(onCancel).toHaveBeenCalled()
 })
 
-it('when ready, says how many ideas and teaches it', () => {
-	const { onTeach } = show({ kind: 'ready', video: VIDEO, seconds: 38 })
+it('when ready, says how many ideas, against the guess, and teaches it', () => {
+	const { onTeach } = show({ kind: 'ready', video: VIDEO, seconds: 38 }, { guess: 4 })
 	expect(screen.getByText('Done. 5 big ideas in it.')).toBeTruthy()
-	expect(screen.getByText('5 key ideas')).toBeTruthy()
+	expect(screen.getByText('5 key ideas · you guessed 4')).toBeTruthy()
 	fireEvent.press(screen.getByText('Teach it'))
 	expect(onTeach).toHaveBeenCalledWith(VIDEO)
 })
