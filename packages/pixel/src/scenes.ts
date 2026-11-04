@@ -89,6 +89,20 @@ export const SCENES = {
 	},
 	explain: { field: 'voiceWaves', students: [], headY: 0, scale: 0, halo: null },
 	classroom: { field: 'goldDrift', students: BOTH, headY: 0.32, scale: 0.44, halo: 0.97 },
+	/**
+	 * Reading a video (8X-49): the class, smaller and further apart, so the board with the
+	 * video coming in fits above them and their speech bubbles above their heads.
+	 */
+	reading: {
+		field: 'goldDrift',
+		students: [
+			{ name: 'Maya', at: 0.28 },
+			{ name: 'Omar', at: 0.72 }
+		],
+		headY: 0.47,
+		scale: 0.36,
+		halo: 0.97
+	},
 	results: { field: 'warmUpRipples', students: BOTH, headY: 0.2, scale: 0.32, halo: 0.99 },
 	topic: { field: 'omar', students: [], headY: 0, scale: 0, halo: null }
 } as const satisfies Record<string, Scene>
