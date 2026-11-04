@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { View, Platform, DeviceEventEmitter } from 'react-native'
+import { View, Platform } from 'react-native'
 import { Stack, useNavigationContainerRef, usePathname } from 'expo-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import * as SplashScreen from 'expo-splash-screen'
 import { palette, type Palette } from '@app/brand'
 import { queryClient } from '@/lib/queryClient'
 import { presetFonts } from '@/lib/fonts'
-import { loadThemePref } from '@/lib/themePref'
 import { loadHapticsPref } from '@/lib/haptics'
 import { makeStyles } from '@/lib/themedStyles'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
@@ -198,10 +197,10 @@ function RootLayout() {
 		initI18n().then(() => setI18nReady(true))
 	}, [])
 
-	// Read the stored light/dark choice (and the haptics switch) before first
-	// paint, so the first frame is already in the right scheme.
+	// Read the haptics switch before first paint, so the first tap already
+	// follows it.
 	useEffect(() => {
-		Promise.all([loadThemePref(), loadHapticsPref()]).finally(() => setThemeReady(true))
+		loadHapticsPref().finally(() => setThemeReady(true))
 	}, [])
 
 	useEffect(() => {
@@ -267,23 +266,6 @@ function RootLayout() {
 		})
 
 		return () => subscription.unsubscribe()
-	}, [])
-
-	// Development only: the login screen's "Skip" buttons land in the app (or in
-	// onboarding) without a backend, so every screen can be built and reviewed.
-	useEffect(() => {
-		if (!__DEV__) return
-		const sub = DeviceEventEmitter.addListener(
-			'__dev_skip_auth__',
-			(payload?: { onboarding?: boolean }) => {
-				void import('@/lib/demoAuth').then(async ({ enableLocalDemoAuth }) => {
-					await enableLocalDemoAuth()
-					setIsAuthed(true)
-					setOnboardingCompleted(!payload?.onboarding)
-				})
-			}
-		)
-		return () => sub.remove()
 	}, [])
 
 	const ready =
@@ -376,6 +358,8 @@ function AppTree({
 														<Stack.Screen name="(tabs)" />
 														<Stack.Screen name="detail/[id]" options={PUSH} />
 														<Stack.Screen name="class/[topicId]" options={PUSH} />
+														<Stack.Screen name="warm-up/[gapId]" options={PUSH} />
+														<Stack.Screen name="topic/[id]" options={PUSH} />
 														<Stack.Screen name="settings" options={PUSH} />
 														<Stack.Screen name="support" options={PUSH} />
 													</Stack.Protected>
@@ -385,6 +369,8 @@ function AppTree({
 													<Stack.Screen name="upgrade" options={MODAL} />
 													<Stack.Screen name="privacy" options={PUSH} />
 													<Stack.Screen name="terms" options={PUSH} />
+													{/* Development only: the redesign's pixel scenes (app/dev/backdrops.tsx). */}
+													{__DEV__ ? <Stack.Screen name="dev/backdrops" options={PUSH} /> : null}
 												</Stack>
 												<ScreenTracker />
 												<SessionExpiredNotice />

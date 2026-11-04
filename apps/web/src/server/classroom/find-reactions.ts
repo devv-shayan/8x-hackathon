@@ -1,6 +1,6 @@
 import 'server-only'
 import { generateContent } from '@/server/ai/gemini'
-import { toVideoError } from '@/server/video/read-video'
+import { AI_BUSY, toVideoError } from '@/server/video/read-video'
 import {
 	buildReactionPrompt,
 	parseReactions,
@@ -33,6 +33,6 @@ export async function findStudentReactions(input: {
 		)
 		return parseReactions(response.text, input.students)
 	} catch (error) {
-		throw toVideoError(error)
+		throw toVideoError(error, AI_BUSY)
 	}
 }

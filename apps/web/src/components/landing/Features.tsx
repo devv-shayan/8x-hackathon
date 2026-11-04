@@ -15,7 +15,7 @@ import { FUNNEL_EVENTS } from '@/lib/analytics/events'
 import { cn } from '@/lib/utils'
 import { AppCard, AppRow, FixedTag, SectionBand, StartLink } from './parts'
 import { PixelField } from './pixel/PixelField'
-import type { PixelFieldName } from './pixel/fields'
+import type { PixelFieldName } from '@app/pixel'
 
 type Feature = { icon: LucideIcon; label: string; text: string; tone?: string }
 

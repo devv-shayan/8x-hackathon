@@ -3,6 +3,8 @@
 Durable notes for this play. One line per note. See `AGENTS.md` ("Project memory") for how to write one.
 
 - [App name](app-name.md) — the app is Chalkback, picked 2026-10-31; identifiers and what still needs doing
+- [Groq voice](groq-voice.md) — voice runs on Groq Whisper and Orpheus, web and phone; limits, voices, the terms and background-audio traps
+- [Phone dev setup](phone-dev-setup.md) — running the app on a real phone in Expo Go: the steps, and the IP and npx traps
 
 Worth writing early, once each is decided:
 

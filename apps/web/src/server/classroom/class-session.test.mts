@@ -9,7 +9,8 @@ process.env.DATABASE_URL = 'postgresql://user:password@db.test:5432/app'
 const { classStore } = await import('@/server/db/classes')
 const { gapStore } = await import('@/server/db/gaps')
 const { topicStore } = await import('@/server/db/topics')
-const { answerTurn, endClass, startClass } = await import('./class-session')
+const { answerTurn, endClass, reactionRetry, startClass } = await import('./class-session')
+reactionRetry.delayMs = 0
 
 const USER = '00000000-0000-4000-8000-000000000001'
 const TOPIC = '11111111-1111-4111-8111-111111111111'
@@ -43,6 +44,9 @@ let session: {
 }
 let scoreCalls = 0
 let failedScoreCalls = 0
+/** How many reaction calls Gemini answers as overloaded (503) before replying. */
+let busyReactionCalls = 0
+let reactionCalls = 0
 let afterClassCalls = 0
 let afterClassFails = false
 let questionPrompts: string[] = []
@@ -124,8 +128,7 @@ function geminiReply(text: unknown): Response {
 	return Response.json({ candidates })
 }
 
-globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-	const request = String(init?.body)
+async function answerGemini(request: string) {
 	if (request.includes('by the end of a class')) {
 		afterClassCalls += 1
 		if (afterClassFails) throw new TypeError('fetch failed')
@@ -137,6 +140,11 @@ globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 		return geminiReply({ results: [{ concept: 'Xylem', result: 'wrong' }] })
 	}
 	if (request.includes('closing lines from students') || request.includes('Write one reaction')) {
+		reactionCalls += 1
+		if (reactionCalls <= busyReactionCalls) {
+			const error = { code: 503, message: 'The model is overloaded.', status: 'UNAVAILABLE' }
+			return Response.json({ error }, { status: 503 })
+		}
 		return geminiReply({
 			reactions: students.map(({ id, name }) => ({
 				student_id: id,
@@ -149,6 +157,21 @@ globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
 		return geminiReply({ reason: 'new', status: 'open' })
 	questionPrompts.push(request)
 	return geminiReply({ question: 'What does that mean?' })
+}
+
+// How many Gemini calls run at once: each reply takes a moment, so overlapping calls show.
+let inFlight = 0
+let maxInFlight = 0
+
+globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+	inFlight += 1
+	maxInFlight = Math.max(maxInFlight, inFlight)
+	try {
+		await new Promise((resolve) => setTimeout(resolve, 5))
+		return await answerGemini(String(init?.body))
+	} finally {
+		inFlight -= 1
+	}
 }) as typeof fetch
 
 beforeEach(() => {
@@ -156,8 +179,17 @@ beforeEach(() => {
 	failedScoreCalls = 0
 	afterClassCalls = 0
 	afterClassFails = false
+	busyReactionCalls = 0
+	reactionCalls = 0
 	questionPrompts = []
 	gapSaves = []
+})
+
+test("an answer's next question and the waiting question's re-check run together", async () => {
+	await startClass(USER, TOPIC, 'Plants drink.')
+	maxInFlight = 0
+	await answerTurn(USER, CLASS, 'turn-0', 'answered', 'Water rises through xylem.')
+	assert.ok(maxInFlight >= 2, `expected overlapping Gemini calls, saw ${maxInFlight} at most`)
 })
 
 async function classWithOneAnswer() {
@@ -168,6 +200,9 @@ async function classWithOneAnswer() {
 test('a class scored at the start asks about what was missed or wrong', async () => {
 	const started = await startClass(USER, TOPIC, 'Plants drink.')
 	assert.equal(started.turns.length, 2)
+	// The video is there for private help, but the score stays hidden until the end.
+	assert.equal(started.youtube_id, 'video')
+	assert.equal(started.concept_results, null)
 	assert.equal(scoreCalls, 1)
 	assert.ok(questionPrompts.some((prompt) => prompt.includes('Xylem')))
 	assert.deepEqual(gapSaves, [
@@ -216,6 +251,15 @@ test('ending a class writes reactions, and a failed reaction call still returns 
 	const ended = await endClass(USER, CLASS)
 	assert.ok((ended.reactions?.length ?? 0) > 0)
 	assert.equal(ended.reactions?.[0]?.student_id, 'maya')
+})
+
+test('a busy Gemini is asked for the reactions once more, so they still arrive', async () => {
+	await classWithOneAnswer()
+	// The Gemini wrapper tries twice; then the class waits and asks once more.
+	busyReactionCalls = 2
+	const ended = await endClass(USER, CLASS)
+	assert.equal(reactionCalls, 3)
+	assert.ok((ended.reactions?.length ?? 0) > 0)
 })
 
 test('a class that still cannot be scored ends without a score', async () => {

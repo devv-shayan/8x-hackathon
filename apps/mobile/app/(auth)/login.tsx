@@ -26,7 +26,6 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-	DeviceEventEmitter,
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
@@ -40,11 +39,14 @@ import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import * as AppleAuthentication from 'expo-apple-authentication'
 import { Ionicons } from '@expo/vector-icons'
-import { Mail } from 'lucide-react-native'
+import { ChevronLeft, Mail } from 'lucide-react-native'
+import { PressableScale } from '@/components/motion/PressableScale'
+import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { Button } from '@/components/ui/Button'
 import { CODE_LENGTH, CodeInput } from '@/components/ui/CodeInput'
-import { LogoMark } from '@/components/ui/Marks'
-import { PageHeader } from '@/components/ui/PageHeader'
+import { MonoLabel } from '@/components/ui/MonoLabel'
+import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -130,7 +132,7 @@ const SIGN_IN_NOT_SET_UP = "Sign-in isn't set up in this version of the app yet.
 
 export default function LoginScreen() {
 	const insets = useSafeAreaInsets()
-	const { layout, radii, isDark } = useTheme()
+	const { colors: c, elevation, radii, isDark } = useTheme()
 	const nativeApple = useNativeAppleSignIn()
 	const s = useStyles()
 
@@ -353,203 +355,198 @@ export default function LoginScreen() {
 		}
 	}
 
+	function goBack() {
+		if (router.canGoBack()) router.back()
+		else router.replace('/')
+	}
+
 	return (
 		<View style={s.root}>
-			<PageHeader />
+			<PixelBackdrop scene="home" />
+			<View style={[s.bar, { top: insets.top + 8 }]} pointerEvents="box-none">
+				<PressableScale
+					onPress={goBack}
+					accessibilityRole="button"
+					accessibilityLabel="Back"
+					style={[s.back, { backgroundColor: c.surface }, elevation.soft]}
+				>
+					<ChevronLeft size={22} color={c.textPrimary} strokeWidth={2.2} />
+				</PressableScale>
+				<BrandMark />
+			</View>
 			<KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 				<ScrollView
-					contentContainerStyle={[
-						s.scroll,
-						{ paddingHorizontal: layout.gutterWide, paddingBottom: insets.bottom + 24 }
-					]}
+					contentContainerStyle={[s.scroll, { paddingTop: insets.top + 68 }]}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 				>
-					<LogoMark name={APP_NAME} size={44} />
+					<SheetCard>
+						{step === 'email' ? (
+							<Animated.View key="email" entering={stepIn} exiting={stepOut} style={s.step}>
+								<View style={s.titles}>
+									<MonoLabel>Sign in</MonoLabel>
+									<Text variant="question" accessibilityRole="header">
+										Sign in to {APP_NAME}
+									</Text>
+									<Text variant="bodySm" tone="secondary">
+										We&apos;ll email you a six-digit code. No password to remember.
+									</Text>
+								</View>
 
-					{step === 'email' ? (
-						<Animated.View key="email" entering={stepIn} exiting={stepOut} style={s.step}>
-							<View style={s.titles}>
-								<Text variant="h1" accessibilityRole="header">
-									Sign in to {APP_NAME}
-								</Text>
-								<Text variant="body" tone="secondary">
-									We&apos;ll email you a six-digit code. No password to remember.
-								</Text>
-							</View>
+								<TextInputField
+									label="Email"
+									icon={(color) => <Mail size={18} color={color} strokeWidth={2} />}
+									value={email}
+									onChangeText={(v) => {
+										setEmail(v)
+										if (error) setError(null)
+									}}
+									placeholder="you@example.com"
+									keyboardType="email-address"
+									textContentType="emailAddress"
+									autoComplete="email"
+									autoCapitalize="none"
+									autoCorrect={false}
+									returnKeyType="send"
+									onSubmitEditing={sendCode}
+									error={error}
+									autoFocus
+								/>
 
-							<TextInputField
-								label="Email"
-								icon={(color) => <Mail size={18} color={color} strokeWidth={2} />}
-								value={email}
-								onChangeText={(v) => {
-									setEmail(v)
-									if (error) setError(null)
-								}}
-								placeholder="you@example.com"
-								keyboardType="email-address"
-								textContentType="emailAddress"
-								autoComplete="email"
-								autoCapitalize="none"
-								autoCorrect={false}
-								returnKeyType="send"
-								onSubmitEditing={sendCode}
-								error={error}
-								autoFocus
-							/>
+								<Button
+									label="Email me a code"
+									variant="ink"
+									size="lg"
+									fullWidth
+									loading={loading === 'email'}
+									disabled={!email.trim() || (loading !== null && loading !== 'email')}
+									onPress={sendCode}
+								/>
 
-							<Button
-								label="Email me a code"
-								size="lg"
-								fullWidth
-								loading={loading === 'email'}
-								disabled={!email.trim() || (loading !== null && loading !== 'email')}
-								onPress={sendCode}
-							/>
+								<View style={s.divider}>
+									<View style={s.rule} />
+									<Text variant="caption" tone="tertiary">
+										or
+									</Text>
+									<View style={s.rule} />
+								</View>
 
-							<View style={s.divider}>
-								<View style={s.rule} />
-								<Text variant="caption" tone="tertiary">
-									or
-								</Text>
-								<View style={s.rule} />
-							</View>
-
-							<View style={s.providers}>
-								{nativeApple ? (
-									<View
-										pointerEvents={loading !== null ? 'none' : 'auto'}
-										style={loading !== null && s.dimmed}
-									>
-										<AppleAuthentication.AppleAuthenticationButton
-											buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-											buttonStyle={
-												isDark
-													? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-													: AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-											}
-											cornerRadius={Math.min(radii.button, PROVIDER_HEIGHT / 2)}
-											style={s.appleButton}
-											onPress={signInWithApple}
+								<View style={s.providers}>
+									{nativeApple ? (
+										<View
+											pointerEvents={loading !== null ? 'none' : 'auto'}
+											style={loading !== null && s.dimmed}
+										>
+											<AppleAuthentication.AppleAuthenticationButton
+												buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+												buttonStyle={
+													isDark
+														? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+														: AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+												}
+												cornerRadius={Math.min(radii.button, PROVIDER_HEIGHT / 2)}
+												style={s.appleButton}
+												onPress={signInWithApple}
+											/>
+										</View>
+									) : (
+										<Button
+											label="Continue with Apple"
+											variant="outline"
+											size="lg"
+											fullWidth
+											loading={loading === 'apple'}
+											disabled={loading !== null && loading !== 'apple'}
+											icon={(color) => <Ionicons name="logo-apple" size={18} color={color} />}
+											onPress={() => signInWithProvider('apple')}
 										/>
-									</View>
-								) : (
+									)}
 									<Button
-										label="Continue with Apple"
+										label="Continue with Google"
 										variant="outline"
 										size="lg"
 										fullWidth
-										loading={loading === 'apple'}
-										disabled={loading !== null && loading !== 'apple'}
-										icon={(color) => <Ionicons name="logo-apple" size={18} color={color} />}
-										onPress={() => signInWithProvider('apple')}
+										loading={loading === 'google'}
+										disabled={loading !== null && loading !== 'google'}
+										icon={(color) => <Ionicons name="logo-google" size={16} color={color} />}
+										onPress={() => signInWithProvider('google')}
 									/>
-								)}
+								</View>
+							</Animated.View>
+						) : (
+							<Animated.View key="otp" entering={stepIn} exiting={stepOut} style={s.step}>
+								<View style={s.titles}>
+									<MonoLabel>Sign in</MonoLabel>
+									<Text variant="question" accessibilityRole="header">
+										Check your inbox
+									</Text>
+									<Text variant="bodySm" tone="secondary">
+										Enter the code we sent to{' '}
+										<Text variant="bodySm" tone="primary">
+											{normalizeEmail(email)}
+										</Text>
+										. It can take a minute; check spam too.
+									</Text>
+								</View>
+
+								<CodeInput
+									value={code}
+									onChange={onCodeChange}
+									inputRef={codeRef}
+									disabled={loading === 'code' || !!lockoutEnd}
+									error={codeError}
+								/>
+
+								{error ? (
+									<Text variant="bodySm" tone="error" accessibilityLiveRegion="polite">
+										{error}
+									</Text>
+								) : null}
+								{lockoutEnd ? (
+									<Text variant="bodySm" tone="secondary" tabular>
+										Try again in {Math.floor(lockoutLeft / 60)}:
+										{String(lockoutLeft % 60).padStart(2, '0')}
+									</Text>
+								) : null}
+
 								<Button
-									label="Continue with Google"
-									variant="outline"
+									label="Verify"
+									variant="ink"
 									size="lg"
 									fullWidth
-									loading={loading === 'google'}
-									disabled={loading !== null && loading !== 'google'}
-									icon={(color) => <Ionicons name="logo-google" size={16} color={color} />}
-									onPress={() => signInWithProvider('google')}
+									loading={loading === 'code'}
+									disabled={code.length < CODE_LENGTH || !!lockoutEnd}
+									onPress={() => verify(code)}
 								/>
-							</View>
-						</Animated.View>
-					) : (
-						<Animated.View key="otp" entering={stepIn} exiting={stepOut} style={s.step}>
-							<View style={s.titles}>
-								<Text variant="h1" accessibilityRole="header">
-									Check your inbox
-								</Text>
-								<Text variant="body" tone="secondary">
-									Enter the code we sent to{' '}
-									<Text variant="body" tone="primary">
-										{normalizeEmail(email)}
-									</Text>
-									. It can take a minute; check spam too.
-								</Text>
-							</View>
 
-							<CodeInput
-								value={code}
-								onChange={onCodeChange}
-								inputRef={codeRef}
-								disabled={loading === 'code' || !!lockoutEnd}
-								error={codeError}
-							/>
+								<View style={s.otpActions}>
+									<Button
+										label={cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
+										variant="ghost"
+										size="sm"
+										disabled={cooldown > 0 || loading !== null}
+										onPress={resend}
+									/>
+									<Button label="Change email" variant="ghost" size="sm" onPress={changeEmail} />
+								</View>
+							</Animated.View>
+						)}
 
-							{error ? (
-								<Text variant="bodySm" tone="error" accessibilityLiveRegion="polite">
-									{error}
-								</Text>
-							) : null}
-							{lockoutEnd ? (
-								<Text variant="bodySm" tone="secondary" tabular>
-									Try again in {Math.floor(lockoutLeft / 60)}:
-									{String(lockoutLeft % 60).padStart(2, '0')}
-								</Text>
-							) : null}
-
+						<View style={s.legal}>
 							<Button
-								label="Verify"
-								size="lg"
-								fullWidth
-								loading={loading === 'code'}
-								disabled={code.length < CODE_LENGTH || !!lockoutEnd}
-								onPress={() => verify(code)}
+								label="Privacy Policy"
+								variant="ghost"
+								size="sm"
+								onPress={() => router.push('/privacy')}
 							/>
-
-							<View style={s.otpActions}>
-								<Button
-									label={cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
-									variant="ghost"
-									size="sm"
-									disabled={cooldown > 0 || loading !== null}
-									onPress={resend}
-								/>
-								<Button label="Change email" variant="ghost" size="sm" onPress={changeEmail} />
-							</View>
-						</Animated.View>
-					)}
-
-					{__DEV__ ? (
-						<View style={s.dev}>
-							<Text variant="caption" tone="tertiary">
-								Development build
-							</Text>
-							<View style={s.devRow}>
-								<Button
-									label="Skip to the app"
-									variant="outline"
-									size="sm"
-									onPress={() => DeviceEventEmitter.emit('__dev_skip_auth__')}
-								/>
-								<Button
-									label="Skip to onboarding"
-									variant="outline"
-									size="sm"
-									onPress={() => DeviceEventEmitter.emit('__dev_skip_auth__', { onboarding: true })}
-								/>
-							</View>
+							<Button
+								label="Terms of Service"
+								variant="ghost"
+								size="sm"
+								onPress={() => router.push('/terms')}
+							/>
 						</View>
-					) : null}
-
-					<View style={s.legal}>
-						<Button
-							label="Privacy Policy"
-							variant="ghost"
-							size="sm"
-							onPress={() => router.push('/privacy')}
-						/>
-						<Button
-							label="Terms of Service"
-							variant="ghost"
-							size="sm"
-							onPress={() => router.push('/terms')}
-						/>
-					</View>
+					</SheetCard>
 				</ScrollView>
 			</KeyboardAvoidingView>
 		</View>
@@ -559,23 +556,24 @@ export default function LoginScreen() {
 const useStyles = makeStyles((c) => ({
 	root: { flex: 1, backgroundColor: c.bg },
 	flex: { flex: 1 },
-	scroll: { flexGrow: 1, paddingTop: 12, gap: 28 },
-	step: { gap: 20 },
-	titles: { gap: 10 },
+	bar: {
+		position: 'absolute',
+		left: 16,
+		right: 24,
+		zIndex: 2,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between'
+	},
+	back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+	scroll: { flexGrow: 1, justifyContent: 'flex-end' },
+	step: { gap: 16 },
+	titles: { gap: 8 },
 	divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 	rule: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: c.borderSoft },
 	providers: { gap: 10 },
 	appleButton: { width: '100%', height: PROVIDER_HEIGHT },
 	dimmed: { opacity: 0.5 },
 	otpActions: { flexDirection: 'row', justifyContent: 'center', gap: 4 },
-	dev: {
-		gap: 10,
-		padding: 14,
-		borderRadius: 16,
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: c.borderSoft,
-		borderStyle: 'dashed'
-	},
-	devRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-	legal: { flexDirection: 'row', justifyContent: 'center', marginTop: 'auto' }
+	legal: { flexDirection: 'row', justifyContent: 'center', marginTop: 12 }
 }))

@@ -27,6 +27,7 @@ export type StoredWarmUp = {
 
 export type DueGapRecord = {
 	id: string
+	topicId: string
 	topicTitle: string
 	concept: KeyConcept
 	openWarmUp: StoredWarmUp | null
@@ -79,6 +80,7 @@ export function createWarmUpStore(client: PrismaClient) {
 				orderBy: [{ nextDueAt: 'asc' }, { createdAt: 'asc' }],
 				select: {
 					id: true,
+					topicId: true,
 					concept: true,
 					topic: { select: { title: true } },
 					warmUps: {
@@ -91,6 +93,7 @@ export function createWarmUpStore(client: PrismaClient) {
 			})
 			return rows.map((row) => ({
 				id: row.id,
+				topicId: row.topicId,
 				topicTitle: row.topic.title,
 				concept: keyConceptSchema.parse(row.concept),
 				openWarmUp: row.warmUps[0] ? toWarmUp(row.warmUps[0]) : null

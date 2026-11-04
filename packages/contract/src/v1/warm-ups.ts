@@ -22,6 +22,8 @@ export const dueWarmUpSchema = z.object({
 	start_seconds: z.number().int().nonnegative(),
 	/** False when the idea came from pasted text and has no moment in a video. */
 	has_timestamp: z.boolean().optional(),
+	/** Who asks: the student of the question already saved, or the one who will ask it. */
+	student_name: z.string().optional(),
 	/** Set when a question was already saved and is still unanswered. */
 	open_warm_up: openWarmUpSchema.nullable()
 })

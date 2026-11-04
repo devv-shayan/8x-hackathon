@@ -14,10 +14,17 @@ export const keyConceptSchema = z.object({
 	title: z.string().min(1),
 	quote: z.string().min(1),
 	// Null when the source is pasted text: there is no moment in a video to point at.
-	startSeconds: z.number().int().nonnegative().nullable()
+	startSeconds: z.number().int().nonnegative().nullable(),
+	/** The person said this idea was not in the video. It leaves their results. */
+	notInVideo: z.boolean().optional()
 })
 
 export type KeyConcept = z.infer<typeof keyConceptSchema>
+
+/** Concepts the person has not flagged as missing from the video. */
+export function conceptsStillInVideo(concepts: readonly KeyConcept[]): KeyConcept[] {
+	return concepts.filter((concept) => concept.notInVideo !== true)
+}
 
 // The model picks the quote and code works out the timestamp from the
 // transcript, so a timestamp can never disagree with the words it points at.

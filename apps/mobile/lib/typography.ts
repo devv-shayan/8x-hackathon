@@ -1,9 +1,10 @@
 /**
  * Typography — the role scale from packages/brand, as React Native styles.
  *
- * Two families per preset: `display` (dusk: Source Serif 4, daylight:
- * Bricolage Grotesque) for headlines, and `text` (Inter) for everything the
- * user operates. Each family is loaded as separate files per weight, so a
+ * Three families per preset: `display` for headlines, `text` for everything
+ * the user operates, and `mono` for small labels (landing: Inter Tight for the
+ * first two, JetBrains Mono for the third). Each family is loaded as separate
+ * files per weight, so a
  * weight must become a family NAME: Android silently falls back to the system
  * font when it sees a custom fontFamily with a fontWeight. familyFor() and the
  * Text component do that mapping.
@@ -46,7 +47,7 @@ export function familyFor(group: FontGroup, weight?: string | number | null): st
 	return files[best] ?? files[400] ?? 'System'
 }
 
-/** fontWeight → the Inter (text) family. Kept for existing call sites. */
+/** fontWeight → the text family. Kept for existing call sites. */
 export function weightToFamily(weight?: string | number | null): string {
 	return familyFor('text', weight)
 }

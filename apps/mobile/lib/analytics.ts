@@ -55,7 +55,10 @@ type EventName =
 	| 'class_resumed'
 	| 'class_hand_picked'
 	// class_help_opened { student: string }: how often a question sends the person to the video.
+	// class_help_clip_opened { start_seconds: number }: in private help, they rewatched the
+	// moment in the video. start_seconds discriminates, so two moments in one class both count.
 	| 'class_help_opened'
+	| 'class_help_clip_opened'
 	| 'class_answered'
 	| 'class_finished'
 	// Assessment — judged on whether people who finish a class see what they missed, and on
@@ -63,9 +66,12 @@ type EventName =
 	// Metadata: assessment_viewed { correct_count: number, final_correct_count: number,
 	// fixed_count: number, concept_count: number }. correct_count is the first explanation's.
 	// assessment_clip_opened { concept }: they opened the video at a missed idea's timestamp.
-	// concept discriminates so two clips the same day both count.
+	// concept_not_in_video { concept }: they flagged an idea as not in the video, and it
+	// left the score. That flag is the metric. concept discriminates so two ideas the
+	// same day both count. assessment_viewed without a flag is the drop-off.
 	| 'assessment_viewed'
 	| 'assessment_clip_opened'
+	| 'concept_not_in_video'
 	// Auth — judged on how many who start signing in finish, per method.
 	// metadata on login_started, login_success and login_failed:
 	//   { method: 'email' | 'apple' | 'google' }
@@ -83,23 +89,17 @@ type EventName =
 	| 'logout'
 	// Onboarding — judged on completion rate, and where people fall out.
 	// onboarding_step_viewed fires as each step appears.
-	//   metadata: { step: 'name' | 'appearance', index: number }
-	// `step` is the discriminator. started → step_viewed(name) → step_viewed
-	// (appearance) → completed is the funnel; a step that loses people shows as
-	// the gap after it. onboarding_completed carries
-	//   { skipped_name: boolean, appearance: 'system' | 'light' | 'dark' }.
+	//   metadata: { step: 'meet' | 'name', index: number }
+	// `step` is the discriminator. started → step_viewed(meet) → step_viewed(name)
+	// → completed is the funnel; a step that loses people shows as the gap after it.
+	// onboarding_completed carries { skipped_name: boolean }.
 	| 'onboarding_started'
 	| 'onboarding_step_viewed'
 	| 'onboarding_completed'
-	// Preferences — settings toggles that change what the app looks and feels
-	// like. Not an "aha" and not a money moment; they answer "does anyone use
-	// light mode on the dark preset?" before a play spends time on it.
-	//   appearance_changed  metadata: { mode: 'system' | 'light' | 'dark',
-	//                                    source: 'onboarding' | 'settings' }
+	// Preferences — settings toggles that change how the app feels. Not an "aha"
+	// and not a money moment. The app has one light look, so there is no
+	// appearance setting to track.
 	//   haptics_changed     metadata: { enabled: boolean }
-	// `mode` and `source` discriminate: the same choice made in onboarding and
-	// later in settings are two different signals.
-	| 'appearance_changed'
 	| 'haptics_changed'
 	// Activity — reading the notification list.
 	//   notification_opened            metadata: { category }
@@ -201,11 +201,35 @@ type EventName =
 	| 'warm_up_offered'
 	| 'warm_up_started'
 	| 'warm_up_answered'
-	// Topic gaps — the "seeing progress" screen for one video.
-	// THE metric is topic_gaps_viewed with closed_count above zero: a gap actually closed.
-	// topic_id discriminates so two topics the same day both count.
-	// Metadata: { topic_id, open_count, closed_count }
-	| 'topic_gaps_viewed'
+	// Topic page — one video's gaps and when each comes back. Judged on whether
+	// people check a video's progress and teach it again.
+	//   topic_viewed              the page opens. metadata: { topic_id, open_gaps: number }
+	//   topic_teach_again_tapped  "Teach it again". metadata: { topic_id }
+	//   topic_warm_ups_opened     a gap's full warm-up history (each question and what the
+	//                             person said). metadata: { topic_id, warm_up_count: number }.
+	//                             Answers whether people look back at their own answers.
+	// topic_id discriminates, so two videos the same day both count.
+	| 'topic_viewed'
+	| 'topic_teach_again_tapped'
+	| 'topic_warm_ups_opened'
+	// Voice (docs/voice-requirements.md) — explaining and answering out loud, and the
+	// students speaking their questions. Judged on whether people teach by voice: THE
+	// metric is class_answered with method 'voice'. class_started, class_answered and
+	// warm_up_answered carry { method: 'voice' | 'typed', edited: boolean } (edited only
+	// for voice: they fixed the transcript before sending). The drop-off to watch is
+	// recording → transcript → sent: a denied microphone, a bad transcript, or typing.
+	// `surface` ('explain' | 'class' | 'warm_up') discriminates every voice event.
+	//   voice_recording_started  recording begins. metadata: { surface }
+	//   voice_recording_failed   voice couldn't be used, or a transcript failed.
+	//                            metadata: { surface, reason: 'denied' | 'unsupported' |
+	//                            'transcribe_failed' | 'busy' }
+	//   voice_typed_instead      "Type instead". metadata: { surface }
+	//   voice_question_played    a question is spoken. metadata: { surface, student,
+	//                            replay: boolean, source: 'groq' | 'browser' }
+	| 'voice_recording_started'
+	| 'voice_recording_failed'
+	| 'voice_typed_instead'
+	| 'voice_question_played'
 // TODO: add your app-specific events here
 
 /** Track an event. No-ops silently when PostHog is unconfigured. */

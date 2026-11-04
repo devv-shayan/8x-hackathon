@@ -1,6 +1,6 @@
 import 'server-only'
 import { generateContent } from '@/server/ai/gemini'
-import { toVideoError } from '@/server/video/read-video'
+import { AI_BUSY, toVideoError } from '@/server/video/read-video'
 import {
 	buildWaitingCheckPrompt,
 	buildFollowUpPrompt,
@@ -74,7 +74,7 @@ export async function nextQuestion(input: NextQuestionInput): Promise<StudentQue
 		})
 		return parseStudentTurn(response.text, speaker.id)
 	} catch (error) {
-		throw toVideoError(error)
+		throw toVideoError(error, AI_BUSY)
 	}
 }
 

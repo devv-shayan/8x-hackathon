@@ -5,13 +5,11 @@ import { WARM_UP_EVENTS } from '@/lib/analytics/events'
 import { ApiError } from '@/server/api/app-errors'
 import { notFound } from '@/server/api/app-route'
 import { DEFAULT_STUDENTS } from '@/server/classroom/student-turn'
+import { toDueWarmUp } from './due'
 import { classStore } from '@/server/db/classes'
 import { warmUpStore, type StoredWarmUp } from '@/server/db/warm-ups'
-import { isLocalDemoUser } from '@/server/demo/local-demo'
 import { isGapDue, scheduleAfterJudgment } from '@/server/gaps/schedule'
 import { askWarmUpQuestion, judgeWarmUp } from './ask'
-
-const NOTHING_DUE = 'Nothing is due for a warm-up right now.'
 
 function toWarmUp(row: StoredWarmUp): WarmUp {
 	return {
@@ -39,22 +37,12 @@ async function studentFor(userId: string, topicId: string) {
 }
 
 export async function listDueWarmUps(userId: string, now = new Date()): Promise<DueWarmUp[]> {
-	if (isLocalDemoUser(userId)) return []
 	const gaps = await warmUpStore.listDue(userId, now)
-	return gaps.map((gap) => ({
-		gap_id: gap.id,
-		topic_title: gap.topicTitle,
-		concept_title: gap.concept.title,
-		start_seconds: gap.concept.startSeconds ?? 0,
-		has_timestamp: gap.concept.startSeconds != null,
-		open_warm_up: gap.openWarmUp
-			? {
-					id: gap.openWarmUp.id,
-					question: gap.openWarmUp.question,
-					student_name: gap.openWarmUp.studentName
-				}
-			: null
-	}))
+	return Promise.all(
+		gaps.map(async (gap) =>
+			toDueWarmUp(gap, gap.openWarmUp ? '' : (await studentFor(userId, gap.topicId)).name)
+		)
+	)
 }
 
 /** The question already saved for this gap, or a new one. `created` is false when it already existed. */
@@ -65,7 +53,6 @@ export async function startWarmUp(input: {
 }): Promise<{ warmUp: WarmUp; created: boolean }> {
 	const { userId, gapId } = input
 	const now = input.now ?? new Date()
-	if (isLocalDemoUser(userId)) throw new ApiError('not_found', NOTHING_DUE)
 
 	const gap = await warmUpStore.findGap(userId, gapId)
 	if (!gap) throw notFound()
@@ -107,7 +94,6 @@ export async function answerWarmUp(input: {
 }): Promise<AnswerWarmUpResult> {
 	const { userId, warmUpId, answer } = input
 	const now = input.now ?? new Date()
-	if (isLocalDemoUser(userId)) throw new ApiError('not_found', NOTHING_DUE)
 
 	const row = await warmUpStore.findForAnswer(userId, warmUpId)
 	if (!row) throw notFound()

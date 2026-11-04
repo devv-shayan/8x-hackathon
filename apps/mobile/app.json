@@ -13,11 +13,11 @@
 		"orientation": "portrait",
 		"scheme": "chalkback",
 		"icon": "./assets/icon.png",
-		"userInterfaceStyle": "automatic",
+		"userInterfaceStyle": "light",
 		"splash": {
 			"image": "./assets/splash-icon.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#090f1e"
+			"backgroundColor": "#ffffff"
 		},
 		"ios": {
 			"supportsTablet": false,
@@ -47,19 +47,18 @@
 		"android": {
 			"package": "com.chalkback.app",
 			"adaptiveIcon": {
-				"foregroundImage": "./assets/icon.png",
-				"backgroundColor": "#090f1e"
+				"foregroundImage": "./assets/adaptive-icon.png",
+				"backgroundColor": "#ffffff"
 			},
 			"permissions": [],
 			"blockedPermissions": [
 				"android.permission.READ_EXTERNAL_STORAGE",
 				"android.permission.WRITE_EXTERNAL_STORAGE",
-				"android.permission.CAMERA",
-				"android.permission.RECORD_AUDIO"
+				"android.permission.CAMERA"
 			],
 			"androidStatusBar": {
-				"barStyle": "light-content",
-				"backgroundColor": "#090f1e",
+				"barStyle": "dark-content",
+				"backgroundColor": "#ffffff",
 				"translucent": true
 			},
 			"predictiveBackGestureEnabled": false,
@@ -73,7 +72,7 @@
 			]
 		},
 		"web": {
-			"favicon": "./assets/icon.png"
+			"favicon": "./assets/favicon.png"
 		},
 		"plugins": [
 			"expo-router",
@@ -81,7 +80,7 @@
 			[
 				"expo-splash-screen",
 				{
-					"backgroundColor": "#090f1e",
+					"backgroundColor": "#ffffff",
 					"image": "./assets/splash-icon.png",
 					"imageWidth": 200
 				}
@@ -92,7 +91,7 @@
 				"./research-widget.plugin.js",
 				{
 					"//": "Adds the microphone only when EXPO_PUBLIC_RESEARCH_PRODUCT_KEY is set for the build (AGENTS.md, \"In-app interviews\"). Keep it above expo-image-picker so this string wins; if the app also films video, say both uses here.",
-					"microphonePermission": "$(PRODUCT_NAME) uses the microphone only when you choose to answer a research interview by voice."
+					"microphonePermission": "$(PRODUCT_NAME) uses the microphone when you hold to answer a student or explain a video out loud, and when you choose to answer a research interview by voice. You can always type instead."
 				}
 			],
 			[
@@ -101,7 +100,7 @@
 					"//": "🎨 REPLACE: say what YOUR app does with photos, the camera and the microphone, with an example (Apple 5.1.1). iOS keeps all three strings: the picker's code can ask for each. Android declares only what the app uses: picking photos needs no permission (the system photo picker), so storage stays blocked; unblock CAMERA (and RECORD_AUDIO for video) in android.blockedPermissions when a screen calls launchCameraAsync.",
 					"photosPermission": "$(PRODUCT_NAME) opens your photo library when you pick a photo to upload, like a profile picture. Only the photos you pick are shared with the app.",
 					"cameraPermission": "$(PRODUCT_NAME) uses your camera when you choose to take a photo to upload, like a profile picture.",
-					"microphonePermission": "$(PRODUCT_NAME) records sound only while you film a video to upload."
+					"microphonePermission": "$(PRODUCT_NAME) uses the microphone when you hold to answer a student or explain a video out loud, and when you choose to answer a research interview by voice. You can always type instead."
 				}
 			],
 			"expo-localization",
@@ -115,7 +114,17 @@
 				}
 			],
 			"@sentry/react-native",
-			"expo-web-browser"
+			"expo-web-browser",
+			[
+				"expo-audio",
+				{
+					"//": "Voice (docs/voice-requirements.md): the microphone for answers and explanations, never in the background. iOS keeps one microphone string, so the research widget and the image picker say the same.",
+					"microphonePermission": "$(PRODUCT_NAME) uses the microphone when you hold to answer a student or explain a video out loud, and when you choose to answer a research interview by voice. You can always type instead.",
+					"recordAudioAndroid": true,
+					"enableBackgroundPlayback": false,
+					"enableBackgroundRecording": false
+				}
+			]
 		],
 		"extra": {
 			"router": {}

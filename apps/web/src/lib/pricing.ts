@@ -31,7 +31,7 @@ export const plans: Plan[] = [
 		price: '$0',
 		cadence: 'forever',
 		tagline: 'The whole core app, free for good.',
-		features: ['The core app', 'Sign in with a code', 'Light and dark themes'],
+		features: ['The core app', 'Sign in with a code', 'Warm-ups for what you missed'],
 		cta: 'Get the app'
 	},
 	{

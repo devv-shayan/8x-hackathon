@@ -1,8 +1,9 @@
 /**
  * Onboarding — runs once, after the first sign-in.
  *
- * Two steps in one shell: a name (optional, skippable) and the appearance
- * (applied live, so the choice is its own preview). Completing saves the name
+ * Two steps: meet the class (Maya and Omar, on their own backgrounds), then a name
+ * (optional, skippable) in the shell. The app has one light look, so there is no
+ * appearance step. Completing saves the name
  * to the profile through the API (PATCH /api/app/v1/profile), then writes
  * `onboarding_completed` to the user's metadata; the auth listener in
  * app/_layout.tsx then routes to the tabs.
@@ -12,25 +13,23 @@
  * onboarding_step_viewed event fires by itself.
  */
 import { useEffect, useRef, useState } from 'react'
-import { DeviceEventEmitter, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { DISPLAY_NAME_MAX } from '@app/contract'
 import Animated, { FadeInLeft, FadeInRight, FadeOut, ReduceMotion } from 'react-native-reanimated'
-import { Moon, Sun, SunMoon } from 'lucide-react-native'
+import { MeetStep } from '@/components/onboarding/MeetStep'
 import { OnboardingShell } from '@/components/onboarding/Shell'
 import { Eyebrow } from '@/components/ui/Eyebrow'
-import { SelectionRow } from '@/components/ui/SelectionRow'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
-import { useTheme, type ThemePref } from '@/contexts/ThemeContext'
 import { toUserProfile } from '@/hooks/useProfile'
 import { track } from '@/lib/analytics'
 import { api, errorMessage } from '@/lib/api'
 import { haptic } from '@/lib/haptics'
 import { Durations, Easings } from '@/lib/motion'
-import { isSupabaseEnabled, supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
-const STEPS = ['name', 'appearance'] as const
+const STEPS = ['meet', 'name'] as const
 type Step = (typeof STEPS)[number]
 
 const forward = FadeInRight.duration(Durations.enter)
@@ -41,24 +40,11 @@ const backward = FadeInLeft.duration(Durations.enter)
 	.reduceMotion(ReduceMotion.System)
 const leave = FadeOut.duration(Durations.exit).reduceMotion(ReduceMotion.System)
 
-const APPEARANCE: { value: ThemePref; title: string; subtitle: string; icon: typeof Sun }[] = [
-	{
-		value: 'system',
-		title: 'Match my phone',
-		subtitle: 'Follows your system setting',
-		icon: SunMoon
-	},
-	{ value: 'light', title: 'Light', subtitle: 'Bright surfaces, dark text', icon: Sun },
-	{ value: 'dark', title: 'Dark', subtitle: 'Easy on the eyes at night', icon: Moon }
-]
-
 export default function OnboardingScreen() {
-	const { pref, setPref, colors: c } = useTheme()
 	const queryClient = useQueryClient()
 	const [index, setIndex] = useState(0)
 	const [direction, setDirection] = useState<1 | -1>(1)
 	const [name, setName] = useState('')
-	const [skippedName, setSkippedName] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const started = useRef(false)
@@ -80,23 +66,12 @@ export default function OnboardingScreen() {
 		setError(null)
 	}
 
-	function chooseAppearance(mode: ThemePref) {
-		if (mode === pref) return
-		setPref(mode)
-		track('appearance_changed', { mode, source: 'onboarding' })
-	}
+	const last = index === STEPS.length - 1
 
-	async function complete() {
+	async function complete(skippedName: boolean) {
 		setSaving(true)
 		setError(null)
 		const fullName = skippedName ? undefined : name.trim() || undefined
-
-		// Development without a backend: finish locally so the app can be reviewed.
-		if (__DEV__ && !isSupabaseEnabled) {
-			track('onboarding_completed', { skipped_name: !fullName, appearance: pref })
-			DeviceEventEmitter.emit('__dev_skip_auth__')
-			return
-		}
 
 		// The name first: if it can't be saved, onboarding isn't finished, and the
 		// person sees why (the API's message) and can try again. The route makes
@@ -124,36 +99,26 @@ export default function OnboardingScreen() {
 		}
 
 		haptic.success()
-		track('onboarding_completed', { skipped_name: !fullName, appearance: pref })
+		track('onboarding_completed', { skipped_name: !fullName })
 		setSaving(false)
 		// app/_layout.tsx sees onboarding_completed and routes to (tabs).
 	}
 
-	const cta =
-		step === 'name'
-			? {
-					label: 'Continue',
-					onPress: () => {
-						setSkippedName(false)
-						go(index + 1)
-					},
-					refusal: name.trim() ? null : 'Type a name, or tap Skip.'
-				}
-			: { label: 'Finish', onPress: complete, loading: saving }
+	const cta = {
+		label: last ? 'Finish' : 'Continue',
+		onPress: () => (last ? complete(false) : go(index + 1)),
+		loading: saving,
+		refusal: name.trim() ? null : 'Type a name, or tap Skip.'
+	}
+
+	if (step === 'meet') return <MeetStep onContinue={() => go(index + 1)} />
 
 	return (
 		<OnboardingShell
 			step={index}
 			total={STEPS.length}
 			onBack={index > 0 ? () => go(index - 1) : undefined}
-			onSkip={
-				step === 'name'
-					? () => {
-							setSkippedName(true)
-							go(index + 1)
-						}
-					: undefined
-			}
+			onSkip={step === 'name' ? () => (last ? complete(true) : go(index + 1)) : undefined}
 			cta={cta}
 		>
 			<Animated.View
@@ -162,7 +127,7 @@ export default function OnboardingScreen() {
 				exiting={leave}
 				style={s.step}
 			>
-				<Eyebrow>{`Step ${index + 1} of ${STEPS.length}`}</Eyebrow>
+				{STEPS.length > 1 ? <Eyebrow>{`Step ${index + 1} of ${STEPS.length}`}</Eyebrow> : null}
 
 				{step === 'name' ? (
 					<>
@@ -183,54 +148,17 @@ export default function OnboardingScreen() {
 							autoComplete="given-name"
 							autoCapitalize="words"
 							maxLength={DISPLAY_NAME_MAX}
-							returnKeyType="next"
-							onSubmitEditing={() => name.trim() && go(index + 1)}
+							returnKeyType={last ? 'done' : 'next'}
+							onSubmitEditing={() => name.trim() && (last ? complete(false) : go(index + 1))}
 							autoFocus
 						/>
-					</>
-				) : (
-					<>
-						<View style={s.titles}>
-							<Text variant="question" accessibilityRole="header">
-								Light, dark, or match your phone?
-							</Text>
-							<Text variant="body" tone="secondary">
-								The app changes as you choose. You can switch any time in Settings.
-							</Text>
-						</View>
-						<View style={s.options} accessibilityRole="radiogroup">
-							{APPEARANCE.map((o) => {
-								const Icon = o.icon
-								const selected = pref === o.value
-								return (
-									<SelectionRow
-										key={o.value}
-										title={o.title}
-										subtitle={o.subtitle}
-										selected={selected}
-										onPress={() => chooseAppearance(o.value)}
-										leading={
-											<View
-												style={[s.icon, { backgroundColor: selected ? c.surface : c.surface3 }]}
-											>
-												<Icon
-													size={18}
-													color={selected ? c.brandInk : c.textSecondary}
-													strokeWidth={2}
-												/>
-											</View>
-										}
-									/>
-								)
-							})}
-						</View>
 						{error ? (
 							<Text variant="bodySm" tone="error" accessibilityLiveRegion="polite">
 								{error}
 							</Text>
 						) : null}
 					</>
-				)}
+				) : null}
 			</Animated.View>
 		</OnboardingShell>
 	)
@@ -238,7 +166,5 @@ export default function OnboardingScreen() {
 
 const s = StyleSheet.create({
 	step: { gap: 22 },
-	titles: { gap: 10 },
-	options: { gap: 10 },
-	icon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }
+	titles: { gap: 10 }
 })

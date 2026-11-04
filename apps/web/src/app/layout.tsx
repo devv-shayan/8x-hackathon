@@ -70,7 +70,7 @@ const SITE_NAME = brandConfig.siteName
 // React cannot emit a bare comment, so it rides inside an inert, hidden div.
 const DIRECTION_CONTRACT = `<!--
 THESIS: White paper, black ink, one lime highlight. The first viewport is the class itself: Maya and Omar drawn live in pixels, raising a hand when called on.
-WORLD: Inter Tight headlines tracked tight, JetBrains Mono labels in caps, hairline rules around every grid, square buttons that open with ">". Each product section sits on its own generated, dithered background (src/components/landing/pixel): voice waves, gold drift, warm-up ripples, a lime tunnel, lime edges.
+WORLD: Inter Tight headlines tracked tight, JetBrains Mono labels in caps, hairline rules around every grid, square buttons that open with ">". Each product section sits on its own generated, dithered background (drawn by @app/pixel in packages/pixel): voice waves, gold drift, warm-up ripples, a lime tunnel, lime edges.
 STORY: Meet the class; how it works; explain, teach, see what stuck; why gaps come back; why teaching works; the students; questions; start a class.
 MOTION: Every background is generated, pauses off screen, and holds one still frame for reduced motion.
 -->`
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
 		description:
 			'Paste a YouTube video, explain it, and teach AI students who ask about what you missed.'
 	}
-	// The favicon is app/icon.tsx, drawn from the brand — no need to declare it.
+	// The favicon is app/icon.png, the web app's pixel mark — no need to declare it.
 }
 
 export const viewport: Viewport = {

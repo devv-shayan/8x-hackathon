@@ -9,14 +9,19 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
 	return (
 		<PageShell>
-			<Prose title="Privacy Policy" updated="November 1, 2026">
+			<Prose title="Privacy Policy" updated="November 2, 2026">
 				<p>Chalkback helps you remember what you watch by teaching it to AI students.</p>
 
 				<h2>1. Information we collect</h2>
 				<p>
 					Your email and profile, the YouTube links you add with their transcripts, what you write
-					in class, your scores, and how you use the app. Supabase, Vercel, Google Gemini, Supadata,
-					PostHog, Google Analytics, Sentry and Expo process this for us.
+					or say in class, your scores, and how you use the app. Supabase, Vercel, Google Gemini,
+					Groq, Supadata, PostHog, Google Analytics, Sentry and Expo process this for us.
+				</p>
+				<p>
+					When you explain or answer out loud, your recording goes to Groq to be turned into text,
+					and we keep only that text. We never store the recording. Groq also makes the students’
+					voices from their questions.
 				</p>
 
 				<h2>2. How we use information</h2>

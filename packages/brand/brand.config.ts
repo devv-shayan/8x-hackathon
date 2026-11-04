@@ -4,9 +4,11 @@
  * Both apps read every colour, font, radius, shadow and spring from
  * packages/brand, and packages/brand reads its choices from here:
  *
- *   preset   the world: 'dusk' (dark, editorial, serif) or 'daylight'
- *            (light, warm, bold grotesque). Structure, components and motion
- *            are shared; a preset changes the world, not the layout.
+ *   preset   the world: 'dusk' (dark, editorial, serif), 'daylight'
+ *            (light, warm, bold grotesque) or 'landing' (the website's white,
+ *            black and lime, with Inter Tight and JetBrains Mono). Structure,
+ *            components and motion are shared; a preset changes the world, not
+ *            the layout.
  *   accent   your brand colour as one hex. Every accent role (button fill,
  *            text-on-ground, text-on-fill, tints, borders, glow, gradient) is
  *            derived from it with WCAG AA contrast guaranteed by the contrast
@@ -19,10 +21,10 @@
  * those values are baked into the native build and ship with the next store
  * build, not over the air:
  *
- *                         dusk              daylight
- *   backgroundColor       '#090f1e'         '#f3f0e9'
+ *                         dusk              daylight          landing
+ *   backgroundColor       '#090f1e'         '#f3f0e9'         '#ffffff'
  *   androidStatusBar
- *     barStyle            'light-content'   'dark-content'
+ *     barStyle            'light-content'   'dark-content'    'dark-content'
  *
  * backgroundColor goes in four places: `splash.backgroundColor`,
  * `android.adaptiveIcon.backgroundColor`, `androidStatusBar.backgroundColor`
@@ -38,8 +40,8 @@ export const brandConfig: {
 	appName: string
 	siteName: string
 } = {
-	// 🎨 BRAND: 'dusk' | 'daylight'
-	preset: 'dusk',
+	// 🎨 BRAND: 'dusk' | 'daylight' | 'landing'
+	preset: 'landing',
 	// 🎨 BRAND: '#rrggbb', or 'default' for the preset's own accent
 	accent: 'default',
 	// 🎨 BRAND: app name (mobile) and site name (web). Keep them the same word

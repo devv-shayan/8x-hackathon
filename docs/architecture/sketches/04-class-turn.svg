@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="A class turn: the answer is saved, then two Gemini calls run at once; the app waits 60 seconds, and if it gives up first Xiaohei reads the class back instead of retrying">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&amp;display=swap');
+    text { font-family: 'Caveat', 'Comic Sans MS', 'Segoe Print', cursive; fill: #111; }
+    .big { font-size: 40px; font-weight: 700; }
+    .mid { font-size: 32px; font-weight: 600; }
+    .note { font-size: 28px; }
+    .orange { fill: #e8730c; } .red { fill: #d62828; } .blue { fill: #2563eb; }
+  </style>
+  <defs>
+    <filter id="wobble"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="9"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#e8730c" stroke-width="1.6" stroke-linecap="round"/></marker>
+    <marker id="bluearrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#2563eb" stroke-width="1.6" stroke-linecap="round"/></marker>
+    <g id="xh">
+      <path d="M-12 -4 L-14 0 M10 -4 L12 0 M-11 -22 L-12 -4 M9 -22 L10 -4" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M-26 -40 C-30 -70 -18 -92 2 -90 C22 -88 30 -66 26 -40 C23 -24 10 -18 -2 -19 C-16 -20 -24 -27 -26 -40 Z" fill="#111" stroke="#111" stroke-width="2"/>
+      <circle cx="-8" cy="-62" r="3.6" fill="#fff"/><circle cx="9" cy="-60" r="3.6" fill="#fff"/>
+    </g>
+  </defs>
+  <rect width="1600" height="900" fill="#ffffff"/>
+
+  <g filter="url(#wobble)" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- the app's hourglass, left -->
+    <path d="M170 250 L290 251 M170 520 L290 521"/>
+    <path d="M180 252 C180 330 230 360 230 386 C230 412 180 440 180 518"/>
+    <path d="M280 253 C280 330 230 360 230 386 C230 412 280 440 280 519"/>
+    <path d="M206 500 C220 488 240 488 254 500 L256 516 L204 515 Z" stroke-width="1.8"/>
+    <!-- the server: a desk with two machines running side by side -->
+    <path d="M640 560 L1180 562"/>
+    <path d="M660 560 L660 640 M1160 562 L1160 642"/>
+    <path d="M700 380 L880 382 L879 540 L701 538 Z"/>
+    <path d="M940 380 L1120 382 L1119 540 L941 538 Z"/>
+    <circle cx="790" cy="460" r="34"/><path d="M790 460 L812 440"/>
+    <circle cx="1030" cy="460" r="34"/><path d="M1030 460 L1050 476"/>
+    <!-- the answer box, saved first -->
+    <path d="M560 470 L620 471 L619 530 L561 529 Z"/>
+    <path d="M572 500 L586 514 L608 482" stroke-width="2.2"/>
+    <!-- the class sheet Xiaohei reads back, bottom left -->
+    <path d="M360 640 L500 642 L498 760 L362 758 Z"/>
+    <path d="M380 676 L478 677 M380 702 L470 703 M380 728 L450 729" stroke-width="1.8"/>
+  </g>
+
+  <!-- orange: answer goes in, one reply comes back -->
+  <g fill="none" stroke="#e8730c" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" filter="url(#wobble)">
+    <path d="M300 330 C380 300 480 380 556 470"/>
+    <path d="M1180 470 C1300 450 1320 280 1200 230 C1000 160 500 170 310 240"/>
+  </g>
+  <!-- blue: the catch-up read -->
+  <g fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" marker-end="url(#bluearrow)" filter="url(#wobble)">
+    <path d="M500 700 C600 700 620 620 640 580"/>
+  </g>
+
+  <!-- Xiaohei, holding the class sheet up to read it -->
+  <use href="#xh" transform="translate(300 760) scale(1.3)"/>
+  <g stroke="#111" stroke-width="2.6" stroke-linecap="round" fill="none" filter="url(#wobble)">
+    <path d="M330 700 L362 690 M330 716 L362 720"/>
+  </g>
+
+  <!-- labels -->
+  <text x="150" y="226" class="mid">the app waits 60 s</text>
+  <text x="530" y="450" class="note">1. saved first</text>
+  <text x="700" y="360" class="note">next question</text>
+  <text x="935" y="360" class="note">recheck the waiting one</text>
+  <text x="760" y="610" class="note blue">2. both at once, about 20 s each</text>
+  <text x="700" y="160" class="note orange">3. one reply with both</text>
+  <text x="120" y="610" class="note red">gave up first? don't retry</text>
+  <text x="530" y="790" class="note blue">read the class back: GET classes/:id</text>
+  <text x="1000" y="840" class="note">answerOrCatchUp, components/class/shared.ts</text>
+</svg>

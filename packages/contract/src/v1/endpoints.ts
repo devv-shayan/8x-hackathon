@@ -12,14 +12,20 @@ import {
 import { listNotificationsQuery, listNotificationsResponse } from './notifications'
 import { profileResponse, updateProfileBody } from './profile'
 import { createTaskBody, listTasksQuery, listTasksResponse, taskResponse } from './tasks'
+import {
+	speakQuestionBody,
+	speakQuestionResponse,
+	transcribeSpeechBody,
+	transcribeSpeechResponse
+} from './speech'
 import { createUploadBody, createUploadResponse } from './uploads'
 import {
+	getTopicGapsResponse,
 	getTopicResponse,
 	listTopicsResponse,
 	pasteTextBody,
 	readVideoBody,
 	readVideoResponse,
-	topicGapsResponse,
 	topicParams
 } from './videos'
 import {
@@ -38,6 +44,7 @@ import {
 	classResponse,
 	classTurnParams,
 	endClassBody,
+	notInVideoBody,
 	openClassQuery,
 	openClassResponse,
 	startClassBody
@@ -90,6 +97,14 @@ export const endpoints = {
 		response: classHelpResponse,
 		status: 200
 	},
+	getClass: {
+		method: 'GET',
+		path: '/api/app/v1/classes/:id',
+		auth: 'user',
+		params: classParams,
+		response: classResponse,
+		status: 200
+	},
 	openClass: {
 		method: 'GET',
 		path: '/api/app/v1/classes/open',
@@ -104,6 +119,15 @@ export const endpoints = {
 		auth: 'user',
 		params: classParams,
 		body: endClassBody,
+		response: classResponse,
+		status: 200
+	},
+	flagNotInVideo: {
+		method: 'POST',
+		path: '/api/app/v1/classes/:id/not-in-video',
+		auth: 'user',
+		params: classParams,
+		body: notInVideoBody,
 		response: classResponse,
 		status: 200
 	},
@@ -138,12 +162,12 @@ export const endpoints = {
 		response: getTopicResponse,
 		status: 200
 	},
-	listTopicGaps: {
+	getTopicGaps: {
 		method: 'GET',
 		path: '/api/app/v1/topics/:id/gaps',
 		auth: 'user',
 		params: topicParams,
-		response: topicGapsResponse,
+		response: getTopicGapsResponse,
 		status: 200
 	},
 	getConfig: {
@@ -261,6 +285,22 @@ export const endpoints = {
 		params: warmUpParams,
 		body: answerWarmUpBody,
 		response: answerWarmUpResponse,
+		status: 200
+	},
+	transcribeSpeech: {
+		method: 'POST',
+		path: '/api/app/v1/speech/transcriptions',
+		auth: 'user',
+		body: transcribeSpeechBody,
+		response: transcribeSpeechResponse,
+		status: 200
+	},
+	speakQuestion: {
+		method: 'POST',
+		path: '/api/app/v1/speech/questions',
+		auth: 'user',
+		body: speakQuestionBody,
+		response: speakQuestionResponse,
 		status: 200
 	}
 } as const satisfies Record<string, Endpoint>

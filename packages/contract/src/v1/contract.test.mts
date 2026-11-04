@@ -13,10 +13,13 @@ import {
 	itemSchema,
 	listItemsResponse,
 	listTopicsResponse,
-	topicGapsResponse,
 	MAX_AVATAR_BYTES,
+	MAX_SPEECH_BASE64_CHARS,
+	MAX_SPEECH_PROMPT_CHARS,
 	pageQuery,
 	profileResponse,
+	speakQuestionBody,
+	transcribeSpeechBody,
 	updateProfileBody
 } from '../../index'
 
@@ -156,6 +159,43 @@ test('uploads: avatars only, by content type and size', () => {
 	assert.equal(createUploadBody.safeParse({ ...ok, purpose: 'video' }).success, false)
 })
 
+test('speech: a recording is bounded, and nothing else rides along', () => {
+	assert.equal(transcribeSpeechBody.safeParse({ audio_base64: 'UklGRg==' }).success, true)
+	assert.equal(transcribeSpeechBody.safeParse({ audio_base64: '' }).success, false)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'a'.repeat(MAX_SPEECH_BASE64_CHARS + 1) })
+			.success,
+		false
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({
+			audio_base64: 'UklGRg==',
+			prompt: 'a'.repeat(MAX_SPEECH_PROMPT_CHARS + 1)
+		}).success,
+		false
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'UklGRg==', language: 'en' }).success,
+		false
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'AAAA', format: 'm4a' }).success,
+		true
+	)
+	assert.equal(
+		transcribeSpeechBody.safeParse({ audio_base64: 'AAAA', format: 'mp3' }).success,
+		false
+	)
+})
+
+test('speech: a question is named by its ids, never by its text', () => {
+	assert.equal(speakQuestionBody.safeParse({ class_id: ID, turn_id: ID }).success, true)
+	assert.equal(speakQuestionBody.safeParse({ warm_up_id: ID }).success, true)
+	assert.equal(speakQuestionBody.safeParse({ class_id: ID }).success, false)
+	assert.equal(speakQuestionBody.safeParse({ warm_up_id: ID, text: 'Say this' }).success, false)
+	assert.equal(speakQuestionBody.safeParse({ text: 'Say this' }).success, false)
+})
+
 test('pages: limit from the query string, bounded', () => {
 	assert.deepEqual(pageQuery.parse({ limit: '20', cursor: 'abc' }), { limit: 20, cursor: 'abc' })
 	assert.deepEqual(pageQuery.parse({ unrelated: 'x' }), {})
@@ -189,37 +229,6 @@ test('listTopics: title and youtube id, open class optional, no transcript', () 
 		}).success,
 		false
 	)
-})
-
-test('topic gaps: counts, a closed gap, and no transcript', () => {
-	const body = {
-		title: 'Plants',
-		open_count: 1,
-		closed_count: 0,
-		gaps: [
-			{
-				id: ID,
-				concept_title: 'Xylem',
-				quote: 'water moves through xylem',
-				start_seconds: 12,
-				right_streak: 0,
-				next_due_at: NOW,
-				closed_at: null,
-				warm_ups: [
-					{
-						id: ID,
-						student_name: 'Maya',
-						question: 'Where does the water go?',
-						answer: null,
-						is_right: null,
-						created_at: NOW
-					}
-				]
-			}
-		]
-	}
-	assert.deepEqual(topicGapsResponse.parse({ ...body, segments: [] }), body)
-	assert.equal(topicGapsResponse.safeParse({ ...body, open_count: -1 }).success, false)
 })
 
 test('every endpoint: under /api/app/v1, one per method and path, a body only on writes', () => {

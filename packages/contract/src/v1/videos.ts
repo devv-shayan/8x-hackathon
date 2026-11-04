@@ -55,43 +55,11 @@ export const pasteTextBody = z
 export const topicParams = z.object({ id: uuid })
 export const topicSummarySchema = z.object({
 	id: uuid,
-	title: z.string()
+	title: z.string(),
+	/** The video, for its thumbnail on Explain. */
+	youtube_id: z.string().optional()
 })
 export const getTopicResponse = z.object({ topic: topicSummarySchema })
-
-/**
- * One video's gaps and the warm-ups on them. Not part of GET /topics/:id,
- * which stays title-only.
- */
-export const topicGapWarmUpSchema = z.object({
-	id: uuid,
-	student_name: z.string(),
-	question: z.string(),
-	answer: z.string().nullable(),
-	is_right: z.boolean().nullable(),
-	created_at: isoDateTime
-})
-
-export const topicGapSchema = z.object({
-	id: uuid,
-	concept_title: z.string(),
-	quote: z.string(),
-	start_seconds: z.number().int().nonnegative().nullable(),
-	right_streak: z.number().int().nonnegative(),
-	next_due_at: isoDateTime,
-	closed_at: isoDateTime.nullable(),
-	warm_ups: z.array(topicGapWarmUpSchema)
-})
-
-export const topicGapsResponse = z.object({
-	title: z.string(),
-	open_count: z.number().int().nonnegative(),
-	closed_count: z.number().int().nonnegative(),
-	gaps: z.array(topicGapSchema)
-})
-
-export type TopicGap = z.infer<typeof topicGapSchema>
-export type TopicGaps = z.infer<typeof topicGapsResponse>
 
 /**
  * A row on Home's recent-topics list. No transcript or concepts — those stay
@@ -102,13 +70,77 @@ export const listedTopicSchema = z.object({
 	id: uuid,
 	youtube_id: z.string(),
 	title: z.string(),
-	open_class_id: uuid.nullable()
+	open_class_id: uuid.nullable(),
+	/** How many ideas the latest finished class checked. Absent before one has finished. */
+	idea_count: z.number().int().nonnegative().optional(),
+	/** Of those, how many were taught by the end of that class. */
+	ideas_taught: z.number().int().nonnegative().optional(),
+	/** Ideas missed and not yet closed by warm-ups. */
+	open_gaps: z.number().int().nonnegative().optional(),
+	/** When the next of those comes back as a warm-up. Absent with none open. */
+	next_due_at: isoDateTime.optional()
 })
 export const listTopicsResponse = z.object({
 	topics: z.array(listedTopicSchema)
+})
+
+/** Two scores from one class: the explanation, and where the class left it. */
+const scoreSchema = z.object({
+	correct: z.number().int().nonnegative(),
+	total: z.number().int().nonnegative()
+})
+
+/**
+ * One answered warm-up on a gap: when it was asked, by whom, the question, what the person said
+ * and if it was right. Only the person's own words and the student's question: no transcript.
+ */
+export const topicGapWarmUpSchema = z.object({
+	asked_at: isoDateTime,
+	student_name: z.string(),
+	question: z.string(),
+	/** Null for a warm-up answered before answers were kept. */
+	answer: z.string().nullable(),
+	is_right: z.boolean()
+})
+
+/** An idea the person missed in this video, and where it stands on the warm-up schedule. */
+export const topicGapSchema = z.object({
+	id: uuid,
+	concept_title: z.string(),
+	/** What the video says about it, in its own words. */
+	quote: z.string(),
+	/** Right answers in a row so far, and how many close it. */
+	right_streak: z.number().int().nonnegative(),
+	rights_to_close: z.number().int().positive(),
+	/** Null when the idea came from pasted text and has no moment in a video. */
+	start_seconds: z.number().int().nonnegative().nullable(),
+	closed: z.boolean(),
+	/** When it comes back as a warm-up; null once closed. */
+	next_due_at: isoDateTime.nullable(),
+	/**
+	 * Taught in the latest class, in the explanation or when a student asked: still open
+	 * until warm-ups show it stuck.
+	 */
+	taught_last_class: z.boolean(),
+	/** Its answered warm-ups, oldest first. */
+	warm_ups: z.array(topicGapWarmUpSchema)
+})
+
+/** One video's page: its scores and its gaps, open ones first, soonest due first. */
+export const getTopicGapsResponse = z.object({
+	topic: z.object({ id: uuid, title: z.string(), youtube_id: z.string() }),
+	/** When the latest finished class on it started; null before one has finished. */
+	taught_at: isoDateTime.nullable(),
+	explanation_score: scoreSchema.nullable(),
+	/** Null until a class has been scored after it ended. */
+	after_class_score: scoreSchema.nullable(),
+	gaps: z.array(topicGapSchema)
 })
 
 export type Video = z.infer<typeof videoSchema>
 export type KeyConcept = z.infer<typeof keyConceptSchema>
 export type TopicSummary = z.infer<typeof topicSummarySchema>
 export type ListedTopic = z.infer<typeof listedTopicSchema>
+export type TopicGap = z.infer<typeof topicGapSchema>
+export type TopicGapWarmUp = z.infer<typeof topicGapWarmUpSchema>
+export type TopicGaps = z.infer<typeof getTopicGapsResponse>

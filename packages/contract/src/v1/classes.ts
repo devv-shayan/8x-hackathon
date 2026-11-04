@@ -8,6 +8,7 @@ import { uuid } from './common'
 // POST classes/{id}/turns/{turn} → answer or skip a question; that student raises a hand
 //                                    again, until the class is finished
 // POST classes/{id}/turns/{turn}/help → a private explanation of that question from the video
+// GET classes/{id}                → one class as it stands now, open or finished
 // GET classes/open?topic_id=       → the class left unfinished on a topic, or null
 // POST classes/{id}/end            → end the class, dropping the questions nobody picked
 
@@ -55,7 +56,10 @@ export const classReactionSchema = z.object({
 export const classSchema = z.object({
 	id: uuid,
 	topic_id: uuid,
-	/** Set on a finished class so Assessment can open the video; null while still teaching. */
+	/**
+	 * The video, so private help can open it mid-class and the results can open each idea's
+	 * moment. Null for a lesson taught from pasted text.
+	 */
 	youtube_id: z.string().nullable(),
 	students: z.array(classStudentSchema),
 	turns: z.array(classTurnSchema),
@@ -96,6 +100,8 @@ export const classHelpResponse = z.object({
 })
 
 export const endClassBody = z.object({}).strict()
+
+export const notInVideoBody = z.object({ concept: z.string().trim().min(1).max(200) }).strict()
 
 export const classTurnParams = z.object({ id: uuid, turn: uuid })
 
