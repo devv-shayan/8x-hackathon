@@ -26,6 +26,18 @@ type EventName =
 	// Reading a video — judged on how many readers go on to teach it. Metadata:
 	//   { concept_count: number }
 	| 'video_read'
+	// The wait while a video reads (8X-49): the class watching it come in on the board. Judged on
+	// whether people stay through it (video_read after reading_started) rather than give up.
+	//   reading_started    the board appears. metadata: { warm_up_due: boolean }
+	//   reading_guess_made with nothing due, the person guesses how many key ideas it has.
+	//                      metadata: { guess: number } (6 means "6 or more")
+	//   reading_left       "Back to Home" while it keeps reading. metadata: { seconds: number }
+	//   reading_cancelled  they stopped it. metadata: { seconds: number }
+	// Not a money moment and no lifecycle change; the topic itself is counted by video_read.
+	| 'reading_started'
+	| 'reading_guess_made'
+	| 'reading_left'
+	| 'reading_cancelled'
 	// Paste fallback — judged on whether a failed read still becomes a lesson.
 	// text_paste_offered fires when the box appears after a video we can't read
 	// (not a bad link, and not a busy retry). Submitting it fires video_read,
