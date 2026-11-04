@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { useFonts } from 'expo-font'
+import { CabinSketch_700Bold } from '@expo-google-fonts/cabin-sketch/700Bold'
 import {
 	ThemeProvider as NavigationThemeProvider,
 	DarkTheme,
@@ -35,6 +36,7 @@ import OfflineBanner from '@/components/OfflineBanner'
 import OfflineOverlay from '@/components/OfflineOverlay'
 import UpdateRequiredGate from '@/components/UpdateRequiredGate'
 import ResearchWidget from '@/components/ResearchWidget'
+import { MemoryReminderOpener } from '@/components/memory/MemoryReminderOpener'
 import { Text } from '@/components/ui/Text'
 import { env } from '@/lib/env'
 import { log } from '@/lib/logger'
@@ -184,7 +186,7 @@ function RootLayout() {
 	const navigationRef = useNavigationContainerRef()
 	// Only the active preset's faces (lib/fonts.ts). A font that fails to load
 	// must not strand the user on the splash: fall through to system type.
-	const [fontsLoaded, fontError] = useFonts(presetFonts)
+	const [fontsLoaded, fontError] = useFonts({ ...presetFonts, CabinSketch_700Bold })
 	const [themeReady, setThemeReady] = useState(false)
 
 	// null = still checking; true/false = auth state known
@@ -360,6 +362,7 @@ function AppTree({
 														<Stack.Screen name="class/[topicId]" options={PUSH} />
 														<Stack.Screen name="warm-up/[gapId]" options={PUSH} />
 														<Stack.Screen name="topic/[id]" options={PUSH} />
+														<Stack.Screen name="memory" options={PUSH} />
 														<Stack.Screen name="settings" options={PUSH} />
 														<Stack.Screen name="support" options={PUSH} />
 													</Stack.Protected>
@@ -371,8 +374,10 @@ function AppTree({
 													<Stack.Screen name="terms" options={PUSH} />
 													{/* Development only: the redesign's pixel scenes (app/dev/backdrops.tsx). */}
 													{__DEV__ ? <Stack.Screen name="dev/backdrops" options={PUSH} /> : null}
+													{__DEV__ ? <Stack.Screen name="dev/memory" options={PUSH} /> : null}
 												</Stack>
 												<ScreenTracker />
+												<MemoryReminderOpener ready={isAuthed && onboardingCompleted === true} />
 												<SessionExpiredNotice />
 												{/* 8xResearch interviews, off without a product key. Beside the
                         navigator so an interview survives moving between screens;

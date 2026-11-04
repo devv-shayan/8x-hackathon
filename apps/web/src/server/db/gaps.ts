@@ -5,10 +5,11 @@ import { firstDueAt } from '@/server/gaps/schedule'
 import { keyConceptSchema, type KeyConcept } from '@/server/video/key-concepts'
 import type { StoredGap } from '@/server/topics/progress'
 import { db } from './client'
+import { rememberOpeningMark } from './memory-reminders'
 
 // Gaps found while scoring an explanation. A warm-up later moves the same rows.
 
-export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
+export function createGapStore(client: PrismaClient) {
 	return {
 		/** One open gap per missed or wrong concept. Due two days after it is found. */
 		async saveFromResults(input: {
@@ -28,14 +29,32 @@ export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 				openTitles: existing.map((row) => keyConceptSchema.parse(row.concept).title)
 			})
 			if (needed.length === 0) return
-			await client.gap.createMany({
-				data: needed.map((concept) => ({
-					userId: input.userId,
-					topicId: input.topicId,
-					concept,
-					nextDueAt: firstDueAt(input.foundAt)
-				}))
+			const dueAt = firstDueAt(input.foundAt)
+			const created = await client.$transaction(async (tx) => {
+				const ids: string[] = []
+				for (const concept of needed) {
+					const row = await tx.gap.create({
+						data: {
+							userId: input.userId,
+							topicId: input.topicId,
+							concept,
+							nextDueAt: dueAt
+						},
+						select: { id: true }
+					})
+					ids.push(row.id)
+				}
+				return ids
 			})
+			// The day it is found is the mark they are looking at. It is not a reminder.
+			for (const gapId of created) {
+				await rememberOpeningMark(client, {
+					gapId,
+					userId: input.userId,
+					dueAt,
+					at: input.foundAt
+				})
+			}
 		},
 
 		/** Stops warm-ups for an idea the person said was not in the video. */
@@ -100,6 +119,40 @@ export function createGapStore(client: Pick<PrismaClient, 'gap'>) {
 				byTopic.set(row.topicId, list)
 			}
 			return byTopic
+		},
+
+		/** Every gap of this person, with its video's title and whether a warm-up was judged. */
+		async listMemory(userId: string): Promise<
+			{
+				gapId: string
+				topicId: string
+				topicTitle: string
+				conceptTitle: string
+				closedAt: Date | null
+				nextDueAt: Date
+				judged: boolean
+			}[]
+		> {
+			const rows = await client.gap.findMany({
+				where: { userId },
+				select: {
+					id: true,
+					nextDueAt: true,
+					closedAt: true,
+					concept: true,
+					topic: { select: { id: true, title: true } },
+					warmUps: { where: { isRight: { not: null } }, select: { id: true }, take: 1 }
+				}
+			})
+			return rows.map((row) => ({
+				gapId: row.id,
+				topicId: row.topic.id,
+				topicTitle: row.topic.title,
+				conceptTitle: keyConceptSchema.parse(row.concept).title,
+				closedAt: row.closedAt,
+				nextDueAt: row.nextDueAt,
+				judged: row.warmUps.length > 0
+			}))
 		}
 	}
 }

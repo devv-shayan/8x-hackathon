@@ -74,6 +74,9 @@ const baseSchema = z.object({
 
 	// Required by cron routes only; an unset secret must not break unrelated pages.
 	CRON_SECRET: z.string().optional(),
+	// Expo's push service (POST /api/cron/memory). Unset, that route answers 503
+	// once someone is due a reminder and sends nothing. The board still works.
+	EXPO_ACCESS_TOKEN: z.string().optional(),
 
 	// Checked, trimmed, against the webhook's Authorization header. Unset, the
 	// webhook refuses every event with a 503 and writes nothing. Optional here

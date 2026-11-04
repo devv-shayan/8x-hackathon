@@ -174,6 +174,20 @@ export const NOT_IN_VIDEO_EVENTS = {
 export const NOT_IN_VIDEO_EVENT_NAMES = Object.values(NOT_IN_VIDEO_EVENTS)
 
 /**
+ * Maya's memory reminders — judged on whether a fading idea brings someone back.
+ * THE metric is `opened` on the phone (PostHog: memory_reminder_opened). This
+ * group is the send, which only the daily job sees. Not a money moment, and not
+ * a lifecycle name. `gap_id` and `stage` discriminate, so two ideas the same day
+ * both count. stage is '5' | '4' | '3' | '2' | '1' | 'due'.
+ */
+export const MEMORY_EVENTS = {
+	/** A reminder naming one concept was accepted by Expo. metadata: { gap_id, stage } */
+	sent: 'memory_reminder_sent'
+} as const
+
+export const MEMORY_EVENT_NAMES = Object.values(MEMORY_EVENTS)
+
+/**
  * Every registered web event, flat. This is what the whitelist and the CI check
  * read; adding a group above without spreading it here is the one mistake
  * `npm run check:events` is built to catch.
@@ -183,7 +197,8 @@ export const ALL_EVENT_NAMES = [
 	...LIFECYCLE_EVENT_NAMES,
 	...CHECKOUT_EVENT_NAMES,
 	...WARM_UP_EVENT_NAMES,
-	...NOT_IN_VIDEO_EVENT_NAMES
+	...NOT_IN_VIDEO_EVENT_NAMES,
+	...MEMORY_EVENT_NAMES
 ] as const
 
 export type AppEvent = (typeof ALL_EVENT_NAMES)[number]

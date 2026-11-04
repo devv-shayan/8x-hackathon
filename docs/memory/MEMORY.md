@@ -5,6 +5,8 @@ Durable notes for this play. One line per note. See `AGENTS.md` ("Project memory
 - [App name](app-name.md) — the app is Chalkback, picked 2026-10-31; identifiers and what still needs doing
 - [Groq voice](groq-voice.md) — voice runs on Groq Whisper and Orpheus, web and phone; limits, voices, the terms and background-audio traps
 - [Phone dev setup](phone-dev-setup.md) — running the app on a real phone in Expo Go: the steps, and the IP and npx traps
+- [Memory push](memory-push.md) — manual steps after Maya's memory ships, and APNs plus FCM once a store build exists
+- [Browser cycles](browser-cycles.md) — the local browser walk of welcome through a class; the runner stays off the branch
 
 Worth writing early, once each is decided:
 

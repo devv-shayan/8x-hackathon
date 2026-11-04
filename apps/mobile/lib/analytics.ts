@@ -229,6 +229,23 @@ type EventName =
 	| 'topic_viewed'
 	| 'topic_teach_again_tapped'
 	| 'topic_warm_ups_opened'
+	// Maya's memory — the chalkboard of ideas she can forget. Judged on whether
+	// a faint line brings someone into the warm-up. Not a money moment. The
+	// drop-off is viewed → tapped: they saw the board and did not practice the
+	// one due idea.
+	//   memory_viewed          the screen opens. metadata: { idea_count, due_count }
+	//   memory_idea_tapped     they open the due idea. metadata: { gap_id }
+	//   memory_topic_opened    the arrow opens that video's page. metadata: { topic_id }
+	//   memory_reminder_opened a reminder note opened this screen. metadata: { gap_id, stage }
+	// gap_id and topic_id discriminate, so two ideas the same day both count.
+	// stage is '5' | '4' | '3' | '2' | '1' | 'due'. The send itself is recorded
+	// on the server (memory_reminder_sent): the phone never sees that moment.
+	// THE metric is still memory_idea_tapped. The drop-off to watch is
+	// reminder sent → reminder opened → the due line practiced.
+	| 'memory_viewed'
+	| 'memory_idea_tapped'
+	| 'memory_topic_opened'
+	| 'memory_reminder_opened'
 	// Voice (docs/voice-requirements.md) — explaining and answering out loud, and the
 	// students speaking their questions. Judged on whether people teach by voice: THE
 	// metric is class_answered with method 'voice'. class_started, class_answered and
