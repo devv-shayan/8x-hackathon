@@ -10,7 +10,13 @@ import type { PixelBackdropProps } from './types'
  * the same engine as the website. It draws only while the screen is focused and the tab is
  * visible, and holds one still frame under Reduce Motion.
  */
-export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackdropProps) {
+export function PixelBackdrop({
+	scene,
+	raised,
+	floor = null,
+	ceiling = null,
+	style
+}: PixelBackdropProps) {
 	const canvas = useRef<HTMLCanvasElement>(null)
 	const backdrop = useRef<Backdrop | null>(null)
 	const focused = useIsFocused()
@@ -32,7 +38,8 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 			raised: JSON.parse(raisedKey),
 			playing,
 			still,
-			floor
+			floor,
+			ceiling
 		})
 		return () => backdrop.current?.stop()
 		// Started once; later changes go through update() below.
@@ -40,8 +47,15 @@ export function PixelBackdrop({ scene, raised, floor = null, style }: PixelBackd
 	}, [])
 
 	useEffect(() => {
-		backdrop.current?.update({ scene, raised: JSON.parse(raisedKey), playing, still, floor })
-	}, [scene, raisedKey, playing, still, floor])
+		backdrop.current?.update({
+			scene,
+			raised: JSON.parse(raisedKey),
+			playing,
+			still,
+			floor,
+			ceiling
+		})
+	}, [scene, raisedKey, playing, still, floor, ceiling])
 
 	return (
 		<View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>

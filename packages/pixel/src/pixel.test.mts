@@ -211,6 +211,18 @@ test('with a floor, students stand just above the sheet, smaller only when they 
 	assert.deepEqual(placeStudents(scene), { headY: scene.headY, scale: scene.scale })
 })
 
+test('a ceiling lower than the top buttons shrinks students to fit under it', () => {
+	const scene = SCENES.warmUpMaya
+	const open = placeStudents(scene, 0.44)
+	const under = placeStudents(scene, 0.44, 0.23)
+	assert.ok(under.scale < open.scale)
+	// The raised hand stays below the ceiling, and they still stand on the sheet.
+	assert.ok(under.headY - 0.2 * under.scale >= 0.23 - 1e-9)
+	assert.ok(Math.abs(under.headY + 0.62 * under.scale - 0.44) <= 0.08 * under.scale + 1e-9)
+	// A ceiling above the top buttons changes nothing.
+	assert.deepEqual(placeStudents(scene, 0.44, 0.05), open)
+})
+
 test("the app's icons, its splash and the website's favicon are drawn from the current engine", async () => {
 	const { ICONS, ICON_DIR, iconFile } = await import('../scripts/build-icons.mjs')
 	for (const name of Object.keys(ICONS)) {

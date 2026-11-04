@@ -15,6 +15,8 @@ export interface BackdropState {
 	still: boolean
 	/** Where the sheet's top edge is, as a share of the height, so students stand above it. */
 	floor?: number | null
+	/** Where the room above the sheet starts, if something floats lower than the top buttons. */
+	ceiling?: number | null
 }
 
 export interface Backdrop {
@@ -54,7 +56,8 @@ export function startBackdrop(canvas: HTMLCanvasElement, initial: BackdropState)
 			SCENES[state.scene],
 			seconds,
 			lifts,
-			state.floor
+			state.floor,
+			state.ceiling
 		)
 		ctx.putImageData(image, 0, 0)
 	}

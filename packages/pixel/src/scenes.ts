@@ -114,21 +114,29 @@ const BELOW_HEAD = 0.62
  * Where a scene's students stand. Without a `floor` they stand where the scene puts them.
  * With one (the share of the height where the sheet's top edge is), they stand on it, just
  * behind the sheet, shrunk only if the room above it is too short for them: so a tall sheet
- * never hides them.
+ * never hides them. A `ceiling` (the share where something floating under the top buttons
+ * ends, like the warm-up's reading pill) lowers the top of that room; it never raises it.
  */
 export function placeStudents(
 	scene: Scene,
-	floor?: number | null
+	floor?: number | null,
+	ceiling?: number | null
 ): { headY: number; scale: number } {
 	if (floor == null) return { headY: scene.headY, scale: scene.scale }
-	const room = floor - CEILING
+	const room = floor - Math.max(CEILING, ceiling ?? 0)
 	const scale = Math.max(0, Math.min(scene.scale, room / (ABOVE_HEAD + BELOW_HEAD - BEHIND)))
 	return { headY: floor + BEHIND * scale - BELOW_HEAD * scale, scale }
 }
 
 /** Students raise the hand on the outside, so two raised hands never cross in the middle. */
-function figures(scene: Scene, aspect: number, raised: Raised, floor?: number | null): Figure[] {
-	const { headY, scale } = placeStudents(scene, floor)
+function figures(
+	scene: Scene,
+	aspect: number,
+	raised: Raised,
+	floor?: number | null,
+	ceiling?: number | null
+): Figure[] {
+	const { headY, scale } = placeStudents(scene, floor, ceiling)
 	return scene.students.map((student, i) => ({
 		name: student.name,
 		material: student.name === 'Maya' ? 'maya' : 'omar',
@@ -149,12 +157,13 @@ export function renderScene(
 	scene: Scene,
 	t: number,
 	raised: Raised = {},
-	floor?: number | null
+	floor?: number | null,
+	ceiling?: number | null
 ): void {
 	const aspect = width / height
 	const field = PIXEL_FIELDS[scene.field].field
 	const fieldColours = FIELD_COLOURS[scene.field]
-	const people = figures(scene, aspect, raised, floor)
+	const people = figures(scene, aspect, raised, floor, ceiling)
 	// Where each halo sits: the middle of the student's head and chest.
 	const pools = people.map((f) => [f.cx, f.headY + 0.16 * f.scale, 0.3 * f.scale] as const)
 	for (let y = 0; y < height; y++) {
@@ -196,10 +205,11 @@ export function studentBounds(
 	scene: Scene,
 	width: number,
 	height: number,
-	floor?: number | null
+	floor?: number | null,
+	ceiling?: number | null
 ): { name: StudentName; left: number; top: number; width: number; height: number }[] {
 	const aspect = width / height
-	return figures(scene, aspect, {}, floor).map((f) => {
+	return figures(scene, aspect, {}, floor, ceiling).map((f) => {
 		const half = 0.26 * f.scale
 		const top = f.headY - 0.42 * f.scale
 		return {
