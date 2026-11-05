@@ -295,11 +295,11 @@ export default function HomeScreen() {
 						<PressableScale
 							onPress={() => router.push('/memory')}
 							accessibilityRole="button"
-							accessibilityLabel="Maya's memory"
+							accessibilityLabel="What your class might forget"
 							scaleTo="card"
 						>
-							<MonoLabel>Maya&apos;s memory</MonoLabel>
-							<Text variant="body">What she might forget</Text>
+							<MonoLabel>Your class&apos;s memory</MonoLabel>
+							<Text variant="body">What they might forget</Text>
 						</PressableScale>
 						<DueWarmUps />
 						<RecentTopics />

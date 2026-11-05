@@ -6,7 +6,7 @@ import { theme } from '@app/brand'
 import type { MemoryIdea } from '@app/contract'
 import { CLASSROOM_BOARD } from '@app/pixel'
 import { ClassroomBoard } from '@/components/memory/ClassroomBoard'
-import { MemoryBoard } from '@/components/memory/MemoryBoard'
+import { ClassMemory } from '@/components/memory/ClassMemory'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { Text } from '@/components/ui/Text'
 
@@ -33,7 +33,8 @@ function sampleIdeas(now: Date): MemoryIdea[] {
 		concept_title: title,
 		closed,
 		next_due_at: days == null ? null : at(days),
-		judged
+		judged,
+		student_name: Number(id[0]) % 2 ? 'Maya' : 'Omar'
 	})
 	return [
 		line('99999999-9999-4999-8999-999999999999', 'Kept', 'Closed. Stays full', null, true, true),
@@ -61,9 +62,8 @@ function sampleIdeas(now: Date): MemoryIdea[] {
 }
 
 /**
- * The white board, for a look before sign-in. Green and grey stay in this file
- * and render only when SHOW_SAVED_BOARDS is on. Release builds redirect home.
- * The signed-in screen is the white board.
+ * The class's board with sample ideas, for a look before sign-in. The green and grey boards
+ * stay in this file and render only when SHOW_SAVED_BOARDS is on. Release builds redirect home.
  */
 export default function MemoryPreviewScreen() {
 	const insets = useSafeAreaInsets()
@@ -71,6 +71,18 @@ export default function MemoryPreviewScreen() {
 	if (!__DEV__) return <Redirect href="/" />
 	const ideas = sampleIdeas(now)
 
+	if (!SHOW_SAVED_BOARDS) {
+		return (
+			<ClassMemory
+				ideas={ideas}
+				now={now}
+				onAnswer={() => {}}
+				onOpenTopic={() => {}}
+				onTeach={() => {}}
+				onExpand={() => {}}
+			/>
+		)
+	}
 	return (
 		<View style={s.fill}>
 			<PixelBackdrop scene="welcome" />
@@ -83,7 +95,6 @@ export default function MemoryPreviewScreen() {
 					gap: 28
 				}}
 			>
-				<MemoryBoard ideas={ideas} now={now} />
 				{SHOW_SAVED_BOARDS ? (
 					<>
 						<Text variant="eyebrow" tone="inverse">

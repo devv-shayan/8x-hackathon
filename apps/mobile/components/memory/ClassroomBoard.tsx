@@ -111,7 +111,7 @@ function IdeaLine({
 /**
  * The classroom board: oak frame, chalk tray, and one fading line per gap.
  * `ground` is the writing surface (the green board, or the grey sample).
- * A saved look, shown only in the dev preview. The live screen uses MemoryBoard.
+ * A saved look, shown only in the dev preview. The live screen uses ClassMemory.
  */
 export function ClassroomBoard({
 	ideas,

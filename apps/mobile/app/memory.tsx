@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MemoryBoard } from '@/components/memory/MemoryBoard'
+import { ClassMemory } from '@/components/memory/ClassMemory'
 import { NextReminder } from '@/components/memory/NextReminder'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { QueryErrorState } from '@/components/QueryError'
 import { CardSkeleton } from '@/components/ui/Skeleton'
+import { SheetCard } from '@/components/ui/SheetCard'
 import { useTheme } from '@/contexts/ThemeContext'
 import { track } from '@/lib/analytics'
 import { api } from '@/lib/api'
@@ -23,8 +24,9 @@ function leave() {
 }
 
 /**
- * Maya's board: her gaps on a white sheet, shimmering as they fade until the one that is due,
- * under her next reminder when this phone gets them.
+ * What your class might forget: the ideas your explanations missed, with the student who is
+ * forgetting one today asking for it, and what comes up next. The next reminder shows at the
+ * end when this phone gets them.
  */
 export default function MemoryScreen() {
 	const { colors: c, elevation } = useTheme()
@@ -65,62 +67,70 @@ export default function MemoryScreen() {
 
 	return (
 		<View style={s.fill}>
-			<PixelBackdrop scene="welcome" />
-			<ScrollView
-				style={s.fill}
-				contentContainerStyle={{
-					paddingTop: insets.top + 64,
-					paddingBottom: insets.bottom + 24,
-					paddingHorizontal: 16,
-					gap: 16
-				}}
-				showsVerticalScrollIndicator={false}
-			>
-				<View style={[s.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
-					<PressableScale
-						onPress={leave}
-						accessibilityRole="button"
-						accessibilityLabel="Back"
-						style={[s.back, { backgroundColor: c.surface }, elevation.soft]}
-					>
-						<ChevronLeft size={22} color={c.textPrimary} strokeWidth={2.2} />
-					</PressableScale>
-				</View>
-				{board.isPending ? <CardSkeleton height={120} /> : null}
-				{reminder ? (
-					<NextReminder title={reminder.idea.concept_title} at={reminder.at} now={now} />
-				) : null}
-				{board.isPending ? null : (
-					<MemoryBoard
-						ideas={ideas}
-						now={now}
-						showEmpty={loaded && ideas.length === 0}
-						onPractice={(gapId) => {
-							track('memory_idea_tapped', { gap_id: gapId })
-							router.push(`/warm-up/${gapId}`)
-						}}
-						onOpenTopic={(topicId) => {
-							track('memory_topic_opened', { topic_id: topicId })
-							router.push(`/topic/${topicId}`)
-						}}
-					/>
-				)}
-				{board.isError ? (
-					<QueryErrorState
-						error={board.error}
-						title="Couldn't load Maya's memory"
-						onRetry={() => {
-							void board.refetch()
-						}}
-					/>
-				) : null}
-			</ScrollView>
+			{loaded ? (
+				<ClassMemory
+					ideas={ideas}
+					now={now}
+					reminder={
+						reminder ? (
+							<NextReminder title={reminder.idea.concept_title} at={reminder.at} now={now} />
+						) : null
+					}
+					onAnswer={(idea, student) => {
+						track('memory_idea_tapped', { gap_id: idea.gap_id, student })
+						router.push(`/warm-up/${idea.gap_id}`)
+					}}
+					onOpenTopic={(topicId) => {
+						track('memory_topic_opened', { topic_id: topicId })
+						router.push(`/topic/${topicId}`)
+					}}
+					onTeach={() => {
+						track('memory_teach_tapped')
+						router.replace('/(tabs)')
+					}}
+					onExpand={(ideaCount) => track('memory_list_expanded', { idea_count: ideaCount })}
+				/>
+			) : (
+				<>
+					<PixelBackdrop scene="classroom" />
+					<View style={s.fill} />
+					<SheetCard>
+						{board.isError ? (
+							<QueryErrorState
+								error={board.error}
+								title="Couldn't load what your class might forget"
+								onRetry={() => {
+									void board.refetch()
+								}}
+							/>
+						) : (
+							<CardSkeleton height={160} />
+						)}
+					</SheetCard>
+				</>
+			)}
+			<View style={[s.top, { top: insets.top + 8 }]} pointerEvents="box-none">
+				<PressableScale
+					onPress={leave}
+					accessibilityRole="button"
+					accessibilityLabel="Back"
+					style={[s.back, { backgroundColor: c.surface }, elevation.soft]}
+				>
+					<ChevronLeft size={22} color={c.textPrimary} strokeWidth={2.2} />
+				</PressableScale>
+			</View>
 		</View>
 	)
 }
 
 const s = StyleSheet.create({
 	fill: { flex: 1 },
-	top: { position: 'absolute', left: 16, zIndex: 2 },
-	back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }
+	top: { position: 'absolute', left: 16, zIndex: 3 },
+	back: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		alignItems: 'center',
+		justifyContent: 'center'
+	}
 })
