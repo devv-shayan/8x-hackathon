@@ -111,6 +111,7 @@ function IdeaLine({
 /**
  * The classroom board: oak frame, chalk tray, and one fading line per gap.
  * `ground` is the writing surface (the green board, or the grey sample).
+ * A saved look, shown only in the dev preview. The live screen uses MemoryBoard.
  */
 export function ClassroomBoard({
 	ideas,
@@ -135,7 +136,6 @@ export function ClassroomBoard({
 			<View style={[s.frame, { backgroundColor: WOOD_FACE }]}>
 				<View style={[s.groove, { backgroundColor: WOOD_GRAIN }]}>
 					<View
-						testID="memory-board"
 						style={[s.writing, { backgroundColor: ground, minHeight: height * BOARD_MIN_SHARE }]}
 					>
 						<BoardHeading />
