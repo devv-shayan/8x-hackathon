@@ -1,50 +1,55 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Constants from 'expo-constants'
-import * as Notifications from 'expo-notifications'
 import { api } from '@/lib/api'
 import { log } from '@/lib/logger'
+import { loadNotifications } from '@/lib/push-support'
 
 const ASKED = 'memory-push-asked'
 const PLACEHOLDER = 'REPLACE_'
 
 /**
  * Asks for reminders the first time Maya's memory opens, then stores this
- * phone's Expo token. A refusal, a browser, or a build with no EAS project
- * leaves the board working and sends nothing.
+ * phone's Expo token. A refusal, a browser, Expo Go, or a build with no EAS
+ * project leaves the board working and sends nothing. True once this phone is set to
+ * get the notes, so the board shows its next one only when it will arrive.
  */
-export function useMemoryPush() {
+export function useMemoryPush(): boolean {
 	const started = useRef(false)
+	const [registered, setRegistered] = useState(false)
 	useFocusEffect(
 		useCallback(() => {
 			if (started.current) return
 			started.current = true
-			void registerMemoryPush()
+			void registerMemoryPush().then(setRegistered)
 		}, [])
 	)
+	return registered
 }
 
-async function registerMemoryPush(): Promise<void> {
-	if (Platform.OS !== 'ios' && Platform.OS !== 'android') return
+async function registerMemoryPush(): Promise<boolean> {
+	if (Platform.OS !== 'ios' && Platform.OS !== 'android') return false
 	try {
+		const Notifications = await loadNotifications()
+		if (!Notifications) return false
 		const projectId = easProjectId()
 		if (!projectId) {
 			log.warn('Maya memory reminders need an EAS project id before a phone can register', {
 				source: 'memory-push'
 			})
-			return
+			return false
 		}
 		const current = await Notifications.getPermissionsAsync()
 		let granted = current.granted
 		if (!granted) {
 			const asked = await AsyncStorage.getItem(ASKED)
-			if (asked) return
+			if (asked) return false
 			await AsyncStorage.setItem(ASKED, '1')
 			granted = (await Notifications.requestPermissionsAsync()).granted
 		}
-		if (!granted) return
+		if (!granted) return false
 		if (Platform.OS === 'android') {
 			await Notifications.setNotificationChannelAsync('memory', {
 				name: "Maya's memory",
@@ -55,8 +60,10 @@ async function registerMemoryPush(): Promise<void> {
 		await api('registerPushToken', {
 			body: { token, platform: Platform.OS }
 		})
+		return true
 	} catch (error) {
 		log.warn('Maya memory reminders were not registered', { source: 'memory-push', error })
+		return false
 	}
 }
 

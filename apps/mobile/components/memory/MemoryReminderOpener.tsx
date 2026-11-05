@@ -1,21 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { Platform } from 'react-native'
 import { router } from 'expo-router'
-import * as Notifications from 'expo-notifications'
+import type * as Notifications from 'expo-notifications'
 import { track } from '@/lib/analytics'
+import { loadNotifications } from '@/lib/push-support'
 
 const STAGES = new Set(['5', '4', '3', '2', '1', 'due'])
-
-if (Platform.OS !== 'web') {
-	Notifications.setNotificationHandler({
-		handleNotification: async () => ({
-			shouldShowBanner: true,
-			shouldShowList: true,
-			shouldPlaySound: false,
-			shouldSetBadge: false
-		})
-	})
-}
 
 function openReminder(response: Notifications.NotificationResponse) {
 	const data = response.notification.request.content.data ?? {}
@@ -52,16 +41,33 @@ export function MemoryReminderOpener({ ready }: { ready: boolean }) {
 	}, [])
 
 	useEffect(() => {
-		if (Platform.OS === 'web') return
-		const subscription = Notifications.addNotificationResponseReceivedListener(open)
-		void Notifications.getLastNotificationResponseAsync()
-			.then((response) => {
-				if (response) open(response)
+		let subscription: { remove(): void } | null = null
+		let gone = false
+		// Expo Go and the browser get null here, and the module is never loaded.
+		void loadNotifications().then((module) => {
+			if (!module || gone) return
+			module.setNotificationHandler({
+				handleNotification: async () => ({
+					shouldShowBanner: true,
+					shouldShowList: true,
+					shouldPlaySound: false,
+					shouldSetBadge: false
+				})
 			})
-			.catch(() => {
-				// A build without notification support has nothing to open.
-			})
-		return () => subscription.remove()
+			subscription = module.addNotificationResponseReceivedListener(open)
+			module
+				.getLastNotificationResponseAsync()
+				.then((response) => {
+					if (response && !gone) open(response)
+				})
+				.catch(() => {
+					// A build without notification support has nothing to open.
+				})
+		})
+		return () => {
+			gone = true
+			subscription?.remove()
+		}
 	}, [open])
 
 	useEffect(() => {
