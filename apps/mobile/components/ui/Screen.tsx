@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from 'react'
 import {
+	KeyboardAvoidingView,
 	ScrollView,
 	View,
 	type RefreshControlProps,
@@ -8,6 +9,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTabBarClearance } from '@/components/TabBar'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { useTheme } from '@/contexts/ThemeContext'
 
 /**
@@ -50,21 +52,23 @@ export function Screen({
 	return (
 		<View style={{ flex: 1, backgroundColor: c.bg }}>
 			{header}
-			{scroll ? (
-				<ScrollView
-					style={{ flex: 1 }}
-					contentContainerStyle={[padding, contentStyle]}
-					refreshControl={refreshControl}
-					keyboardShouldPersistTaps="handled"
-					keyboardDismissMode="on-drag"
-					showsVerticalScrollIndicator={false}
-				>
-					{children}
-				</ScrollView>
-			) : (
-				<View style={[{ flex: 1 }, padding, contentStyle]}>{children}</View>
-			)}
-			{footer}
+			<KeyboardAvoidingView style={{ flex: 1 }} behavior={KEYBOARD_LIFT}>
+				{scroll ? (
+					<ScrollView
+						style={{ flex: 1 }}
+						contentContainerStyle={[padding, contentStyle]}
+						refreshControl={refreshControl}
+						keyboardShouldPersistTaps="handled"
+						keyboardDismissMode="on-drag"
+						showsVerticalScrollIndicator={false}
+					>
+						{children}
+					</ScrollView>
+				) : (
+					<View style={[{ flex: 1 }, padding, contentStyle]}>{children}</View>
+				)}
+				{footer}
+			</KeyboardAvoidingView>
 		</View>
 	)
 }

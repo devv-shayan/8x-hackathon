@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native'
+import {
+	KeyboardAvoidingView,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	useWindowDimensions,
+	View
+} from 'react-native'
 import { Image } from 'expo-image'
 import { Mic, MicOff, Square } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -14,8 +21,10 @@ import TextInputField from '@/components/ui/TextInputField'
 import { RecordingStrip } from '@/components/voice/RecordingStrip'
 import type { AnswerMeta } from '@/components/voice/VoiceAnswer'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useKeyboardShown } from '@/hooks/useKeyboardShown'
 import { useLiveTranscript } from '@/hooks/useLiveTranscript'
 import { track } from '@/lib/analytics'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { canRecordVoice } from '@/lib/voice/recorder'
 import { youtubeThumbnailUrl } from '@/lib/youtubeThumb'
 import { leaveClass } from './shared'
@@ -46,6 +55,8 @@ export function ExplainStep({
 }) {
 	const { colors: c, radii, elevation } = useTheme()
 	const insets = useSafeAreaInsets()
+	const { height } = useWindowDimensions()
+	const keyboardOpen = useKeyboardShown()
 	const live = useLiveTranscript(title)
 	const [typing, setTyping] = useState(!canRecordVoice)
 	const [typed, setTyped] = useState('')
@@ -143,158 +154,167 @@ export function ExplainStep({
 				) : null}
 			</View>
 			<View style={s.fill} pointerEvents="none" />
-			<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-				<SheetCard>
-					<MonoLabel>Explain it in your own words</MonoLabel>
-					{showTyped ? (
-						<>
-							{micOff ? (
-								<View
-									style={[s.notice, { backgroundColor: c.surface2 }]}
-									accessibilityLiveRegion="polite"
-								>
-									<MicOff size={18} color={c.textPrimary} />
-									<Text variant="bodySm" style={s.noticeText}>
+			<KeyboardAvoidingView behavior={KEYBOARD_LIFT}>
+				<SheetCard style={keyboardOpen ? { maxHeight: Math.round(height * 0.5) } : undefined}>
+					<ScrollView
+						keyboardShouldPersistTaps="handled"
+						bounces={false}
+						showsVerticalScrollIndicator={false}
+					>
+						<MonoLabel>Explain it in your own words</MonoLabel>
+						{showTyped ? (
+							<>
+								{micOff ? (
+									<View
+										style={[s.notice, { backgroundColor: c.surface2 }]}
+										accessibilityLiveRegion="polite"
+									>
+										<MicOff size={18} color={c.textPrimary} />
+										<Text variant="bodySm" style={s.noticeText}>
+											{live.failure?.message}
+										</Text>
+									</View>
+								) : (
+									<Text variant="question" style={s.question} accessibilityRole="header">
+										Teach it like they never saw it.
+									</Text>
+								)}
+								<View style={s.field}>
+									<TextInputField
+										accessibilityLabel="Your explanation"
+										placeholder="What’s the main idea, and how does it work?"
+										multiline
+										numberOfLines={6}
+										value={typed}
+										onChangeText={setTyped}
+										error={error}
+										hint={
+											!ready && typed.trim().length > 0
+												? `A few more words: at least ${MIN_EXPLANATION_LENGTH} characters.`
+												: undefined
+										}
+									/>
+								</View>
+							</>
+						) : recording || finishing ? (
+							<>
+								<Text variant="h2" style={s.words} accessibilityLiveRegion="polite">
+									{live.text ? (
+										<>
+											<Text variant="h2" tone="tertiary">
+												{live.latest ? live.text.slice(0, -live.latest.length) : live.text}
+											</Text>
+											{live.latest}
+										</>
+									) : (
+										<Text variant="h2" tone="tertiary">
+											{recording
+												? live.streams
+													? 'Listening… your words show up here as you talk.'
+													: 'Listening… your words show up here when you stop.'
+												: 'Writing down what you said…'}
+										</Text>
+									)}
+								</Text>
+								<View style={s.recRow}>
+									<RecordingStrip
+										seconds={live.seconds}
+										levels={live.levels}
+										bars={live.waveBars}
+										scene="explain"
+										end={
+											<Pressable
+												onPress={() => void live.stop()}
+												disabled={!recording}
+												accessibilityRole="button"
+												accessibilityLabel="Stop recording"
+												style={[
+													s.stop,
+													{ backgroundColor: c.brandFill, borderColor: c.textPrimary }
+												]}
+											>
+												<Square size={16} color={c.textPrimary} fill={c.textPrimary} />
+											</Pressable>
+										}
+									/>
+								</View>
+								{finishing ? (
+									<Text variant="caption" tone="secondary" style={s.status}>
+										Writing down the end of what you said…
+									</Text>
+								) : null}
+							</>
+						) : live.text ? (
+							<>
+								<View style={s.field}>
+									<TextInputField
+										accessibilityLabel="Your explanation"
+										multiline
+										numberOfLines={6}
+										value={live.text}
+										onChangeText={live.setText}
+										error={error}
+										hint={
+											ready
+												? 'Tap to fix a word.'
+												: `A few more words: at least ${MIN_EXPLANATION_LENGTH} characters.`
+										}
+									/>
+								</View>
+								{live.phase === 'failed' ? (
+									<Text variant="bodySm" tone="secondary" style={s.status}>
 										{live.failure?.message}
 									</Text>
+								) : null}
+								<View style={s.row}>
+									<Button
+										label={live.phase === 'failed' ? 'Try again' : 'Keep talking'}
+										variant="ghost"
+										icon={(color) => <Mic size={18} color={color} />}
+										disabled={busy}
+										onPress={() => void (live.phase === 'failed' ? live.retry() : live.start())}
+									/>
 								</View>
-							) : (
+							</>
+						) : (
+							<>
 								<Text variant="question" style={s.question} accessibilityRole="header">
 									Teach it like they never saw it.
 								</Text>
-							)}
-							<View style={s.field}>
-								<TextInputField
-									accessibilityLabel="Your explanation"
-									placeholder="What’s the main idea, and how does it work?"
-									multiline
-									numberOfLines={6}
-									value={typed}
-									onChangeText={setTyped}
-									error={error}
-									hint={
-										!ready && typed.trim().length > 0
-											? `A few more words: at least ${MIN_EXPLANATION_LENGTH} characters.`
-											: undefined
-									}
-								/>
-							</View>
-						</>
-					) : recording || finishing ? (
-						<>
-							<Text variant="h2" style={s.words} accessibilityLiveRegion="polite">
-								{live.text ? (
-									<>
-										<Text variant="h2" tone="tertiary">
-											{live.latest ? live.text.slice(0, -live.latest.length) : live.text}
-										</Text>
-										{live.latest}
-									</>
-								) : (
-									<Text variant="h2" tone="tertiary">
-										{recording
-											? live.streams
-												? 'Listening… your words show up here as you talk.'
-												: 'Listening… your words show up here when you stop.'
-											: 'Writing down what you said…'}
-									</Text>
-								)}
-							</Text>
-							<View style={s.recRow}>
-								<RecordingStrip
-									seconds={live.seconds}
-									levels={live.levels}
-									bars={live.waveBars}
-									scene="explain"
-									end={
-										<Pressable
-											onPress={() => void live.stop()}
-											disabled={!recording}
-											accessibilityRole="button"
-											accessibilityLabel="Stop recording"
-											style={[s.stop, { backgroundColor: c.brandFill, borderColor: c.textPrimary }]}
-										>
-											<Square size={16} color={c.textPrimary} fill={c.textPrimary} />
-										</Pressable>
-									}
-								/>
-							</View>
-							{finishing ? (
-								<Text variant="caption" tone="secondary" style={s.status}>
-									Writing down the end of what you said…
+								<Text variant="lead" tone="secondary" style={s.lead}>
+									{live.streams
+										? 'Talk it through out loud. Your words show up as you go; tap stop when you’re done.'
+										: 'Talk it through out loud, then tap stop. Your words show up when you do.'}
 								</Text>
-							) : null}
-						</>
-					) : live.text ? (
-						<>
-							<View style={s.field}>
-								<TextInputField
-									accessibilityLabel="Your explanation"
-									multiline
-									numberOfLines={6}
-									value={live.text}
-									onChangeText={live.setText}
-									error={error}
-									hint={
-										ready
-											? 'Tap to fix a word.'
-											: `A few more words: at least ${MIN_EXPLANATION_LENGTH} characters.`
-									}
-								/>
-							</View>
-							{live.phase === 'failed' ? (
-								<Text variant="bodySm" tone="secondary" style={s.status}>
-									{live.failure?.message}
-								</Text>
-							) : null}
-							<View style={s.row}>
 								<Button
-									label={live.phase === 'failed' ? 'Try again' : 'Keep talking'}
-									variant="ghost"
-									icon={(color) => <Mic size={18} color={color} />}
-									disabled={busy}
-									onPress={() => void (live.phase === 'failed' ? live.retry() : live.start())}
+									label="Start explaining"
+									variant="ink"
+									size="lg"
+									fullWidth
+									icon={(color) => <Mic size={20} color={color} />}
+									onPress={() => void live.start()}
+									style={s.cta}
 								/>
-							</View>
-						</>
-					) : (
-						<>
-							<Text variant="question" style={s.question} accessibilityRole="header">
-								Teach it like they never saw it.
-							</Text>
-							<Text variant="lead" tone="secondary" style={s.lead}>
-								{live.streams
-									? 'Talk it through out loud. Your words show up as you go; tap stop when you’re done.'
-									: 'Talk it through out loud, then tap stop. Your words show up when you do.'}
-							</Text>
+							</>
+						)}
+						{showTyped || recording || finishing || live.text ? (
 							<Button
-								label="Start explaining"
+								label={pending ? 'Students are thinking…' : 'I’m done, start the class'}
 								variant="ink"
 								size="lg"
 								fullWidth
-								icon={(color) => <Mic size={20} color={color} />}
-								onPress={() => void live.start()}
+								loading={busy}
+								disabled={busy || (!recording && !ready)}
+								onPress={() => void done()}
 								style={s.cta}
 							/>
-						</>
-					)}
-					{showTyped || recording || finishing || live.text ? (
-						<Button
-							label={pending ? 'Students are thinking…' : 'I’m done, start the class'}
-							variant="ink"
-							size="lg"
-							fullWidth
-							loading={busy}
-							disabled={busy || (!recording && !ready)}
-							onPress={() => void done()}
-							style={s.cta}
-						/>
-					) : null}
-					{!showTyped && error ? (
-						<Text variant="caption" style={[s.status, { color: c.errorText }]}>
-							{error}
-						</Text>
-					) : null}
+						) : null}
+						{!showTyped && error ? (
+							<Text variant="caption" style={[s.status, { color: c.errorText }]}>
+								{error}
+							</Text>
+						) : null}
+					</ScrollView>
 				</SheetCard>
 			</KeyboardAvoidingView>
 		</View>

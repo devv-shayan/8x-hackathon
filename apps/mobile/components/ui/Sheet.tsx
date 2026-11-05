@@ -21,6 +21,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/contexts/ThemeContext'
 import { haptic } from '@/lib/haptics'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { Springs, Timings } from '@/lib/motion'
 import { Text } from './Text'
 
@@ -131,11 +132,7 @@ export function Sheet({
 					accessibilityLabel="Close"
 				/>
 
-				<KeyboardAvoidingView
-					behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-					style={s.bottom}
-					pointerEvents="box-none"
-				>
+				<KeyboardAvoidingView behavior={KEYBOARD_LIFT} style={s.bottom} pointerEvents="box-none">
 					<Animated.View
 						onLayout={onLayout}
 						style={[

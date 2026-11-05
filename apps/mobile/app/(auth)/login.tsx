@@ -50,6 +50,8 @@ import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import TextInputField from '@/components/ui/TextInputField'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useKeyboardShown } from '@/hooks/useKeyboardShown'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { track } from '@/lib/analytics'
 import { APP_NAME, APP_SCHEME } from '@/lib/constants'
 import { haptic } from '@/lib/haptics'
@@ -132,6 +134,7 @@ const SIGN_IN_NOT_SET_UP = "Sign-in isn't set up in this version of the app yet.
 
 export default function LoginScreen() {
 	const insets = useSafeAreaInsets()
+	const keyboardOpen = useKeyboardShown()
 	const { colors: c, elevation, radii, isDark } = useTheme()
 	const nativeApple = useNativeAppleSignIn()
 	const s = useStyles()
@@ -374,9 +377,17 @@ export default function LoginScreen() {
 				</PressableScale>
 				<BrandMark />
 			</View>
-			<KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+			<KeyboardAvoidingView style={s.flex} behavior={KEYBOARD_LIFT}>
 				<ScrollView
-					contentContainerStyle={[s.scroll, { paddingTop: insets.top + 68 }]}
+					contentContainerStyle={[
+						s.scroll,
+						{
+							paddingTop: insets.top + 68,
+							// The card is pinned to the bottom. Once the keyboard takes that space,
+							// start at the top so the code boxes stay on screen instead of under it.
+							justifyContent: keyboardOpen ? 'flex-start' : 'flex-end'
+						}
+					]}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 				>

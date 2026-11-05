@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { Animated, Pressable, StyleSheet, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { ChevronRight } from 'lucide-react-native'
 import { theme, withAlpha } from '@app/brand'
 import type { MemoryIdea } from '@app/contract'
@@ -9,6 +9,8 @@ import { Text } from '@/components/ui/Text'
 import { chalkOpacity, dueIdeaId } from '@/lib/chalk'
 import { useReducedMotion } from '@/lib/motion'
 
+/** The writing surface stays this share of the screen, even with one line or none. */
+const BOARD_MIN_SHARE = 0.5
 const CHALK_FACE = 'CabinSketch_700Bold'
 const CHALK = CLASSROOM_BOARD.chalk
 const MARK = CLASSROOM_BOARD.mark
@@ -127,11 +129,15 @@ export function ClassroomBoard({
 	onOpenTopic?: (topicId: string) => void
 }) {
 	const practiceId = dueIdeaId(ideas, now)
+	const { height } = useWindowDimensions()
 	return (
 		<View style={[s.shell, { backgroundColor: WOOD_EDGE }]}>
 			<View style={[s.frame, { backgroundColor: WOOD_FACE }]}>
 				<View style={[s.groove, { backgroundColor: WOOD_GRAIN }]}>
-					<View style={[s.writing, { backgroundColor: ground }]}>
+					<View
+						testID="memory-board"
+						style={[s.writing, { backgroundColor: ground, minHeight: height * BOARD_MIN_SHARE }]}
+					>
 						<BoardHeading />
 						{showEmpty ? (
 							<Text variant="body" style={{ color: CHALK }}>
