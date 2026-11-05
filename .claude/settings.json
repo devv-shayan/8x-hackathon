@@ -30,7 +30,37 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/session-brief.py\""
+            "command": "PYTHONIOENCODING=utf-8 \"$(command -v py >/dev/null 2>&1 && echo py || echo python3)\" \"$CLAUDE_PROJECT_DIR/.claude/session-brief.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_CWD=\"$CLAUDE_PROJECT_DIR\" \"$(command -v py >/dev/null 2>&1 && echo py || echo python3)\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/extract-log.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_CWD=\"$CLAUDE_PROJECT_DIR\" \"$(command -v py >/dev/null 2>&1 && echo py || echo python3)\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/extract-log.py\""
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_CWD=\"$CLAUDE_PROJECT_DIR\" \"$(command -v py >/dev/null 2>&1 && echo py || echo python3)\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/extract-log.py\""
           }
         ]
       }

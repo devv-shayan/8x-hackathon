@@ -21,7 +21,7 @@ export function MonoLabel({
 				{children}
 			</Text>
 			{typeof right === 'string' ? (
-				<Text variant="eyebrow" tone="secondary" numberOfLines={1}>
+				<Text variant="eyebrow" tone="secondary" numberOfLines={1} style={s.right}>
 					{right}
 				</Text>
 			) : (
@@ -33,5 +33,7 @@ export function MonoLabel({
 
 const s = StyleSheet.create({
 	row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-	left: { flexShrink: 1 }
+	left: { flexShrink: 1 },
+	// The short side keeps its width; a long left label is the one cut.
+	right: { flexShrink: 0 }
 })

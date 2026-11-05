@@ -8,14 +8,12 @@ import { CLASSROOM_BOARD } from '@app/pixel'
 import { ClassroomBoard } from '@/components/memory/ClassroomBoard'
 import { MemoryBoard } from '@/components/memory/MemoryBoard'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
-import { Highlight } from '@/components/ui/Highlight'
-import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 
 const DAY = 24 * 60 * 60 * 1000
 const SLATE = theme.palettes.dark.surface3
 const GREEN = CLASSROOM_BOARD.green
-/** The white sheet and the grey board stay in this file. They are not shown. */
+/** The green and grey classroom boards stay in this file. They are not shown. */
 const SHOW_SAVED_BOARDS = false
 
 /** One sample line per day of the fade, so the slide can be looked at. Not for release. */
@@ -63,9 +61,9 @@ function sampleIdeas(now: Date): MemoryIdea[] {
 }
 
 /**
- * The green board, for a look before sign-in. White and grey stay in this file
+ * The white board, for a look before sign-in. Green and grey stay in this file
  * and render only when SHOW_SAVED_BOARDS is on. Release builds redirect home.
- * The signed-in screen is the green board.
+ * The signed-in screen is the white board.
  */
 export default function MemoryPreviewScreen() {
 	const insets = useSafeAreaInsets()
@@ -85,6 +83,7 @@ export default function MemoryPreviewScreen() {
 					gap: 28
 				}}
 			>
+				<MemoryBoard ideas={ideas} now={now} />
 				{SHOW_SAVED_BOARDS ? (
 					<>
 						<Text variant="eyebrow" tone="inverse">
@@ -92,14 +91,9 @@ export default function MemoryPreviewScreen() {
 						</Text>
 						<View style={s.block}>
 							<Text variant="eyebrow" tone="inverse">
-								White
+								Green
 							</Text>
-							<SheetCard style={s.sheet}>
-								<Text variant="h1" accessibilityRole="header">
-									Maya&apos;s <Highlight>memory</Highlight>
-								</Text>
-								<MemoryBoard ideas={ideas} now={now} />
-							</SheetCard>
+							<ClassroomBoard ideas={ideas} now={now} ground={GREEN} />
 						</View>
 						<View style={s.block}>
 							<Text variant="eyebrow" tone="inverse">
@@ -109,7 +103,6 @@ export default function MemoryPreviewScreen() {
 						</View>
 					</>
 				) : null}
-				<ClassroomBoard ideas={ideas} now={now} ground={GREEN} />
 			</ScrollView>
 		</View>
 	)
@@ -117,6 +110,5 @@ export default function MemoryPreviewScreen() {
 
 const s = StyleSheet.create({
 	fill: { flex: 1 },
-	block: { gap: 10 },
-	sheet: { gap: 16, minHeight: 360 }
+	block: { gap: 10 }
 })

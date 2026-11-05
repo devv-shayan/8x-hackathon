@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react-native'
-import { CLASSROOM_BOARD } from '@app/pixel'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ClassroomBoard } from '@/components/memory/ClassroomBoard'
+import { MemoryBoard } from '@/components/memory/MemoryBoard'
+import { NextReminder } from '@/components/memory/NextReminder'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { QueryErrorState } from '@/components/QueryError'
@@ -14,6 +14,7 @@ import { CardSkeleton } from '@/components/ui/Skeleton'
 import { useTheme } from '@/contexts/ThemeContext'
 import { track } from '@/lib/analytics'
 import { api } from '@/lib/api'
+import { nextReminder } from '@/lib/chalk'
 import { useMemoryPush } from '@/lib/memory-push'
 
 function leave() {
@@ -21,16 +22,22 @@ function leave() {
 	else router.replace('/(tabs)')
 }
 
-/** Maya's board: her gaps in chalk, fading until the one that is due. */
+/**
+ * Maya's board: her gaps on a white sheet, shimmering as they fade until the one that is due,
+ * under her next reminder when this phone gets them.
+ */
 export default function MemoryScreen() {
 	const { colors: c, elevation } = useTheme()
 	const insets = useSafeAreaInsets()
-	const now = useRef(new Date()).current
-	useMemoryPush()
+	const remindersOn = useMemoryPush()
 	const board = useQuery({
 		queryKey: ['memory'],
 		queryFn: () => api('listMemory')
 	})
+	// The board's clock is the moment its ideas arrived, so every refetch (each time the
+	// screen comes back into view) counts the days again.
+	const fetchedAt = board.dataUpdatedAt
+	const now = useMemo(() => (fetchedAt ? new Date(fetchedAt) : new Date()), [fetchedAt])
 
 	const loaded = board.isSuccess
 	const refetch = board.refetch
@@ -41,6 +48,7 @@ export default function MemoryScreen() {
 	)
 
 	const ideas = board.data?.ideas ?? []
+	const reminder = remindersOn ? nextReminder(ideas, now) : null
 
 	useEffect(() => {
 		if (!loaded) return
@@ -79,11 +87,13 @@ export default function MemoryScreen() {
 					</PressableScale>
 				</View>
 				{board.isPending ? <CardSkeleton height={120} /> : null}
+				{reminder ? (
+					<NextReminder title={reminder.idea.concept_title} at={reminder.at} now={now} />
+				) : null}
 				{board.isPending ? null : (
-					<ClassroomBoard
+					<MemoryBoard
 						ideas={ideas}
 						now={now}
-						ground={CLASSROOM_BOARD.green}
 						showEmpty={loaded && ideas.length === 0}
 						onPractice={(gapId) => {
 							track('memory_idea_tapped', { gap_id: gapId })
