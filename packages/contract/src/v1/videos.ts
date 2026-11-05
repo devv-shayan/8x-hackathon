@@ -137,7 +137,7 @@ export const getTopicGapsResponse = z.object({
 	gaps: z.array(topicGapSchema)
 })
 
-/** One gap on Maya's board. Ideas explained right the first time are not here: they have no date. */
+/** One gap on the class's board. Ideas explained right the first time are not here: they have no date. */
 export const memoryIdeaSchema = z.object({
 	gap_id: uuid,
 	topic_id: uuid,
@@ -147,7 +147,12 @@ export const memoryIdeaSchema = z.object({
 	/** When it comes back as a warm-up; null once closed. */
 	next_due_at: isoDateTime.nullable(),
 	/** A warm-up has been judged. A fresh gap fades over two days; a judged one over five. */
-	judged: z.boolean()
+	judged: z.boolean(),
+	/**
+	 * Who asks this idea's warm-up ('Maya' or 'Omar'), chosen the way a warm-up chooses.
+	 * Optional: an older server leaves it out, and the board then says Maya.
+	 */
+	student_name: z.string().optional()
 })
 
 export const listMemoryResponse = z.object({

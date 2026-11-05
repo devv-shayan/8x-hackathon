@@ -36,6 +36,22 @@ async function studentFor(userId: string, topicId: string) {
 	return student
 }
 
+/**
+ * Who will ask each of these topics' warm-ups, as `studentFor` picks: the student the person
+ * answered last on that topic, or else their first student. One query for all of them.
+ */
+export async function askersForTopics(
+	userId: string,
+	topicIds: string[]
+): Promise<Map<string, string>> {
+	const unique = [...new Set(topicIds)]
+	const askers = await warmUpStore.rememberedStudents(userId, unique)
+	if (unique.every((id) => askers.has(id))) return askers
+	const fallback = (await classStore.studentsFor(userId, DEFAULT_STUDENTS))[0]
+	if (fallback) for (const id of unique) if (!askers.has(id)) askers.set(id, fallback.name)
+	return askers
+}
+
 export async function listDueWarmUps(userId: string, now = new Date()): Promise<DueWarmUp[]> {
 	const gaps = await warmUpStore.listDue(userId, now)
 	return Promise.all(
