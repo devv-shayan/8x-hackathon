@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router, useNavigation } from 'expo-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -24,6 +24,7 @@ import { track } from '@/lib/analytics'
 import { api, errorCode, errorMessage } from '@/lib/api'
 import { haptic } from '@/lib/haptics'
 import { READ_VIDEO_KEY, topicQueryKey } from '@/lib/topicQuery'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { youtubeThumbnailUrl } from '@/lib/youtubeThumb'
 
 // Reading a long video can take a minute or more, far past the API default.
@@ -102,6 +103,8 @@ export default function HomeScreen() {
 		},
 		onSuccess: (video, _link, _context) => {
 			setReadSeconds((Date.now() - (readVideo.submittedAt || Date.now())) / 1000)
+			// The link did its job. Coming back to Home shows an empty box.
+			setUrl('')
 			onRead(video)
 		},
 		onError: () => haptic.error()
@@ -249,58 +252,60 @@ export default function HomeScreen() {
 	return (
 		<View style={s.fill}>
 			<PixelBackdrop scene="home" />
-			<ScrollView
-				style={s.fill}
-				contentContainerStyle={{ paddingTop: insets.top + 28, paddingBottom: tabClearance }}
-				keyboardShouldPersistTaps="handled"
-				keyboardDismissMode="on-drag"
-				showsVerticalScrollIndicator={false}
-			>
-				<View style={{ paddingHorizontal: layout.gutter }}>
-					<Text variant="display" accessibilityRole="header" style={s.headline}>
-						What did you learn today?
-					</Text>
-					<View style={[s.linkCard, { backgroundColor: c.surface, borderRadius: radii['3xl'] }]}>
-						<TextInputField
-							accessibilityLabel="YouTube link"
-							placeholder="Paste a YouTube link"
-							value={url}
-							onChangeText={(next) => {
-								setUrl(next)
-								setLinkError(null)
-							}}
-							autoCapitalize="none"
-							autoCorrect={false}
-							keyboardType="url"
-							error={linkError ?? (readVideo.isError ? errorMessage(readVideo.error) : null)}
-						/>
-						<Button
-							label={readVideo.isPending ? 'Reading… watch the class' : 'Teach it'}
-							variant="ink"
-							size="lg"
-							fullWidth
-							disabled={!url.trim() && !readVideo.isPending}
-							onPress={() => (readVideo.isPending ? setWatching(true) : startReading())}
-						/>
-						{offerPaste ? pasteForm : null}
+			<KeyboardAvoidingView style={s.fill} behavior={KEYBOARD_LIFT}>
+				<ScrollView
+					style={s.fill}
+					contentContainerStyle={{ paddingTop: insets.top + 28, paddingBottom: tabClearance }}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="on-drag"
+					showsVerticalScrollIndicator={false}
+				>
+					<View style={{ paddingHorizontal: layout.gutter }}>
+						<Text variant="display" accessibilityRole="header" style={s.headline}>
+							What did you learn today?
+						</Text>
+						<View style={[s.linkCard, { backgroundColor: c.surface, borderRadius: radii['3xl'] }]}>
+							<TextInputField
+								accessibilityLabel="YouTube link"
+								placeholder="Paste a YouTube link"
+								value={url}
+								onChangeText={(next) => {
+									setUrl(next)
+									setLinkError(null)
+								}}
+								autoCapitalize="none"
+								autoCorrect={false}
+								keyboardType="url"
+								error={linkError ?? (readVideo.isError ? errorMessage(readVideo.error) : null)}
+							/>
+							<Button
+								label={readVideo.isPending ? 'Reading… watch the class' : 'Teach it'}
+								variant="ink"
+								size="lg"
+								fullWidth
+								disabled={!url.trim() && !readVideo.isPending}
+								onPress={() => (readVideo.isPending ? setWatching(true) : startReading())}
+							/>
+							{offerPaste ? pasteForm : null}
+						</View>
 					</View>
-				</View>
-				<SheetCard style={s.sheet}>
-					{/* Ready sits above warm-ups so a fresh read isn't pushed down by "Nothing due". */}
-					{video ? <ReadyToTeach video={video} /> : null}
-					<PressableScale
-						onPress={() => router.push('/memory')}
-						accessibilityRole="button"
-						accessibilityLabel="Maya's memory"
-						scaleTo="card"
-					>
-						<MonoLabel>Maya&apos;s memory</MonoLabel>
-						<Text variant="body">What she might forget</Text>
-					</PressableScale>
-					<DueWarmUps />
-					<RecentTopics />
-				</SheetCard>
-			</ScrollView>
+					<SheetCard style={s.sheet}>
+						{/* Ready sits above warm-ups so a fresh read isn't pushed down by "Nothing due". */}
+						{video ? <ReadyToTeach video={video} /> : null}
+						<PressableScale
+							onPress={() => router.push('/memory')}
+							accessibilityRole="button"
+							accessibilityLabel="Maya's memory"
+							scaleTo="card"
+						>
+							<MonoLabel>Maya&apos;s memory</MonoLabel>
+							<Text variant="body">What she might forget</Text>
+						</PressableScale>
+						<DueWarmUps />
+						<RecentTopics />
+					</SheetCard>
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</View>
 	)
 }

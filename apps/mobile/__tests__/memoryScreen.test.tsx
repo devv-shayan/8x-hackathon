@@ -2,6 +2,7 @@
  * Maya's memory: concept titles as chalk, the due one opens its warm-up, and an empty
  * board says what the screen is for.
  */
+import { Dimensions, StyleSheet } from 'react-native'
 import { render, screen, fireEvent } from '@testing-library/react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { MemoryIdea } from '@app/contract'
@@ -73,5 +74,12 @@ describe("Maya's memory", () => {
 		expect(
 			await screen.findByText('Teach a class, and what Maya might forget will show up here.')
 		).toBeTruthy()
+	})
+
+	it('keeps the writing surface at least half the screen tall with one line or none', async () => {
+		renderBoard([])
+		const board = await screen.findByTestId('memory-board')
+		const style = StyleSheet.flatten(board.props.style)
+		expect(style.minHeight).toBeGreaterThanOrEqual(Dimensions.get('window').height * 0.5)
 	})
 })

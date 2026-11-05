@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native'
 import { Play } from 'lucide-react-native'
 import { useState } from 'react'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -19,6 +19,7 @@ import { useKeyboardShown } from '@/hooks/useKeyboardShown'
 import { useQuestionReveal } from '@/hooks/useQuestionReveal'
 import { usePrefetchQuestionVoices, useQuestionVoice } from '@/hooks/useQuestionVoice'
 import { track } from '@/lib/analytics'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { HelpSheet } from './HelpSheet'
 import { QuestionBubble } from './QuestionBubble'
 import { studentName } from './shared'
@@ -200,7 +201,7 @@ export function ClassStep({
 			) : null}
 			<View style={s.fill} pointerEvents="none" />
 			<KeyboardAvoidingView
-				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+				behavior={KEYBOARD_LIFT}
 				onLayout={onSheetLayout}
 				style={{ maxHeight: sheetMax }}
 			>

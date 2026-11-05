@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native'
 import Animated, {
 	FadeIn,
 	FadeOut,
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button'
 import { IconButton } from '@/components/ui/IconButton'
 import { Text } from '@/components/ui/Text'
 import { useTheme } from '@/contexts/ThemeContext'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { haptic } from '@/lib/haptics'
 import { Durations, Timings, shake } from '@/lib/motion'
 
@@ -110,7 +111,7 @@ export function OnboardingShell({
 				</View>
 			</View>
 
-			<KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+			<KeyboardAvoidingView style={s.flex} behavior={KEYBOARD_LIFT}>
 				<ScrollView
 					style={s.flex}
 					contentContainerStyle={[

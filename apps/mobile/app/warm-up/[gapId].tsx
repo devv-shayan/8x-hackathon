@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, StyleSheet, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useIsMutating, useMutationState } from '@tanstack/react-query'
@@ -27,6 +27,7 @@ import { track } from '@/lib/analytics'
 import { errorMessage } from '@/lib/api'
 import { formatTimestamp } from '@/lib/formatTimestamp'
 import { haptic } from '@/lib/haptics'
+import { KEYBOARD_LIFT } from '@/lib/keyboard'
 import { READ_VIDEO_KEY } from '@/lib/topicQuery'
 
 /** What an answer means for the gap: closed, or when it comes back. */
@@ -147,10 +148,7 @@ export default function WarmUpScreen() {
 				</View>
 			) : null}
 			<View style={s.fill} pointerEvents="none" />
-			<KeyboardAvoidingView
-				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-				onLayout={onSheetLayout}
-			>
+			<KeyboardAvoidingView behavior={KEYBOARD_LIFT} onLayout={onSheetLayout}>
 				<SheetCard>
 					<MonoLabel
 						right={
