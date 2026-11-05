@@ -13,6 +13,20 @@
 			"runtimeArgs": ["expo", "start", "--web", "--port", "8081"],
 			"cwd": "apps/mobile",
 			"port": 8081
+		},
+		{
+			"name": "api-lan",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": ["next", "dev", "-p", "3001", "-H", "0.0.0.0"],
+			"cwd": "apps/web",
+			"port": 3001
+		},
+		{
+			"name": "expo-go",
+			"runtimeExecutable": "node",
+			"runtimeArgs": ["../../node_modules/expo/bin/cli", "start", "--go", "--lan", "--clear"],
+			"cwd": "apps/mobile",
+			"port": 8081
 		}
 	]
 }
