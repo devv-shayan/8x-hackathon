@@ -34,14 +34,15 @@ contract.
 
 ## Hooks
 
-`.claude/settings.json` configures two hooks and one permission rule:
+`.claude/settings.json` configures these hooks and one permission rule:
 
 - **`SessionStart`** runs `.claude/session-brief.py`, which puts this play's standing rules
   (the three non-negotiables: events first, the Play Stats API, money and entitlement on the
   server) and its two event registries into context at the top of every session.
-- **`SessionEnd`** runs `.claude/log-session.py`, which writes the session's log to
-  `.claude-logs/`: every prompt and every text reply, verbatim. In the template repository
-  itself (root package named `app-template`) it writes nothing and prints why.
+- **`UserPromptSubmit`, `Stop` and `SubagentStop`** run `.claude/hooks/extract-log.py`, which
+  writes the session's log to `.claude-logs/` (see "Session logs" below). The hook runs `py` on
+  Windows, where `python3` is often only the Microsoft Store stub, and `python3` elsewhere.
+  `.claude/log-session.py` is kept for `--backfill` only; no hook runs it.
 - **Reading the real env files is denied** (`.env`, `.env.local`, `.env.*.local` and the
   per-environment names; `.env.example` stays readable), so secrets never reach the
   conversation. The deny list binds Claude Code's file-reading tools only: it does not stop a
@@ -49,6 +50,12 @@ contract.
   respect the same rule when staging files ([docs/rules/secrets.md](docs/rules/secrets.md)).
 
 ## Session logs
+
+`.claude/settings.json` runs `.claude/hooks/extract-log.py` on `UserPromptSubmit`, `Stop` and
+`SubagentStop`, writing prompt + final-response transcripts to `.claude-logs/`. Each session file
+ends with a "Subagents" section. Always commit `.claude-logs/` with your changes. The script
+rewrites only the current session's own file (`<timestamp>_<session-id>.md`); it never touches
+another session's log.
 
 In a play, `.claude-logs/` is tracked, not gitignored: the transcript of the session that
 produced a change ships on the branch with it. Stage it immediately before `git push`,
