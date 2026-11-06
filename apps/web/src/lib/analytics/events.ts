@@ -188,6 +188,18 @@ export const MEMORY_EVENTS = {
 export const MEMORY_EVENT_NAMES = Object.values(MEMORY_EVENTS)
 
 /**
+ * Daily quiz — judged on whether someone who plays one day comes back the next. The app's
+ * own funnel is in PostHog (quiz_offered → quiz_started → quiz_finished); this first-party
+ * row, one per person per day, is what retention cohorts read.
+ */
+export const QUIZ_EVENTS = {
+	/** A day's quiz was written for this person. metadata: { question_count } */
+	served: 'quiz_served'
+} as const
+
+export const QUIZ_EVENT_NAMES = Object.values(QUIZ_EVENTS)
+
+/**
  * Every registered web event, flat. This is what the whitelist and the CI check
  * read; adding a group above without spreading it here is the one mistake
  * `npm run check:events` is built to catch.
@@ -198,7 +210,8 @@ export const ALL_EVENT_NAMES = [
 	...CHECKOUT_EVENT_NAMES,
 	...WARM_UP_EVENT_NAMES,
 	...NOT_IN_VIDEO_EVENT_NAMES,
-	...MEMORY_EVENT_NAMES
+	...MEMORY_EVENT_NAMES,
+	...QUIZ_EVENT_NAMES
 ] as const
 
 export type AppEvent = (typeof ALL_EVENT_NAMES)[number]

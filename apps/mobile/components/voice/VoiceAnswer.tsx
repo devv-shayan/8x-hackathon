@@ -97,7 +97,7 @@ export function VoiceAnswer({
 				<View style={s.field}>
 					<TextInputField
 						accessibilityLabel={`Answer ${student}`}
-						placeholder={`Answer ${student} in your own words`}
+						placeholder={`Tell ${student} in your own words…`}
 						multiline
 						value={typed}
 						onChangeText={onTypedChange}

@@ -20,6 +20,7 @@ import {
 } from './speech'
 import { createUploadBody, createUploadResponse } from './uploads'
 import { registerPushTokenBody, registerPushTokenResponse } from './push'
+import { quizResponse } from './quiz'
 import {
 	getTopicGapsResponse,
 	getTopicResponse,
@@ -177,6 +178,13 @@ export const endpoints = {
 		path: '/api/app/v1/memory',
 		auth: 'user',
 		response: listMemoryResponse,
+		status: 200
+	},
+	getDailyQuiz: {
+		method: 'GET',
+		path: '/api/app/v1/quiz',
+		auth: 'user',
+		response: quizResponse,
 		status: 200
 	},
 	registerPushToken: {

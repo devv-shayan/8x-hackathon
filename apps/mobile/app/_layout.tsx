@@ -363,6 +363,7 @@ function AppTree({
 														<Stack.Screen name="warm-up/[gapId]" options={PUSH} />
 														<Stack.Screen name="topic/[id]" options={PUSH} />
 														<Stack.Screen name="memory" options={PUSH} />
+														<Stack.Screen name="quiz" options={PUSH} />
 														<Stack.Screen name="settings" options={PUSH} />
 														<Stack.Screen name="support" options={PUSH} />
 													</Stack.Protected>
@@ -375,6 +376,7 @@ function AppTree({
 													{/* Development only: the redesign's pixel scenes (app/dev/backdrops.tsx). */}
 													{__DEV__ ? <Stack.Screen name="dev/backdrops" options={PUSH} /> : null}
 													{__DEV__ ? <Stack.Screen name="dev/memory" options={PUSH} /> : null}
+													{__DEV__ ? <Stack.Screen name="dev/quiz" options={PUSH} /> : null}
 												</Stack>
 												<ScreenTracker />
 												<MemoryReminderOpener ready={isAuthed && onboardingCompleted === true} />

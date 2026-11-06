@@ -118,7 +118,7 @@ it('a blocked microphone shows why and falls back to typing', async () => {
 	renderAnswer()
 	await act(async () => fireEvent(holdButton(), 'pressIn'))
 	await waitFor(() => expect(screen.getByText(/Your microphone is off/)).toBeTruthy())
-	expect(screen.getByPlaceholderText('Answer Omar in your own words')).toBeTruthy()
+	expect(screen.getByPlaceholderText('Tell Omar in your own words…')).toBeTruthy()
 	expect(track).toHaveBeenCalledWith('voice_recording_failed', {
 		surface: 'class',
 		reason: 'denied'
@@ -128,7 +128,7 @@ it('a blocked microphone shows why and falls back to typing', async () => {
 it('"Type instead" switches to the typed answer', () => {
 	renderAnswer()
 	fireEvent.press(screen.getByText('Type instead'))
-	expect(screen.getByPlaceholderText('Answer Omar in your own words')).toBeTruthy()
+	expect(screen.getByPlaceholderText('Tell Omar in your own words…')).toBeTruthy()
 	expect(track).toHaveBeenCalledWith('voice_typed_instead', { surface: 'class' })
 })
 
