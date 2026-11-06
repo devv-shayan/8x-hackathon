@@ -1,6 +1,7 @@
 import 'server-only'
 import { ApiError } from '@/server/api/app-errors'
 import { log } from '@/server/lib/logger'
+import { timeAi } from '@/server/lib/server-timing'
 
 // Groq wrapper: the only file that calls Groq. Speech to text (Whisper) and the students'
 // voices (Orpheus), over plain fetch. Every call logs what it used: ids, sizes and timings,
@@ -67,7 +68,16 @@ async function call(context: GroqContext, model: string, path: string, init: Req
 const AUDIO_TYPES = { wav: 'audio/wav', m4a: 'audio/mp4' } as const
 
 /** The text of one recording (WAV or m4a), read on from `prompt` (what was already said). */
-export async function transcribe(
+export function transcribe(
+	context: GroqContext,
+	audio: Uint8Array,
+	prompt?: string,
+	format: keyof typeof AUDIO_TYPES = 'wav'
+): Promise<string> {
+	return timeAi(() => transcribeOnce(context, audio, prompt, format))
+}
+
+async function transcribeOnce(
 	context: GroqContext,
 	audio: Uint8Array,
 	prompt?: string,
@@ -95,11 +105,11 @@ export async function transcribe(
 }
 
 /** One WAV clip of `text` (at most SPEAK_MAX_CHARS) in `voice`. */
-export async function speak(
-	context: GroqContext,
-	text: string,
-	voice: string
-): Promise<Uint8Array> {
+export function speak(context: GroqContext, text: string, voice: string): Promise<Uint8Array> {
+	return timeAi(() => speakOnce(context, text, voice))
+}
+
+async function speakOnce(context: GroqContext, text: string, voice: string): Promise<Uint8Array> {
 	const response = await call(
 		{ ...context, meta: { ...context.meta, input_chars: text.length } },
 		SPEAK_MODEL,
