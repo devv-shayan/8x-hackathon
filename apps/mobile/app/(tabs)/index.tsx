@@ -7,8 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { isPastedTopic, parseYouTubeVideoId, type DueWarmUp, type Video } from '@app/contract'
 import { DueWarmUps, openWarmUp } from '@/components/DueWarmUps'
+import { ClassMemoryLink } from '@/components/memory/ClassMemoryLink'
 import { DailyQuizCard } from '@/components/quiz/DailyQuizCard'
-import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { ReadingView, type ReadingPhase } from '@/components/reading/ReadingView'
 import { RecentTopics, topicsQueryKey } from '@/components/RecentTopics'
@@ -294,15 +294,7 @@ export default function HomeScreen() {
 						{/* Ready sits above warm-ups so a fresh read isn't pushed down by "Nothing due". */}
 						{video ? <ReadyToTeach video={video} /> : null}
 						<DailyQuizCard />
-						<PressableScale
-							onPress={() => router.push('/memory')}
-							accessibilityRole="button"
-							accessibilityLabel="What your class might forget"
-							scaleTo="card"
-						>
-							<MonoLabel>Your class&apos;s memory</MonoLabel>
-							<Text variant="body">What they might forget</Text>
-						</PressableScale>
+						<ClassMemoryLink />
 						<DueWarmUps />
 						<RecentTopics />
 					</SheetCard>
