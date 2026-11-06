@@ -1,4 +1,4 @@
-import type { TopicGap } from '@app/contract'
+import type { ProgressVideo, TopicGap } from '@app/contract'
 import type { ConceptResult } from '@/server/classroom/score-explanation'
 import { RIGHTS_TO_CLOSE } from '@/server/gaps/schedule'
 import type { KeyConcept } from '@/server/video/key-concepts'
@@ -90,4 +90,41 @@ export function rowProgress(results: readonly ConceptResult[], gaps: readonly St
 		...(gaps.length > 0 ? { open_gaps: open.length } : {}),
 		...(next ? { next_due_at: next.toISOString() } : {})
 	}
+}
+
+/**
+ * A video's line on the dashboard, or null before a class on it has finished. An idea counts as
+ * taught once the class ended with it right or warm-ups closed it, once either way. A gap closed
+ * short of the right answers was marked "not in the video": that is not learning it.
+ */
+export function videoProgress(
+	topic: { id: string; title: string; youtubeId: string },
+	latest: { conceptResults: readonly ConceptResult[]; createdAt: Date } | undefined,
+	gaps: readonly StoredGap[]
+): ProgressVideo | null {
+	const results = latest?.conceptResults ?? []
+	if (!latest || results.length === 0) return null
+	const learned = new Set(
+		gaps
+			.filter((gap) => gap.closedAt !== null && gap.rightStreak >= RIGHTS_TO_CLOSE)
+			.map((gap) => gap.concept.title)
+	)
+	return {
+		id: topic.id,
+		title: topic.title,
+		youtube_id: topic.youtubeId,
+		idea_count: results.length,
+		first_try: results.filter((r) => r.result === 'correct').length,
+		taught: results.filter((r) => final(r) === 'correct' || learned.has(r.concept)).length,
+		learned: results.filter((r) => learned.has(r.concept)).length,
+		open_gaps: gaps.filter((gap) => gap.closedAt === null).length,
+		taught_at: latest.createdAt.toISOString()
+	}
+}
+
+const share = (video: ProgressVideo) => video.taught / video.idea_count
+
+/** Best first; between equal shares, the video with more ideas. */
+export function byStrength(a: ProgressVideo, b: ProgressVideo) {
+	return share(b) - share(a) || b.idea_count - a.idea_count
 }

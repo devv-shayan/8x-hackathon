@@ -22,6 +22,7 @@ import { createUploadBody, createUploadResponse } from './uploads'
 import { registerPushTokenBody, registerPushTokenResponse } from './push'
 import { quizResponse } from './quiz'
 import {
+	getProgressResponse,
 	getTopicGapsResponse,
 	getTopicResponse,
 	listMemoryResponse,
@@ -178,6 +179,13 @@ export const endpoints = {
 		path: '/api/app/v1/memory',
 		auth: 'user',
 		response: listMemoryResponse,
+		status: 200
+	},
+	getProgress: {
+		method: 'GET',
+		path: '/api/app/v1/progress',
+		auth: 'user',
+		response: getProgressResponse,
 		status: 200
 	},
 	getDailyQuiz: {

@@ -159,6 +159,41 @@ export const listMemoryResponse = z.object({
 	ideas: z.array(memoryIdeaSchema)
 })
 
+/** One taught video on the dashboard: its latest class, plus what warm-ups have closed since. */
+export const progressVideoSchema = z.object({
+	id: uuid,
+	title: z.string(),
+	youtube_id: z.string(),
+	/** How many ideas its latest finished class checked. */
+	idea_count: z.number().int().nonnegative(),
+	/** Of those, how many the first explanation got right. */
+	first_try: z.number().int().nonnegative(),
+	/** Of those, how many are taught now: by the end of that class, or closed by warm-ups since. */
+	taught: z.number().int().nonnegative(),
+	/** Of those, how many warm-ups closed for good. */
+	learned: z.number().int().nonnegative(),
+	/** Ideas missed and not yet closed by warm-ups. */
+	open_gaps: z.number().int().nonnegative(),
+	/** When its latest finished class started. */
+	taught_at: isoDateTime
+})
+
+/** One answered warm-up: enough for the calendar and for who asked what. No words. */
+export const progressWarmUpSchema = z.object({
+	asked_at: isoDateTime,
+	student_name: z.string(),
+	is_right: z.boolean()
+})
+
+/** The dashboard: every video with a finished class, best first, and every warm-up answered. */
+export const getProgressResponse = z.object({
+	videos: z.array(progressVideoSchema),
+	warm_ups: z.array(progressWarmUpSchema)
+})
+
+export type ProgressVideo = z.infer<typeof progressVideoSchema>
+export type ProgressWarmUp = z.infer<typeof progressWarmUpSchema>
+export type Progress = z.infer<typeof getProgressResponse>
 export type MemoryIdea = z.infer<typeof memoryIdeaSchema>
 export type Video = z.infer<typeof videoSchema>
 export type KeyConcept = z.infer<typeof keyConceptSchema>
