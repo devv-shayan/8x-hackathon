@@ -28,7 +28,8 @@ type EventName =
 	| 'video_read'
 	// The wait while a video reads (8X-49): the class watching it come in on the board. Judged on
 	// whether people stay through it (video_read after reading_started) rather than give up.
-	//   reading_started    the board appears. metadata: { warm_up_due: boolean }
+	//   reading_started    the board appears. metadata: { warm_up_due: boolean, source: 'link' | 'starter' }
+	//                      `source` says whether it began from a pasted link or first-run Home's starter.
 	//   reading_guess_made with nothing due, the person guesses how many key ideas it has.
 	//                      metadata: { guess: number } (6 means "6 or more")
 	//   reading_left       "Back to Home" while it keeps reading. metadata: { seconds: number }
@@ -51,6 +52,11 @@ type EventName =
 	// recent_topic_opened { topic_id }, continue_opened { topic_id }.
 	// topic_id discriminates so two topics the same day both count.
 	| 'home_viewed'
+	// First-run Home: what a person sees until their first class has finished. Judged on how many
+	// reach class_finished; home_viewed { topic_count: 0 } is where that funnel starts.
+	//   first_run_starter_tapped  they had no link and took the starter video. metadata: { youtube_id }
+	// Its reading_started carries source 'starter', so the two ways in can be compared.
+	| 'first_run_starter_tapped'
 	| 'recent_topic_opened'
 	| 'continue_opened'
 	// Explain — the loop step is finishing an explanation in your own words (brief.md).
