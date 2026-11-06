@@ -7,12 +7,13 @@ import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PressableScale } from '@/components/motion/PressableScale'
+import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { QuizComeBack } from '@/components/quiz/QuizComeBack'
 import { QuizPanel } from '@/components/quiz/QuizPanel'
 import { QuizPlayer } from '@/components/quiz/QuizPlayer'
-import { ShimmerField } from '@/components/quiz/ShimmerField'
 import { Button } from '@/components/ui/Button'
 import { Text } from '@/components/ui/Text'
+import { withAlpha } from '@app/brand'
 import { useTheme } from '@/contexts/ThemeContext'
 import { api, errorMessage } from '@/lib/api'
 import {
@@ -28,6 +29,8 @@ import {
 const QUIZ_TIMEOUT_MS = 60_000
 const FLASH_MS = 650
 const MAX_WIDTH = 520
+/** A right answer lights the whole field lime for a moment. */
+const FLASH_TINT = 0.22
 
 function leave() {
 	if (router.canGoBack()) router.back()
@@ -161,7 +164,17 @@ export default function QuizScreen() {
 		<View style={[s.fill, s.clip, { backgroundColor: c.hero }]}>
 			<StatusBar style="light" />
 			<BlurTargetView ref={behindGlass} style={StyleSheet.absoluteFill}>
-				<ShimmerField words={quiz.data?.shimmer_words ?? []} flash={flash} />
+				{/* The onboarding's dark pixel field: dark enough for the glass's white text. */}
+				<PixelBackdrop scene="meet" />
+				{flash ? (
+					<View
+						pointerEvents="none"
+						style={[
+							StyleSheet.absoluteFill,
+							{ backgroundColor: withAlpha(c.brandFill, FLASH_TINT) }
+						]}
+					/>
+				) : null}
 			</BlurTargetView>
 			<View style={[s.content, { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 14 }]}>
 				{body}
