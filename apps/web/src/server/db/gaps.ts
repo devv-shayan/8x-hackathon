@@ -131,6 +131,8 @@ export function createGapStore(client: PrismaClient) {
 				closedAt: Date | null
 				nextDueAt: Date
 				judged: boolean
+				/** The student of a warm-up already asked and not yet answered. */
+				askingStudent: string | null
 			}[]
 		> {
 			const rows = await client.gap.findMany({
@@ -144,6 +146,16 @@ export function createGapStore(client: PrismaClient) {
 					warmUps: { where: { isRight: { not: null } }, select: { id: true }, take: 1 }
 				}
 			})
+			// An open warm-up already has its student: the board names the same one.
+			const asked = await client.warmUp.findMany({
+				where: { gap: { userId }, answer: null, isRight: null },
+				orderBy: { createdAt: 'asc' },
+				select: { gapId: true, student: { select: { name: true } } }
+			})
+			const askingByGap = new Map<string, string>()
+			for (const row of asked) {
+				if (!askingByGap.has(row.gapId)) askingByGap.set(row.gapId, row.student.name)
+			}
 			return rows.map((row) => ({
 				gapId: row.id,
 				topicId: row.topic.id,
@@ -151,7 +163,8 @@ export function createGapStore(client: PrismaClient) {
 				conceptTitle: keyConceptSchema.parse(row.concept).title,
 				closedAt: row.closedAt,
 				nextDueAt: row.nextDueAt,
-				judged: row.warmUps.length > 0
+				judged: row.warmUps.length > 0,
+				askingStudent: askingByGap.get(row.id) ?? null
 			}))
 		}
 	}

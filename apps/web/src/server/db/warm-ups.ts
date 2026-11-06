@@ -179,6 +179,28 @@ export function createWarmUpStore(client: PrismaClient) {
 			return turn?.student ?? null
 		},
 
+		/**
+		 * rememberedStudent for many topics in one query: for each, the student whose question
+		 * the person answered last in a class on it. Topics with none are left out.
+		 */
+		async rememberedStudents(userId: string, topicIds: string[]): Promise<Map<string, string>> {
+			const byTopic = new Map<string, string>()
+			if (topicIds.length === 0) return byTopic
+			const turns = await client.classTurn.findMany({
+				where: {
+					outcome: { not: null },
+					student: { userId },
+					class: { topicId: { in: topicIds }, topic: { userId } }
+				},
+				orderBy: { createdAt: 'desc' },
+				select: { class: { select: { topicId: true } }, student: { select: { name: true } } }
+			})
+			for (const turn of turns) {
+				if (!byTopic.has(turn.class.topicId)) byTopic.set(turn.class.topicId, turn.student.name)
+			}
+			return byTopic
+		},
+
 		/** What this student and the person already said about this video, oldest last-few first. */
 		async pastExchanges(studentId: string, topicId: string) {
 			const turns = await client.classTurn.findMany({

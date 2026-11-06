@@ -8,6 +8,8 @@ export type MemoryRow = {
 	closedAt: Date | null
 	nextDueAt: Date
 	judged: boolean
+	/** Who asks this idea's warm-up. Left out of the response when unknown. */
+	studentName?: string | null
 }
 
 /**
@@ -33,7 +35,8 @@ export function memoryIdeas(rows: readonly MemoryRow[], now: Date): MemoryIdea[]
 		concept_title: row.conceptTitle,
 		closed: row.closedAt != null,
 		next_due_at: row.closedAt == null ? row.nextDueAt.toISOString() : null,
-		judged: row.judged
+		judged: row.judged,
+		...(row.studentName ? { student_name: row.studentName } : {})
 	}))
 	const rank = (idea: MemoryIdea) => {
 		if (idea.closed) return 2
