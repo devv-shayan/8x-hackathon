@@ -10,7 +10,7 @@ import { MonoLabel } from '@/components/ui/MonoLabel'
 import { Text } from '@/components/ui/Text'
 import { useTheme } from '@/contexts/ThemeContext'
 import { CALENDAR_WEEKS, daysWord, videosWord, type DashboardNumbers } from '@/lib/dashboard'
-import { DensityTile, PixelColumns, PixelDigits, PixelRow, type Palette } from './PixelCharts'
+import { DensityTile, PixelColumns, PixelText, PixelRow, type Palette } from './PixelCharts'
 
 const PALETTE = {
 	board: PIXEL_FIELDS.tunnel.palette,
@@ -63,7 +63,7 @@ function Scoreboard({ numbers }: { numbers: DashboardNumbers }) {
 			</View>
 			<View style={s.boardDigits}>
 				{/* 100% is a character wider, and has to fit the narrowest phone too. */}
-				<PixelDigits
+				<PixelText
 					text={`${mastery}%`}
 					cell={mastery === 100 ? 10 : 12}
 					color={PALETTE.board[4]!}
@@ -108,7 +108,7 @@ function StreakRow({ numbers }: { numbers: DashboardNumbers }) {
 				]}
 			>
 				<Text variant="eyebrow">{live ? 'Streak' : 'Best run'}</Text>
-				<PixelDigits text={String(days)} cell={days > 99 ? 7 : 11} color={c.textPrimary} />
+				<PixelText text={String(days)} cell={days > 99 ? 7 : 11} color={c.textPrimary} />
 				<Text variant="label">
 					{live ? daysWord(days) : `${daysWord(days)}. Teach today to start a new one.`}
 				</Text>
@@ -121,7 +121,7 @@ function StreakRow({ numbers }: { numbers: DashboardNumbers }) {
 						accessibilityLabel={`${value} ${label}`}
 						style={[s.streakStat, { backgroundColor: c.well, borderRadius: radii.xl }]}
 					>
-						<PixelDigits text={String(value)} cell={5} color={c.textPrimary} />
+						<PixelText text={String(value)} cell={5} color={c.textPrimary} />
 						<Text variant="caption" tone="secondary">
 							{label}
 						</Text>
@@ -144,7 +144,7 @@ function Tile({ label, value, palette }: { label: string; value: string; palette
 				{label}
 			</Text>
 			<View style={s.tileDigits}>
-				<PixelDigits
+				<PixelText
 					text={value}
 					cell={value.length > LONG_NUMBER ? 3 : value.length === LONG_NUMBER ? 4 : 5}
 					color={c.textPrimary}
