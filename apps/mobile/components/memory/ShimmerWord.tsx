@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Animated, Easing, StyleSheet, View } from 'react-native'
+import { Animated, Easing, StyleSheet, View, type StyleProp, type TextStyle } from 'react-native'
 import { Text } from '@/components/ui/Text'
 import { useReducedMotion } from '@/lib/motion'
 
@@ -25,11 +25,19 @@ const CALMER_REST_MS = 200
 export function ShimmerWord({
 	text,
 	solid,
-	daysLeft
+	daysLeft,
+	lift = LIFT,
+	startDelayMs = 0,
+	textStyle
 }: {
 	text: string
 	solid: number
 	daysLeft: number | null
+	/** How much brighter a letter gets as the light passes. */
+	lift?: number
+	/** Waits this long before the first sweep, so words side by side don't move as one. */
+	startDelayMs?: number
+	textStyle?: StyleProp<TextStyle>
 }) {
 	const reduced = useReducedMotion()
 	const sweep = useRef(new Animated.Value(0)).current
@@ -50,13 +58,16 @@ export function ShimmerWord({
 				Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: true })
 			])
 		)
-		loop.start()
-		return () => loop.stop()
-	}, [daysLeft, still, sweep])
+		const first = setTimeout(() => loop.start(), startDelayMs)
+		return () => {
+			clearTimeout(first)
+			loop.stop()
+		}
+	}, [daysLeft, still, sweep, startDelayMs])
 
 	if (still) {
 		return (
-			<Text variant="display" style={{ opacity: solid }}>
+			<Text variant="display" style={[textStyle, { opacity: solid }]}>
 				{text}
 			</Text>
 		)
@@ -64,7 +75,7 @@ export function ShimmerWord({
 
 	const letters = [...text]
 	const last = Math.max(1, letters.length - 1)
-	const peak = Math.min(1, solid + LIFT)
+	const peak = Math.min(1, solid + lift)
 	return (
 		<View style={s.row} accessible accessibilityRole="text" accessibilityLabel={text}>
 			{letters.map((letter, i) => {
@@ -82,7 +93,9 @@ export function ShimmerWord({
 						accessibilityElementsHidden
 						style={{ opacity, transform: [{ translateY }] }}
 					>
-						<Text variant="display">{letter === ' ' ? ' ' : letter}</Text>
+						<Text variant="display" style={textStyle}>
+							{letter === ' ' ? ' ' : letter}
+						</Text>
 					</Animated.View>
 				)
 			})}

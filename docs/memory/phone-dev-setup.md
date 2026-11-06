@@ -57,7 +57,14 @@ Traps, all hit that day:
   because it goes straight to Supabase, but every screen is empty. Check where the app calls.
 - **The browser preview cannot use the live API.** Its CORS allows only
   `https://chalkback-app.vercel.app`, so `localhost:8081` gets "We couldn't reach our server" on
-  every screen. Test on the phone, or against a local API.
+  every screen. Test on the phone, or against a local API: start the `web` and
+  `app-in-browser-local-api` entries in `.claude/launch.json`, which point this run at
+  `localhost:3000` without touching `.env.local`.
+- **Sign-in works, then the app logs straight out** (2026-11-06, against a local API):
+  Supabase's `verify` answers 200, `POST /api/lifecycle/session` answers 401, then `logout`. A 401
+  means a Supabase answered and refused the token (one it couldn't reach would be a 503), so
+  `apps/web/.env.local` most likely holds a different project from `apps/mobile/.env.local`. They
+  must match (`docs/ENV_SETUP.md`). The person fixes it; an agent can't read either file.
 - **Windows Firewall drops the phone silently**, and Metro logs no Android bundle. The allow rules
   were for other copies of Node (Herd, Cursor), not `C:\Program Files\nodejs\node.exe`, and
   Windows had made the hotspot a Public network. The person fixed it, as administrator: the

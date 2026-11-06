@@ -264,6 +264,22 @@ type EventName =
 	| 'voice_recording_failed'
 	| 'voice_typed_instead'
 	| 'voice_question_played'
+	// Daily quiz (8X-54) — a one-minute game against the person's own best, so days with no
+	// warm-up due still have a reason to open the app, and people who explain everything
+	// correctly (who never get a gap) have one too. Not a money moment.
+	// THE metric: someone who finishes a quiz starts another the next day. The drop-off to
+	// watch is offered → started → finished.
+	//   quiz_offered         Home shows the card
+	//   quiz_started         the first question is on screen. metadata: { question_count }
+	//   quiz_answered        one answer. metadata: { question_type, is_right }
+	//   quiz_finished        the score is shown. metadata: { score, total, new_best }
+	//   quiz_reminder_added  the calendar link was opened
+	// The server records quiz_served first-party, for retention cohorts.
+	| 'quiz_offered'
+	| 'quiz_started'
+	| 'quiz_answered'
+	| 'quiz_finished'
+	| 'quiz_reminder_added'
 // TODO: add your app-specific events here
 
 /** Track an event. No-ops silently when PostHog is unconfigured. */

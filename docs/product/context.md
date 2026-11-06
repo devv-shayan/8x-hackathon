@@ -51,6 +51,7 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | List topics     | `GET /api/app/v1/topics` (title + open class id, no transcript)               |
 | Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`            |
 | Voice (web)     | `apps/web/src/app/api/app/v1/speech/`, `apps/mobile/components/voice/`        |
+| Daily quiz      | `apps/web/src/server/quiz/`, `apps/mobile/app/quiz.tsx`, `components/quiz/`   |
 
 In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't
 read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
@@ -77,6 +78,13 @@ their question appears word by word in a speech bubble as they say it; the stude
 a desk, hand up to tap. The pixel engine draws it from a `stage` (`packages/pixel/src/scenes.ts`);
 after changing the engine, run `npm run build:backdrop --workspace=@app/pixel` or phones keep the
 old page.
+
+The daily quiz (8X-54): once a day, up to 5 questions on ideas from videos the person has taught,
+as fill the blank, multiple choice or true or false, to beat their own best score. One model call
+writes the words; code picks the ideas, cuts the blank from the stored quote and shuffles the
+answers. Every answer shows the video's real line. Nothing is saved on the server: the score and
+"played today" live on the device (`apps/mobile/lib/quiz.ts`), so they don't follow someone to a new
+phone or change with the signed-in account. `/dev/quiz` plays sample questions without sign-in or AI.
 
 ## Run it
 
