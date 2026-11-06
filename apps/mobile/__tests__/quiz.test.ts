@@ -39,7 +39,9 @@ test('the best score only goes up, and only a higher score is a new best', () =>
 		best: 2,
 		lastScore: 2,
 		lastTotal: 3,
-		playedDay: '2026-11-06'
+		playedDay: '2026-11-06',
+		streak: 1,
+		week: [{ day: '2026-11-06', score: 2, total: 3 }]
 	})
 	expect(isNewBest(RECORD, 3)).toBe(false)
 	expect(isNewBest(RECORD, 4)).toBe(true)

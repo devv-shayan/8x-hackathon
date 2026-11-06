@@ -1,11 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
+import { BlurTargetView } from 'expo-blur'
 import { StatusBar } from 'expo-status-bar'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PressableScale } from '@/components/motion/PressableScale'
+import { QuizComeBack } from '@/components/quiz/QuizComeBack'
+import { QuizPanel } from '@/components/quiz/QuizPanel'
 import { QuizPlayer } from '@/components/quiz/QuizPlayer'
 import { ShimmerField } from '@/components/quiz/ShimmerField'
 import { Button } from '@/components/ui/Button'
@@ -35,27 +38,37 @@ function Message({
 	title,
 	line,
 	action,
-	onAction
+	onAction,
+	blurTarget
 }: {
 	title: string
 	line?: string
 	action?: string
 	onAction?: () => void
+	blurTarget: RefObject<View | null>
 }) {
 	const { colors: c } = useTheme()
 	return (
 		<View style={s.message} accessibilityLiveRegion="polite">
-			<Text variant="h1" style={[s.center, { color: c.heroText }]}>
-				{title}
-			</Text>
-			{line ? (
-				<Text variant="body" style={[s.center, { color: c.heroTextSecondary }]}>
-					{line}
+			<QuizPanel blurTarget={blurTarget}>
+				<Text variant="h1" style={[s.center, { color: c.heroText }]}>
+					{title}
 				</Text>
-			) : null}
-			{action && onAction ? (
-				<Button label={action} variant="primary" size="lg" onPress={onAction} />
-			) : null}
+				{line ? (
+					<Text variant="body" style={[s.center, { color: c.heroTextSecondary }]}>
+						{line}
+					</Text>
+				) : null}
+				{action && onAction ? (
+					<Button
+						label={action}
+						variant="primary"
+						size="lg"
+						style={s.messageAction}
+						onPress={onAction}
+					/>
+				) : null}
+			</QuizPanel>
 		</View>
 	)
 }
@@ -73,6 +86,7 @@ export default function QuizScreen() {
 	const [finishedToday, setFinishedToday] = useState(false)
 	const [flash, setFlash] = useState(false)
 	const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+	const behindGlass = useRef<View>(null)
 
 	useEffect(() => {
 		void loadQuizRecord().then(setPrevious)
@@ -106,19 +120,13 @@ export default function QuizScreen() {
 	const questions = quiz.data?.questions ?? []
 	let body
 	if (previous === undefined || (quiz.isPending && !alreadyPlayed)) {
-		body = <Message title="Maya’s sharpening the chalk…" />
+		body = <Message title="Maya’s sharpening the chalk…" blurTarget={behindGlass} />
 	} else if (alreadyPlayed && !finishedToday && previous) {
-		body = (
-			<Message
-				title={`Today: ${previous.lastScore} of ${previous.lastTotal}`}
-				line="That’s today’s quiz done. Come back tomorrow and beat your best."
-				action="Back"
-				onAction={leave}
-			/>
-		)
+		body = <QuizComeBack record={previous} onDone={leave} blurTarget={behindGlass} />
 	} else if (quiz.isError) {
 		body = (
 			<Message
+				blurTarget={behindGlass}
 				title="The chalk snapped"
 				line={errorMessage(quiz.error)}
 				action="Try again"
@@ -130,6 +138,7 @@ export default function QuizScreen() {
 	} else if (questions.length === 0) {
 		body = (
 			<Message
+				blurTarget={behindGlass}
 				title="Teach a video first"
 				line="The quiz is made from ideas you’ve already taught."
 				action="Back"
@@ -149,9 +158,11 @@ export default function QuizScreen() {
 	}
 
 	return (
-		<View style={[s.fill, { backgroundColor: c.hero }]}>
+		<View style={[s.fill, s.clip, { backgroundColor: c.hero }]}>
 			<StatusBar style="light" />
-			<ShimmerField words={quiz.data?.shimmer_words ?? []} flash={flash} />
+			<BlurTargetView ref={behindGlass} style={StyleSheet.absoluteFill}>
+				<ShimmerField words={quiz.data?.shimmer_words ?? []} flash={flash} />
+			</BlurTargetView>
 			<View style={[s.content, { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 14 }]}>
 				{body}
 			</View>
@@ -174,6 +185,8 @@ export default function QuizScreen() {
 
 const s = StyleSheet.create({
 	fill: { flex: 1 },
+	// The glass's glow runs past the screen's edges.
+	clip: { overflow: 'hidden' },
 	content: {
 		flex: 1,
 		width: '100%',
@@ -183,6 +196,7 @@ const s = StyleSheet.create({
 	},
 	top: { position: 'absolute', left: 16, zIndex: 2 },
 	close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-	message: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 16 },
+	message: { flex: 1, justifyContent: 'center' },
+	messageAction: { alignSelf: 'center' },
 	center: { textAlign: 'center' }
 })
