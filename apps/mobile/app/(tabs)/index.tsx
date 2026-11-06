@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router, useNavigation } from 'expo-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { isPastedTopic, parseYouTubeVideoId, type DueWarmUp, type Video } from '@app/contract'
 import { DueWarmUps, openWarmUp } from '@/components/DueWarmUps'
+import { HowAClassWorks, MayaAsks, StarterVideo } from '@/components/home/FirstRun'
 import { ClassMemoryLink } from '@/components/memory/ClassMemoryLink'
 import { DailyQuizCard } from '@/components/quiz/DailyQuizCard'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
@@ -23,6 +24,7 @@ import { useVideoTitle } from '@/hooks/useVideoTitle'
 import { useDueWarmUps } from '@/hooks/useWarmUps'
 import { track } from '@/lib/analytics'
 import { api, errorCode, errorMessage } from '@/lib/api'
+import { isFirstRun, STARTER_URL, STARTER_VIDEO } from '@/lib/firstRun'
 import { haptic } from '@/lib/haptics'
 import { READ_VIDEO_KEY, topicQueryKey } from '@/lib/topicQuery'
 import { KEYBOARD_LIFT } from '@/lib/keyboard'
@@ -75,6 +77,12 @@ export default function HomeScreen() {
 	const tabClearance = useTabBarClearance()
 	const queryClient = useQueryClient()
 	const due = useDueWarmUps()
+	// The same request and cache as the videos list below.
+	const topics = useQuery({
+		queryKey: topicsQueryKey,
+		queryFn: () => api('listTopics').then((r) => r.topics)
+	})
+	const firstRun = isFirstRun(topics.data)
 	const [url, setUrl] = useState('')
 	const [paste, setPaste] = useState('')
 	const offered = useRef(false)
@@ -122,8 +130,7 @@ export default function HomeScreen() {
 		return () => clearInterval(id)
 	}, [watching, readVideo.isPending])
 
-	function startReading() {
-		const link = url.trim()
+	function startReading(source: 'link' | 'starter' = 'link', link = url.trim()) {
 		// A link that isn't a video never opens the class: say so under the box instead.
 		if (!parseYouTubeVideoId(link)) {
 			setLinkError(NOT_A_VIDEO)
@@ -133,8 +140,14 @@ export default function HomeScreen() {
 		setLinkError(null)
 		setGuess(null)
 		setWatching(true)
-		track('reading_started', { warm_up_due: (due.data?.length ?? 0) > 0 })
+		track('reading_started', { warm_up_due: (due.data?.length ?? 0) > 0, source })
 		readVideo.mutate(link)
+	}
+
+	function startStarter() {
+		track('first_run_starter_tapped', { youtube_id: STARTER_VIDEO.youtubeId })
+		setUrl(STARTER_URL)
+		startReading('starter', STARTER_URL)
 	}
 
 	function cancelReading() {
@@ -244,7 +257,7 @@ export default function HomeScreen() {
 					setWatching(false)
 					router.push(`/class/${read.id}`)
 				}}
-				onRetry={startReading}
+				onRetry={() => startReading()}
 				unreadable={pasteForm}
 			/>
 		)
@@ -262,9 +275,13 @@ export default function HomeScreen() {
 					showsVerticalScrollIndicator={false}
 				>
 					<View style={{ paddingHorizontal: layout.gutter }}>
-						<Text variant="display" accessibilityRole="header" style={s.headline}>
-							What did you learn today?
-						</Text>
+						{firstRun ? (
+							<MayaAsks />
+						) : (
+							<Text variant="display" accessibilityRole="header" style={s.headline}>
+								What did you learn today?
+							</Text>
+						)}
 						<View style={[s.linkCard, { backgroundColor: c.surface, borderRadius: radii['3xl'] }]}>
 							<TextInputField
 								accessibilityLabel="YouTube link"
@@ -280,7 +297,13 @@ export default function HomeScreen() {
 								error={linkError ?? (readVideo.isError ? errorMessage(readVideo.error) : null)}
 							/>
 							<Button
-								label={readVideo.isPending ? 'Reading… watch the class' : 'Teach it'}
+								label={
+									readVideo.isPending
+										? 'Reading… watch the class'
+										: firstRun
+											? 'Teach your first video'
+											: 'Teach it'
+								}
 								variant="ink"
 								size="lg"
 								fullWidth
@@ -289,14 +312,23 @@ export default function HomeScreen() {
 							/>
 							{offerPaste ? pasteForm : null}
 						</View>
+						{firstRun && topics.data?.length === 0 && !video ? (
+							<StarterVideo onPress={startStarter} disabled={readVideo.isPending} />
+						) : null}
 					</View>
 					<SheetCard style={s.sheet}>
 						{/* Ready sits above warm-ups so a fresh read isn't pushed down by "Nothing due". */}
 						{video ? <ReadyToTeach video={video} /> : null}
-						<DailyQuizCard />
-						<ClassMemoryLink />
-						<DueWarmUps />
+						{/* Before the first class, Class memory and warm-ups would only say "nothing yet". */}
+						{firstRun ? null : (
+							<>
+								<DailyQuizCard />
+								<ClassMemoryLink />
+								<DueWarmUps />
+							</>
+						)}
 						<RecentTopics />
+						{firstRun ? <HowAClassWorks /> : null}
 					</SheetCard>
 				</ScrollView>
 			</KeyboardAvoidingView>
