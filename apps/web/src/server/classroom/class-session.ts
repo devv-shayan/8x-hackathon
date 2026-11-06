@@ -161,8 +161,8 @@ async function toWire(userId: string, session: StoredClass): Promise<ClassSessio
 	const students = await classStore.studentsFor(userId, DEFAULT_STUDENTS)
 	const finished = !session.turns.some(isOpen)
 	// The topic gives the video, which private help opens mid-class; its concepts stay off the
-	// wire until the class ends.
-	const topic = await topicStore.findById(userId, session.topicId)
+	// wire until the class ends. No transcript: nothing here reads it.
+	const topic = await topicStore.findOutline(userId, session.topicId)
 	const byTitle = new Map(
 		(finished ? (topic?.concepts ?? []) : []).map((concept) => [concept.title, concept] as const)
 	)

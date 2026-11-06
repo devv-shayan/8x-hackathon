@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocalSearchParams } from 'expo-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ClassSession, ClassTurn, TurnOutcome, Video } from '@app/contract'
+import type { ClassSession, ClassTurn, ListedTopic, TurnOutcome, Video } from '@app/contract'
 import { topicsQueryKey } from '@/components/RecentTopics'
 import { ClassStep } from '@/components/class/ClassStep'
 import { ExplainStep } from '@/components/class/ExplainStep'
@@ -39,12 +39,31 @@ export default function ClassScreen() {
 	const [pickedId, setPickedId] = useState<string | null>(null)
 	const [helpOpen, setHelpOpen] = useState(false)
 
+	// Home's list already says whether this video has a class in progress, and its title. When
+	// it says none, the explain step opens at once instead of asking the server again. Read once,
+	// so a background refetch of the list can't swap the screen mid-explanation.
+	const [listed] = useState(() =>
+		queryClient.getQueryData<ListedTopic[]>(topicsQueryKey)?.find(({ id }) => id === topicId)
+	)
+	const knownNoClass = listed?.open_class_id === null
+
 	// Leaving mid-class doesn't lose it: the same hands are up when the person comes back.
 	const open = useQuery({
 		queryKey: ['open-class', topicId],
 		queryFn: () => api('openClass', { query: { topic_id: topicId } }),
+		enabled: !knownNoClass,
 		gcTime: 0
 	})
+	const checking = !knownNoClass && open.isPending
+	const checkFailed = !knownNoClass && open.isError
+
+	/** Keeps Home's list true about this video's class, so the shortcut above stays safe. */
+	function markOpenClass(classId: string | null) {
+		queryClient.setQueryData<ListedTopic[]>(topicsQueryKey, (rows) =>
+			rows?.map((row) => (row.id === topicId ? { ...row, open_class_id: classId } : row))
+		)
+		void queryClient.invalidateQueries({ queryKey: topicsQueryKey })
+	}
 	const cachedTopic = useQuery({
 		queryKey: topicQueryKey(topicId),
 		queryFn: async ({ client }) => client.getQueryData<Video>(topicQueryKey(topicId)) ?? null,
@@ -53,11 +72,12 @@ export default function ClassScreen() {
 	const topic = useQuery({
 		queryKey: ['topic-summary', topicId],
 		queryFn: () => api('getTopic', { params: { id: topicId } }).then((r) => r.topic),
-		enabled: Boolean(topicId) && !cachedTopic.data?.title,
+		enabled: Boolean(topicId) && !cachedTopic.data?.title && !listed?.title,
 		staleTime: Infinity
 	})
-	const videoTitle = cachedTopic.data?.title ?? topic.data?.title ?? null
-	const youtubeId = cachedTopic.data?.youtube_id ?? topic.data?.youtube_id ?? null
+	const videoTitle = cachedTopic.data?.title ?? listed?.title ?? topic.data?.title ?? null
+	const youtubeId =
+		cachedTopic.data?.youtube_id ?? listed?.youtube_id ?? topic.data?.youtube_id ?? null
 	const session = current ?? open.data?.class ?? null
 	const resumedId = open.data?.class?.id
 
@@ -75,6 +95,7 @@ export default function ClassScreen() {
 			haptic.success()
 			track('class_started', meta)
 			setSession(started)
+			markOpenClass(started.finished ? null : started.id)
 		},
 		onError: () => haptic.error()
 	})
@@ -87,6 +108,7 @@ export default function ClassScreen() {
 	function finishClass(finished: ClassSession, endedEarly: boolean) {
 		track('class_finished', { question_count: finished.turns.length, ended_early: endedEarly })
 		setSession(finished)
+		markOpenClass(null)
 	}
 	const reply = useMutation({
 		mutationFn: ({ turn, outcome, text }: Reply) =>
@@ -177,7 +199,7 @@ export default function ClassScreen() {
 		)
 	}
 
-	if (!open.isPending && !open.isError) {
+	if (!checking && !checkFailed) {
 		return (
 			<ExplainStep
 				topicId={topicId}
@@ -191,13 +213,13 @@ export default function ClassScreen() {
 		)
 	}
 
-	if (open.isPending) {
+	if (checking) {
 		return <LoadingScreen label="Checking for your class" onBack={leaveClass} />
 	}
 
 	return (
 		<Screen header={<PageHeader title="Explain" onBack={leaveClass} />} gap={14}>
-			{open.isError ? (
+			{checkFailed ? (
 				<>
 					<Text variant="body">{errorMessage(open.error)}</Text>
 					<Button label="Try again" fullWidth onPress={() => open.refetch()} />

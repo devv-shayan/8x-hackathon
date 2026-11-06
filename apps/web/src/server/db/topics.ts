@@ -26,6 +26,14 @@ export type TopicListItem = {
 	title: string
 }
 
+/** A topic without its transcript: what a class and the topic page show. */
+export type TopicOutline = {
+	id: string
+	youtubeId: string
+	title: string
+	concepts: KeyConcept[]
+}
+
 /** What the daily quiz needs from a topic. */
 export type TopicConcepts = {
 	title: string
@@ -44,6 +52,13 @@ const TOPIC = {
 	youtubeId: true,
 	title: true,
 	segments: true,
+	concepts: true
+} as const
+
+const TOPIC_OUTLINE = {
+	id: true,
+	youtubeId: true,
+	title: true,
 	concepts: true
 } as const
 
@@ -80,6 +95,15 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 		async findById(userId: string, id: string): Promise<TopicRecord | null> {
 			const row = await client.topic.findFirst({ where: { id, userId }, select: TOPIC })
 			return row ? toRecord(row) : null
+		},
+
+		/**
+		 * The person's topic by id without its transcript, which can be tens of KB: for screens
+		 * that show the video and its ideas but never read what was said.
+		 */
+		async findOutline(userId: string, id: string): Promise<TopicOutline | null> {
+			const row = await client.topic.findFirst({ where: { id, userId }, select: TOPIC_OUTLINE })
+			return row ? { ...row, concepts: z.array(keyConceptSchema).parse(row.concepts) } : null
 		},
 
 		/** Newest topics first. Title and youtube id only — no transcript. */

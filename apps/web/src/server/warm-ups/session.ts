@@ -45,6 +45,7 @@ export async function askersForTopics(
 	topicIds: string[]
 ): Promise<Map<string, string>> {
 	const unique = [...new Set(topicIds)]
+	if (unique.length === 0) return new Map()
 	const askers = await warmUpStore.rememberedStudents(userId, unique)
 	if (unique.every((id) => askers.has(id))) return askers
 	const fallback = (await classStore.studentsFor(userId, DEFAULT_STUDENTS))[0]
@@ -52,13 +53,22 @@ export async function askersForTopics(
 	return askers
 }
 
+/**
+ * The due warm-ups, each naming who asks: an open warm-up's own student, or else the one
+ * `askersForTopics` finds, in one query for every video rather than one per gap.
+ */
 export async function listDueWarmUps(userId: string, now = new Date()): Promise<DueWarmUp[]> {
 	const gaps = await warmUpStore.listDue(userId, now)
-	return Promise.all(
-		gaps.map(async (gap) =>
-			toDueWarmUp(gap, gap.openWarmUp ? '' : (await studentFor(userId, gap.topicId)).name)
-		)
+	const askers = await askersForTopics(
+		userId,
+		gaps.filter((gap) => !gap.openWarmUp).map((gap) => gap.topicId)
 	)
+	return gaps.map((gap) => {
+		if (gap.openWarmUp) return toDueWarmUp(gap, '')
+		const asker = askers.get(gap.topicId)
+		if (!asker) throw new ApiError('internal', 'Something went wrong on our side. Try again.')
+		return toDueWarmUp(gap, asker)
+	})
 }
 
 /** The question already saved for this gap, or a new one. `created` is false when it already existed. */
