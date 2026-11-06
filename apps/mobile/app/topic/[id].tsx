@@ -82,24 +82,23 @@ function WarmUpCard({ warmUp }: { warmUp: TopicGapWarmUp }) {
 	)
 }
 
-/** How close an open gap is to closing: one pip per right answer it needs. */
-function Streak({ gap }: { gap: TopicGap }) {
+/**
+ * An open gap's mark: one square per right answer it needs, filled as they come, so it reads as
+ * progress and not as an unticked box. The line under the title says the same in words.
+ */
+function ProgressSquares({ gap }: { gap: TopicGap }) {
 	const { colors: c } = useTheme()
 	return (
-		<View
-			style={s.streak}
-			accessible
-			accessibilityLabel={`${gap.right_streak} of ${gap.rights_to_close} right`}
-		>
+		<View testID="progress-squares" style={s.squares}>
 			{Array.from({ length: gap.rights_to_close }, (_, i) => (
 				<View
 					key={i}
-					style={[s.pip, { backgroundColor: i < gap.right_streak ? c.textPrimary : c.surface3 }]}
+					style={[
+						s.square,
+						{ backgroundColor: i < gap.right_streak ? c.textPrimary : c.borderActive }
+					]}
 				/>
 			))}
-			<Text variant="caption" tone="secondary">
-				{`${gap.right_streak} of ${gap.rights_to_close} right`}
-			</Text>
 		</View>
 	)
 }
@@ -124,13 +123,14 @@ function GapRow({ gap, onOpenWarmUps }: { gap: TopicGap; onOpenWarmUps: (count: 
 					s.mark,
 					gap.closed && { backgroundColor: c.textPrimary },
 					!gap.closed &&
-						gap.taught_last_class && { backgroundColor: c.brandFill, borderColor: c.borderActive },
-					!gap.closed && !gap.taught_last_class && { borderColor: c.borderActive }
+						gap.taught_last_class && { backgroundColor: c.brandFill, borderColor: c.borderActive }
 				]}
 			>
 				{gap.closed || gap.taught_last_class ? (
 					<Check size={13} strokeWidth={3} color={gap.closed ? c.surface : c.onBrand} />
-				) : null}
+				) : (
+					<ProgressSquares gap={gap} />
+				)}
 			</View>
 			<View style={s.gapCopy}>
 				<Text variant="label" style={s.gapTitle}>
@@ -142,7 +142,11 @@ function GapRow({ gap, onOpenWarmUps }: { gap: TopicGap; onOpenWarmUps: (count: 
 				<Text variant="caption" tone="secondary">
 					{note}
 				</Text>
-				{gap.closed ? null : <Streak gap={gap} />}
+				{gap.closed ? null : (
+					<Text variant="caption" tone="secondary">
+						{`${gap.right_streak} of ${gap.rights_to_close} right`}
+					</Text>
+				)}
 				{shown.map((warmUp) => (
 					<WarmUpCard key={warmUp.asked_at} warmUp={warmUp} />
 				))}
@@ -378,8 +382,8 @@ const s = StyleSheet.create({
 	gapCopy: { flex: 1, gap: 2 },
 	gapTitle: { fontSize: 15, lineHeight: 20 },
 	quote: { fontStyle: 'italic' },
-	streak: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-	pip: { width: 14, height: 4 },
+	squares: { flexDirection: 'row', gap: 2 },
+	square: { width: 9, height: 9 },
 	warmUp: { marginTop: 8, padding: 12, gap: 4 },
 	result: { paddingHorizontal: 6, paddingVertical: 1 },
 	said: { marginTop: 4, gap: 1 },
