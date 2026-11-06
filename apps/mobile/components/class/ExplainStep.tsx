@@ -14,6 +14,7 @@ import { isPastedTopic, MIN_EXPLANATION_LENGTH } from '@app/contract'
 import { PressableScale } from '@/components/motion/PressableScale'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { Button } from '@/components/ui/Button'
+import { ROOM_FOR_RING } from '@/components/ui/FocusRing'
 import { MonoLabel } from '@/components/ui/MonoLabel'
 import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
@@ -157,6 +158,8 @@ export function ExplainStep({
 			<KeyboardAvoidingView behavior={KEYBOARD_LIFT}>
 				<SheetCard style={keyboardOpen ? { maxHeight: Math.round(height * 0.5) } : undefined}>
 					<ScrollView
+						style={ROOM_FOR_RING.style}
+						contentContainerStyle={ROOM_FOR_RING.content}
 						keyboardShouldPersistTaps="handled"
 						bounces={false}
 						showsVerticalScrollIndicator={false}
@@ -182,7 +185,7 @@ export function ExplainStep({
 								<View style={s.field}>
 									<TextInputField
 										accessibilityLabel="Your explanation"
-										placeholder="What’s the main idea, and how does it work?"
+										placeholder="Start with the main idea, then how it works…"
 										multiline
 										numberOfLines={6}
 										value={typed}

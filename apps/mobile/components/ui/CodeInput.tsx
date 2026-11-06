@@ -13,6 +13,7 @@ import Animated, {
 import { useTheme } from '@/contexts/ThemeContext'
 import { haptic } from '@/lib/haptics'
 import { Durations, shake } from '@/lib/motion'
+import { FocusRing, NO_SYSTEM_OUTLINE } from './FocusRing'
 import { Text } from './Text'
 
 export const CODE_LENGTH = 6
@@ -67,26 +68,17 @@ export function CodeInput({
 			{Array.from({ length: CODE_LENGTH }, (_, i) => {
 				const digit = value[i] ?? ''
 				const isActive = focused && !disabled && i === active && value.length < CODE_LENGTH
-				const border = error
-					? c.errorText
-					: isActive
-						? c.brandInk
-						: digit
-							? c.borderActive
-							: c.borderSoft
+				const border = error ? c.errorText : isActive || digit ? c.textPrimary : c.borderActive
+				const radius = Math.min(radii.input, 16)
 				return (
 					<View
 						key={i}
 						style={[
 							s.box,
-							{
-								borderRadius: Math.min(radii.input, 16),
-								borderColor: border,
-								borderWidth: isActive || error ? 1.5 : 1,
-								backgroundColor: digit ? c.surface2 : c.well
-							}
+							{ borderRadius: radius, borderColor: border, backgroundColor: c.surface }
 						]}
 					>
+						{isActive && !error ? <FocusRing radius={radius} /> : null}
 						{digit ? (
 							<Animated.View entering={digitIn}>
 								<Text variant="number" style={s.digit}>
@@ -94,7 +86,7 @@ export function CodeInput({
 								</Text>
 							</Animated.View>
 						) : isActive ? (
-							<Caret color={c.brandInk} />
+							<Caret color={c.textPrimary} />
 						) : null}
 					</View>
 				)
@@ -114,7 +106,7 @@ export function CodeInput({
 				caretHidden
 				accessibilityLabel={accessibilityLabel}
 				// 0.02, not 0: UIKit skips hit-testing views under 0.01 opacity.
-				style={s.hidden}
+				style={[s.hidden, NO_SYSTEM_OUTLINE]}
 			/>
 		</Animated.View>
 	)
@@ -137,7 +129,7 @@ function Caret({ color }: { color: string }) {
 
 const s = StyleSheet.create({
 	row: { flexDirection: 'row', gap: 8 },
-	box: { flex: 1, height: 58, alignItems: 'center', justifyContent: 'center' },
+	box: { flex: 1, height: 58, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 	digit: { fontSize: 24, lineHeight: 30 },
 	caret: { width: 2, height: 24, borderRadius: 1 },
 	hidden: { ...StyleSheet.absoluteFillObject, opacity: 0.02, color: 'transparent' }
