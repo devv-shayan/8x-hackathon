@@ -4,6 +4,7 @@ import { GoogleGenAI, type ContentListUnion, type GenerateContentParameters } fr
 import { z } from 'zod'
 import { ApiError } from '@/server/api/app-errors'
 import { log } from '@/server/lib/logger'
+import { timeAi } from '@/server/lib/server-timing'
 
 // Google Gemini wrapper: the only file that imports `@google/genai`. Feature
 // code calls this module, and every call logs what it used.
@@ -62,7 +63,7 @@ export async function generateContent(context: AiContext, params: GenerateParams
 	const startedAt = Date.now()
 	const { model, feature, meta } = context
 	const { contents, ...config } = params
-	const response = await generateWithOneRetry({ model, contents, config })
+	const response = await timeAi(() => generateWithOneRetry({ model, contents, config }))
 	log.info('ai call', {
 		source: 'ai/gemini',
 		feature,

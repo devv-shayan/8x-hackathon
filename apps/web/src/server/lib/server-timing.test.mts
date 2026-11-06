@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
 	serverTimingHeader,
+	timeAi,
 	timeAuth,
 	timedThenable,
 	withQueryTiming,
@@ -26,10 +27,13 @@ function lazyQuery<T>(value: T, runs: { count: number }, ms = 5) {
 
 test('the header names durations only, with a query count', () => {
 	assert.equal(
-		serverTimingHeader({ auth: 12.34, db: 5.06, queries: 1 }, 40.04),
-		'auth;dur=12.3, db;dur=5.1;desc="1 call, summed", total;dur=40'
+		serverTimingHeader({ auth: 12.34, db: 5.06, dbCalls: 1, ai: 900.04, aiCalls: 2 }, 40.04),
+		'auth;dur=12.3, db;dur=5.1;desc="1 call, summed", ai;dur=900;desc="2 calls, summed", total;dur=40'
 	)
-	assert.match(serverTimingHeader({ auth: 0, db: 0, queries: 3 }, 1), /desc="3 calls, summed"/)
+	assert.match(
+		serverTimingHeader({ auth: 0, db: 0, dbCalls: 3, ai: 0, aiCalls: 0 }, 1),
+		/desc="3 calls, summed"/
+	)
 })
 
 test('a timed query is lazy: nothing runs until it is awaited', async () => {
@@ -107,4 +111,15 @@ test('the timed client times model methods, raw queries and transactions, and pa
 test('outside a request nothing is recorded and everything still works', async () => {
 	assert.equal(await timeAuth(async () => 'ok'), 'ok')
 	assert.equal(await timedThenable(lazyQuery('x', { count: 0 })), 'x')
+})
+
+test('AI calls get their own span, separate from the database', async () => {
+	const { header } = await withServerTiming(async () => {
+		await timeAi(() => tick(10))
+		await timedThenable(lazyQuery(1, { count: 0 }))
+		await timeAi(() => Promise.reject(new Error('busy'))).catch(() => 'handled')
+	})
+	assert.match(header, /db;dur=[\d.]+;desc="1 call, summed"/)
+	assert.match(header, /ai;dur=[\d.]+;desc="2 calls, summed"/)
+	assert.equal(await timeAi(async () => 'outside'), 'outside')
 })

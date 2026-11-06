@@ -15,7 +15,7 @@ import { ApiError, errorResponse, NO_STORE } from './app-errors'
 //   3. the handler, with the verified user and the parsed input
 //   4. output: parsed with the contract's response schema BEFORE it is sent.
 //   5. every response, errors too, carries Server-Timing: the token check, the
-//      database (each call summed, with a count) and the whole request.
+//      database and AI calls (each summed, with a count) and the whole request.
 //      A handler that returns the wrong shape is a bug: 500, logged, and the
 //      app opens its error state. A partial or malformed 200 is never sent.
 //

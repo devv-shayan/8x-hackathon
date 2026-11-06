@@ -2,12 +2,12 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { performance } from 'node:perf_hooks'
 
 // Where a request's time goes, for the Server-Timing response header: the token check, the
-// database (summed, with a query count) and the whole request. Recorded per request in
+// database and the AI calls (each summed, with a count) and the whole request. Recorded per request in
 // AsyncLocalStorage, so concurrent requests on one instance never mix.
 //
 // Durations only: no table, query or user detail is ever put in the header.
 
-type Spans = { auth: number; db: number; queries: number }
+type Spans = { auth: number; db: number; dbCalls: number; ai: number; aiCalls: number }
 
 // Pinned to the realm (via a global Symbol), as the logger's context is, so the database
 // client and the route wrapper share one store even if this module is loaded twice.
@@ -23,22 +23,28 @@ function round(ms: number) {
 export async function withServerTiming<T>(
 	fn: () => Promise<T>
 ): Promise<{ result: T; header: string }> {
-	const spans: Spans = { auth: 0, db: 0, queries: 0 }
+	const spans: Spans = { auth: 0, db: 0, dbCalls: 0, ai: 0, aiCalls: 0 }
 	const start = performance.now()
 	const result = await storage.run(spans, fn)
 	return { result, header: serverTimingHeader(spans, performance.now() - start) }
 }
 
+function calls(n: number) {
+	return `${n} ${n === 1 ? 'call' : 'calls'}, summed`
+}
+
 /**
- * The header's value: `auth;dur=…, db;dur=…;desc="N calls, summed", total;dur=…`. `db` adds up
- * every database call, so calls that overlap can sum to more than `total`. One call is one
- * Prisma operation, which may run several SQL statements.
+ * The header's value:
+ * `auth;dur=…, db;dur=…;desc="N calls, summed", ai;dur=…;desc="N calls, summed", total;dur=…`.
+ * `db` and `ai` each add up their calls, so calls that overlap can sum to more than `total`.
+ * A db call is one Prisma operation, which may run several SQL statements; an ai call is one
+ * Gemini request (with its one retry) or one Groq transcription or voice.
  */
 export function serverTimingHeader(spans: Spans, totalMs: number): string {
-	const calls = `${spans.queries} ${spans.queries === 1 ? 'call' : 'calls'}, summed`
 	return [
 		`auth;dur=${round(spans.auth)}`,
-		`db;dur=${round(spans.db)};desc="${calls}"`,
+		`db;dur=${round(spans.db)};desc="${calls(spans.dbCalls)}"`,
+		`ai;dur=${round(spans.ai)};desc="${calls(spans.aiCalls)}"`,
 		`total;dur=${round(totalMs)}`
 	].join(', ')
 }
@@ -55,12 +61,25 @@ export async function timeAuth<T>(fn: () => Promise<T>): Promise<T> {
 	}
 }
 
+/** Times `fn` as one AI call (Gemini or Groq). Outside a request it just runs `fn`. */
+export async function timeAi<T>(fn: () => Promise<T>): Promise<T> {
+	const spans = storage.getStore()
+	if (!spans) return fn()
+	const start = performance.now()
+	try {
+		return await fn()
+	} finally {
+		spans.ai += performance.now() - start
+		spans.aiCalls += 1
+	}
+}
+
 /** Adds one database call that took `ms` to the current request, if there is one. */
 function recordQuery(ms: number) {
 	const spans = storage.getStore()
 	if (!spans) return
 	spans.db += ms
-	spans.queries += 1
+	spans.dbCalls += 1
 }
 
 /**
