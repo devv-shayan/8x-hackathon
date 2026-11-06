@@ -26,6 +26,12 @@ export type TopicListItem = {
 	title: string
 }
 
+/** What the daily quiz needs from a topic. */
+export type TopicConcepts = {
+	title: string
+	concepts: KeyConcept[]
+}
+
 const RECENT_TOPICS_LIMIT = 20
 
 const storedContentSchema = z.object({
@@ -84,6 +90,20 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 				take: RECENT_TOPICS_LIMIT,
 				select: TOPIC_LIST
 			})
+		},
+
+		/** Newest topics' titles and concepts, for the daily quiz. No transcript. */
+		async listConcepts(userId: string): Promise<TopicConcepts[]> {
+			const rows = await client.topic.findMany({
+				where: { userId },
+				orderBy: { createdAt: 'desc' },
+				take: RECENT_TOPICS_LIMIT,
+				select: { title: true, concepts: true }
+			})
+			return rows.map(({ title, concepts }) => ({
+				title,
+				concepts: z.array(keyConceptSchema).parse(concepts)
+			}))
 		},
 
 		/**
