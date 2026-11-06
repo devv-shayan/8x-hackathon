@@ -5,7 +5,7 @@
  * (the Screen primitive does this when given `tabs`).
  */
 import { router, Tabs } from 'expo-router'
-import { Brain, CircleHelp, CircleUser, House } from 'lucide-react-native'
+import { Brain, ChartColumn, CircleHelp, CircleUser, House } from 'lucide-react-native'
 import TabBar from '@/components/TabBar'
 import { useColors } from '@/contexts/ThemeContext'
 import { track } from '@/lib/analytics'
@@ -61,6 +61,15 @@ export default function TabsLayout() {
 						track('memory_opened', { source: 'tab' })
 						router.push('/memory')
 					}
+				}}
+			/>
+			<Tabs.Screen
+				name="dashboard"
+				options={{
+					tabBarLabel: 'Dashboard',
+					tabBarIcon: ({ color, size }) => (
+						<ChartColumn size={size} color={color} strokeWidth={STROKE} />
+					)
 				}}
 			/>
 			<Tabs.Screen name="explore" options={{ href: null }} />

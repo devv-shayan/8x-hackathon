@@ -52,6 +52,7 @@ apps/mobile (Expo app, the product) ──▶ /api/app/v1 ──▶ apps/web (Ne
 | Warm-ups        | `apps/web/src/app/api/app/v1/warm-ups/`, `server/gaps/schedule.ts`            |
 | Voice (web)     | `apps/web/src/app/api/app/v1/speech/`, `apps/mobile/components/voice/`        |
 | Daily quiz      | `apps/web/src/server/quiz/`, `apps/mobile/app/quiz.tsx`, `components/quiz/`   |
+| Dashboard       | `/api/app/v1/progress`, `app/(tabs)/dashboard.tsx`, `components/dashboard/`   |
 
 In production, reading a video goes to Gemini first, then Supadata's captions if Gemini can't
 read it. Locally it tries captions through yt-dlp, then Supadata, then Gemini.
