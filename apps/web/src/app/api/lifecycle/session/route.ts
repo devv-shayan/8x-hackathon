@@ -6,6 +6,7 @@ import { trackPlayEvent } from '@/lib/plays/events'
 import { getRequestCountry } from '@/lib/geo'
 import { profileStore } from '@/server/db/profiles'
 import { log } from '@/server/lib/logger'
+import { timeAuth, withServerTiming } from '@/server/lib/server-timing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,6 +42,13 @@ export const dynamic = 'force-dynamic'
  * launch costs one query and sends nothing twice.
  */
 export async function POST(req: NextRequest) {
+	// Every launch calls this, so its answer says where the time went, as the app routes do.
+	const { result: response, header } = await withServerTiming(() => recordLaunch(req))
+	response.headers.set('Server-Timing', header)
+	return response
+}
+
+async function recordLaunch(req: NextRequest) {
 	const header = req.headers.get('authorization') ?? ''
 	const token = header.startsWith('Bearer ') ? header.slice('Bearer '.length) : ''
 	if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -50,7 +58,7 @@ export async function POST(req: NextRequest) {
 
 		// Resolve the caller from their token. The identity comes from Supabase,
 		// never from the request body.
-		const { data: authData, error: authError } = await supabase.auth.getUser(token)
+		const { data: authData, error: authError } = await timeAuth(() => supabase.auth.getUser(token))
 		const user = authData?.user
 		if (authError || !user) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
