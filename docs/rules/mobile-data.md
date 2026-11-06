@@ -68,6 +68,7 @@ before it is sent (a mismatch is a 500, never a partial 200).
 - `items` (GET, POST), `items/{id}` (GET), `tasks?item_id=` (GET), `tasks` (POST): the
   person's own, never another's; someone else's item is a 404, like one that doesn't exist.
 - `activity` (GET, optionally `?item_id=`), `notifications` (GET).
+- `progress` (GET): the dashboard's numbers, one request for every video the person has taught.
 - `account` (DELETE): deletes whoever the token belongs to.
 - `uploads` (POST): a signed upload URL for an avatar (below).
 - `config` (GET, public): the minimum supported versions ([OTA updates](ota.md)).

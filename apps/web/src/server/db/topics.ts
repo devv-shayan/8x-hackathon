@@ -116,6 +116,11 @@ export function createTopicStore(client: Pick<PrismaClient, 'topic'>) {
 			})
 		},
 
+		/** Every topic of this person, for totals across all of them. No transcript. */
+		async listAll(userId: string): Promise<TopicListItem[]> {
+			return client.topic.findMany({ where: { userId }, select: TOPIC_LIST })
+		},
+
 		/** Newest topics' titles and concepts, for the daily quiz. No transcript. */
 		async listConcepts(userId: string): Promise<TopicConcepts[]> {
 			const rows = await client.topic.findMany({

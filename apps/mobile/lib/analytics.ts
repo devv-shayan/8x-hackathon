@@ -246,7 +246,7 @@ type EventName =
 	// on the server (memory_reminder_sent): the phone never sees that moment.
 	// THE metric is still memory_idea_tapped. The drop-off to watch is
 	// reminder sent → reminder opened → the due line practiced.
-	// memory_opened: they opened Class memory. metadata: { source: 'home' | 'tab' }, which way in
+	// memory_opened: they opened Class memory. metadata: { source: 'home' | 'tab' | 'dashboard' }, which way in
 	// earns its place. A reminder note has its own event, memory_reminder_opened.
 	| 'memory_opened'
 	| 'memory_viewed'
@@ -273,6 +273,18 @@ type EventName =
 	| 'voice_recording_failed'
 	| 'voice_typed_instead'
 	| 'voice_question_played'
+	// Dashboard — the person's scores, told by the class they teach. Judged on whether seeing the
+	// numbers sends people back to work on a video, not on whether the screen gets looked at.
+	//   dashboard_viewed        the numbers are on screen, once per visit.
+	//                           metadata: { video_count, idea_count, taught_count }
+	//   dashboard_video_opened  they opened a video from it: THE metric. The drop-off to watch is
+	//                           viewed → opened. metadata: { topic_id }
+	//   dashboard_teach_tapped  the empty dashboard's "Teach your first video". No metadata.
+	// Not a money moment and no lifecycle change, and no user's state moves, so PostHog is enough.
+	// "Who quizzed you" opens Class memory: that is memory_opened with source 'dashboard'.
+	| 'dashboard_viewed'
+	| 'dashboard_video_opened'
+	| 'dashboard_teach_tapped'
 	// Daily quiz (8X-54) — a one-minute game against the person's own best, so days with no
 	// warm-up due still have a reason to open the app, and people who explain everything
 	// correctly (who never get a gap) have one too. Not a money moment.

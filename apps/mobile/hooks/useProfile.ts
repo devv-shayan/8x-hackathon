@@ -8,6 +8,9 @@ import { getInitials } from '@/lib/utils'
 // non-negotiable 3), and the app only ever shows it.
 
 export interface UserProfile {
+	id: string
+	/** When they joined; null for an account from before this was kept. */
+	createdAt: string | null
 	fullName: string
 	email: string
 	initials: string
@@ -20,6 +23,8 @@ export function toUserProfile(profile: Profile): UserProfile {
 	const email = profile.email ?? ''
 	const fullName = profile.display_name?.trim() || email.split('@')[0] || 'You'
 	return {
+		id: profile.id,
+		createdAt: profile.created_at,
 		fullName,
 		email,
 		initials: getInitials(fullName),
