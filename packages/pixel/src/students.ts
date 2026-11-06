@@ -45,8 +45,14 @@ export const SEATS = [
 const DESK_TOP = 0.9
 const HEAD_Y = 0.37
 export const HEAD_RADIUS = 0.12
+/**
+ * How far the top of the body sits above where it once did, in heights: a short neck, so they
+ * read as people. Only the top moves: the head, hands and feet stay put, so every scene's
+ * layout holds.
+ */
+const NECK_CUT = 0.045
 /** Arm and hand positions, in heights, for an arm down and an arm up. */
-const SHOULDER = { dx: 0.15, y: 0.62 }
+const SHOULDER = { dx: 0.15, y: 0.62 - NECK_CUT }
 const HAND_DOWN_Y = 0.86
 const HAND_UP_Y = 0.22
 const ARM_RADIUS = 0.035
@@ -121,7 +127,7 @@ type Part = [distance: number, material: Material, light?: number, front?: boole
 
 /** Where a seated student's parts go, in heights from the head's centre, times the scale. */
 const SEATED = {
-	torso: { y: 0.34, hx: 0.19, hy: 0.16, r: 0.11 },
+	torso: { y: 0.34 - NECK_CUT / 2, hx: 0.19, hy: 0.16 + NECK_CUT / 2, r: 0.11 },
 	lap: { y: 0.52, hx: 0.18, hy: 0.06, r: 0.06 },
 	knee: { dx: 0.09, y: 0.555, r: 0.065 },
 	shin: { dx: 0.085, top: 0.56, bottom: 0.79, r: 0.045 },
@@ -129,7 +135,7 @@ const SEATED = {
 	/** The arm that isn't raised lies along the desk: elbow out, hand towards the middle. */
 	elbow: { dx: 0.2, y: 0.4 },
 	restingHand: { dx: 0.04, y: 0.425, r: 0.045 },
-	shoulderY: 0.25,
+	shoulderY: 0.25 - NECK_CUT,
 	handUp: { dx: 0.2, y: -0.15 }
 } as const
 /** How far below a seated student's head their shoes are, in heights times the scale. */
@@ -148,7 +154,18 @@ function standingParts(px: number, py: number, f: Figure): Part[] {
 	const hy = headY + (HAND_DOWN_Y - HEAD_Y - (HAND_DOWN_Y - HAND_UP_Y) * lift) * s
 	return [
 		[capsule(px, py, cx, headY + 0.08 * s, cx, headY + 0.19 * s, 0.06 * s), f.material],
-		[roundedBox(px, py, cx, headY + 0.4 * s, 0.19 * s, 0.22 * s, 0.11 * s), f.material],
+		[
+			roundedBox(
+				px,
+				py,
+				cx,
+				headY + (0.4 - NECK_CUT / 2) * s,
+				0.19 * s,
+				(0.22 + NECK_CUT / 2) * s,
+				0.11 * s
+			),
+			f.material
+		],
 		[capsule(px, py, sx, sy, hx, hy, ARM_RADIUS * s), f.material],
 		[Math.hypot(px - hx, py - hy) - HAND_RADIUS * s, lift > 0.5 ? 'raisedHand' : f.material]
 	]
