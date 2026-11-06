@@ -15,6 +15,14 @@
 			"port": 8081
 		},
 		{
+			"name": "app-in-browser-local-api",
+			"runtimeExecutable": "npx",
+			"runtimeArgs": ["expo", "start", "--web", "--port", "8081", "--clear"],
+			"cwd": "apps/mobile",
+			"env": { "EXPO_PUBLIC_SITE_URL": "http://localhost:3000" },
+			"port": 8081
+		},
+		{
 			"name": "api-lan",
 			"runtimeExecutable": "npx",
 			"runtimeArgs": ["next", "dev", "-p", "3001", "-H", "0.0.0.0"],
