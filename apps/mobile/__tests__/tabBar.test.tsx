@@ -2,7 +2,7 @@
  * The floating tab bar hides itself while a screen takes the whole screen, the standard way
  * (`tabBarStyle: { display: 'none' }`): Home does it while the class watches a video read.
  */
-import { render, screen } from '@testing-library/react-native'
+import { fireEvent, render, screen } from '@testing-library/react-native'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
 import TabBar from '@/components/TabBar'
 
@@ -56,4 +56,15 @@ it('shows the tabs', () => {
 it('hides while the focused screen asks it to', () => {
 	render(<TabBar {...props({ display: 'none' })} />)
 	expect(screen.queryByText('Home')).toBeNull()
+})
+
+it('leaves a press to a tab that handles it, like the full-screen Quiz button', () => {
+	const base = props()
+	const navigate = jest.fn()
+	const navigation = { emit: () => ({ defaultPrevented: true }), navigate }
+	render(<TabBar {...base} navigation={navigation as never} />)
+	fireEvent.press(screen.getByLabelText('Profile'))
+	expect(navigate).not.toHaveBeenCalled()
+	const { haptic } = jest.requireMock('@/lib/haptics') as { haptic: { select: jest.Mock } }
+	expect(haptic.select).toHaveBeenCalled()
 })

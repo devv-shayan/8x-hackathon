@@ -64,9 +64,10 @@ export default function TabBar({ state, navigation, descriptors }: BottomTabBarP
 
 	function handlePress(routeName: string, key: string, focused: boolean) {
 		const event = navigation.emit({ type: 'tabPress', target: key, canPreventDefault: true })
-		if (focused || event.defaultPrevented) return
+		if (focused) return
 		haptic.select()
-		navigation.navigate(routeName as never)
+		// A tab that opens a full screen handles the press itself.
+		if (!event.defaultPrevented) navigation.navigate(routeName as never)
 	}
 
 	const glass = Platform.OS !== 'android'
