@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
  * else's is a 404.
  */
 export const GET = createAppRoute(endpoints.getTopicGaps, async ({ user, params }) => {
-	const topic = await topicStore.findById(user.id, params.id)
+	const topic = await topicStore.findOutline(user.id, params.id)
 	if (!topic) throw notFound()
 	const [finished, gaps] = await Promise.all([
 		classStore.latestFinishedForTopics(user.id, [topic.id]),

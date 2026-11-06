@@ -52,6 +52,18 @@ describe(
 			assert.equal(await topics.find(alex, TOPIC.youtubeId), null)
 		})
 
+		test('an outline is the topic without its transcript, for its owner only', async () => {
+			const saved = await topics.find(sam, TOPIC.youtubeId)
+			assert.ok(saved)
+			assert.deepEqual(await topics.findOutline(sam, saved.id), {
+				id: saved.id,
+				youtubeId: TOPIC.youtubeId,
+				title: TOPIC.title,
+				concepts: CONCEPTS
+			})
+			assert.equal(await topics.findOutline(alex, saved.id), null)
+		})
+
 		test('saving a video again keeps the first read', async () => {
 			const first = await topics.find(sam, TOPIC.youtubeId)
 			const second = await topics.save(sam, { ...TOPIC, title: 'A later read' })

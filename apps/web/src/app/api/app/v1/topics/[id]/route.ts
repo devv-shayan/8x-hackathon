@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 /** GET /api/app/v1/topics/:id: title and video for Explain (no transcript). */
 export const GET = createAppRoute(endpoints.getTopic, async ({ user, params }) => {
-	const topic = await topicStore.findById(user.id, params.id)
+	const topic = await topicStore.findOutline(user.id, params.id)
 	if (!topic) throw notFound()
 	return { body: { topic: { id: topic.id, title: topic.title, youtube_id: topic.youtubeId } } }
 })

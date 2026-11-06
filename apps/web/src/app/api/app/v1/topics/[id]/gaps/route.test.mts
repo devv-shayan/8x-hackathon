@@ -21,7 +21,9 @@ const topic = { id: TOPIC_ID, youtubeId: 'UNP03fDSj1U', title: 'Try something ne
 
 beforeEach(() => {
 	reset()
-	fakeStore(topicStore, 'findById', (_user: string, id: string) => (id === TOPIC_ID ? topic : null))
+	fakeStore(topicStore, 'findOutline', (_user: string, id: string) =>
+		id === TOPIC_ID ? topic : null
+	)
 	fakeStore(
 		classStore,
 		'latestFinishedForTopics',
@@ -114,7 +116,7 @@ test("GET topic gaps: someone else's topic, or none, is a 404 and reads nothing 
 	assert.equal(res.status, 404)
 	assert.deepEqual(
 		fake.storeCalls.map(({ method }: { method: string }) => method),
-		['findById']
+		['findOutline']
 	)
 })
 

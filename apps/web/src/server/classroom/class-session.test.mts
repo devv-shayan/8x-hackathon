@@ -64,7 +64,8 @@ Object.assign(topicStore, {
 		title: 'Plants',
 		segments: [{ startSeconds: 0, text: 'water moves through xylem' }],
 		concepts: CONCEPTS
-	})
+	}),
+	findOutline: async () => ({ id: TOPIC, youtubeId: 'video', title: 'Plants', concepts: CONCEPTS })
 })
 
 Object.assign(classStore, {
