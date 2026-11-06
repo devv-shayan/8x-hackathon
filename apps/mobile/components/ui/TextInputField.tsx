@@ -1,8 +1,13 @@
 import { useState, type ReactNode, type RefObject } from 'react'
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native'
+import { Platform, StyleSheet, TextInput, View, type TextInputProps } from 'react-native'
 import { useTheme } from '@/contexts/ThemeContext'
 import { familyFor } from '@/lib/typography'
+import { FocusRing, NO_SYSTEM_OUTLINE } from './FocusRing'
 import { Text } from './Text'
+
+const LINE_HEIGHT = 22
+const PAD_Y = 14
+const SINGLE_LINE_HEIGHT = 52
 
 interface TextInputFieldProps extends Omit<TextInputProps, 'style'> {
 	label?: string
@@ -16,9 +21,10 @@ interface TextInputFieldProps extends Omit<TextInputProps, 'style'> {
 }
 
 /**
- * A labelled text field on the well colour. Focus draws the accent border;
- * an error draws the error border and says what is wrong beneath it. The
- * keyboard follows the active scheme.
+ * A labelled text field, as the website draws one: white with a hairline edge, and on focus
+ * an ink border inside a lime ring. An error draws the error border and says what is wrong
+ * beneath it. A multiline field is tall enough for its `numberOfLines`, and starts typing at
+ * the top. The keyboard follows the active scheme.
  */
 export default function TextInputField({
 	label,
@@ -32,7 +38,8 @@ export default function TextInputField({
 }: TextInputFieldProps) {
 	const { colors: c, radii, isDark } = useTheme()
 	const [focused, setFocused] = useState(false)
-	const border = error ? c.errorText : focused ? c.brandInk : c.borderSoft
+	const border = error ? c.errorText : focused ? c.textPrimary : c.borderActive
+	const lines = props.multiline ? (props.numberOfLines ?? 1) : 1
 
 	return (
 		<View style={s.wrap}>
@@ -44,22 +51,31 @@ export default function TextInputField({
 			<View
 				style={[
 					s.field,
+					props.multiline ? s.fieldMultiline : null,
 					{
-						backgroundColor: c.well,
+						backgroundColor: c.surface,
 						borderColor: border,
-						borderWidth: focused || error ? 1.5 : 1,
-						borderRadius: radii.input
+						borderRadius: radii.input,
+						minHeight: Math.max(SINGLE_LINE_HEIGHT, lines * LINE_HEIGHT + PAD_Y * 2)
 					}
 				]}
 			>
-				{icon ? icon(focused ? c.brandInk : c.textTertiary) : null}
+				{focused && !error ? <FocusRing radius={radii.input} /> : null}
+				{icon ? icon(focused ? c.textPrimary : c.textTertiary) : null}
 				<TextInput
 					ref={inputRef}
 					placeholderTextColor={c.textTertiary}
-					selectionColor={c.brandInk}
-					cursorColor={c.brandInk}
+					// iOS draws its caret in this colour, Android its highlight, so lime goes only there.
+					selectionColor={Platform.OS === 'android' ? c.brandDim : c.textPrimary}
+					selectionHandleColor={c.textPrimary}
+					cursorColor={c.textPrimary}
+					underlineColorAndroid="transparent"
 					keyboardAppearance={isDark ? 'dark' : 'light'}
-					style={[s.input, { color: c.textPrimary, fontFamily: familyFor('text', 400) }]}
+					style={[
+						s.input,
+						{ color: c.textPrimary, fontFamily: familyFor('text', 400) },
+						NO_SYSTEM_OUTLINE
+					]}
 					onFocus={(e) => {
 						setFocused(true)
 						onFocus?.(e)
@@ -88,11 +104,19 @@ export default function TextInputField({
 const s = StyleSheet.create({
 	wrap: { gap: 8 },
 	field: {
-		minHeight: 52,
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 10,
+		borderWidth: 1,
 		paddingHorizontal: 16
 	},
-	input: { flex: 1, fontSize: 16, paddingVertical: 12, includeFontPadding: false }
+	fieldMultiline: { alignItems: 'stretch' },
+	input: {
+		flex: 1,
+		fontSize: 16,
+		lineHeight: LINE_HEIGHT,
+		paddingVertical: PAD_Y,
+		includeFontPadding: false,
+		textAlignVertical: 'top'
+	}
 })

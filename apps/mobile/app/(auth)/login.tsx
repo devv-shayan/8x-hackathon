@@ -412,7 +412,7 @@ export default function LoginScreen() {
 										setEmail(v)
 										if (error) setError(null)
 									}}
-									placeholder="you@example.com"
+									placeholder="you@email.com"
 									keyboardType="email-address"
 									textContentType="emailAddress"
 									autoComplete="email"
