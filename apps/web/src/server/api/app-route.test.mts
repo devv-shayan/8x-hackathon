@@ -264,3 +264,14 @@ test('a path parameter that cannot be valid is a 404, like a row that is not you
 	const ok = await call(thing, { auth: `Bearer ${GOOD}`, method: 'GET', params: { id } })
 	assert.deepEqual(await ok.json(), { id })
 })
+
+test('every response carries Server-Timing: auth, db with its query count, and total', async () => {
+	const ok = await call(echoRoute, { auth: `Bearer ${GOOD}`, body: '{"name":"a"}' })
+	assert.match(
+		ok.headers.get('server-timing') ?? '',
+		/^auth;dur=[\d.]+, db;dur=[\d.]+;desc="0 calls, summed", total;dur=[\d.]+$/
+	)
+	const refused = await call(echoRoute, { auth: 'Bearer nope', body: '{"name":"a"}' })
+	assert.equal(refused.status, 401)
+	assert.match(refused.headers.get('server-timing') ?? '', /total;dur=/)
+})

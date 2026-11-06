@@ -1,5 +1,6 @@
 import 'server-only'
 import { PrismaClient } from '@prisma/client'
+import { withQueryTiming } from '@/server/lib/server-timing'
 
 // The one file allowed to import @prisma/client at runtime (eslint.config.mjs,
 // docs/rules/database.md). Queries live in the stores beside it (profiles.ts, play-stats.ts,
@@ -19,8 +20,12 @@ export { Prisma } from '@prisma/client'
 // fresh connection pool on every file save.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
-export const db = globalForPrisma.prisma ?? new PrismaClient()
+const client = globalForPrisma.prisma ?? new PrismaClient()
 
 if (process.env.NODE_ENV !== 'production') {
-	globalForPrisma.prisma = db
+	globalForPrisma.prisma = client
 }
+
+// Each query adds to the request's database time in its Server-Timing header
+// (src/server/lib/server-timing.ts). Same client, same type: only timed.
+export const db = withQueryTiming(client)

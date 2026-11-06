@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import type { Endpoint } from '@app/contract'
 import { log } from '@/server/lib/logger'
 import { requireUser, type AppUser } from '@/server/auth/require-user'
+import { timeAuth, withServerTiming } from '@/server/lib/server-timing'
 import { ApiError, errorResponse, NO_STORE } from './app-errors'
 
 // Every /api/app/v1 route is built here, from its @app/contract endpoint, so no
@@ -13,6 +14,8 @@ import { ApiError, errorResponse, NO_STORE } from './app-errors'
 //      (a bad path param is a 404; a bad query or body a 400 with its issues)
 //   3. the handler, with the verified user and the parsed input
 //   4. output: parsed with the contract's response schema BEFORE it is sent.
+//   5. every response, errors too, carries Server-Timing: the token check, the
+//      database (each call summed, with a count) and the whole request.
 //      A handler that returns the wrong shape is a bug: 500, logged, and the
 //      app opens its error state. A partial or malformed 200 is never sent.
 //
@@ -44,8 +47,14 @@ export function createAppRoute<E extends Endpoint>(
 	handler: (ctx: AppRouteContext<E>) => Promise<AppRouteResult<E>>
 ) {
 	return async function route(req: NextRequest, context: RouteContext): Promise<NextResponse> {
+		const { result: response, header } = await withServerTiming(() => answer(req, context))
+		response.headers.set('Server-Timing', header)
+		return response
+	}
+
+	async function answer(req: NextRequest, context: RouteContext): Promise<NextResponse> {
 		try {
-			const user = endpoint.auth === 'user' ? await requireUser(req) : null
+			const user = endpoint.auth === 'user' ? await timeAuth(() => requireUser(req)) : null
 			const params = endpoint.params
 				? parseParams(endpoint.params, await context.params)
 				: undefined
