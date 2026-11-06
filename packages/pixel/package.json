@@ -12,6 +12,7 @@
 	},
 	"scripts": {
 		"build:icons": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs scripts/build-icons.mjs",
+		"build:portraits": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs scripts/build-portraits.mjs",
 		"build:backdrop": "node scripts/build-backdrop.mjs",
 		"test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ../../apps/web/scripts/register-ts.mjs --test \"src/**/*.test.mts\"",
 		"typecheck": "tsc --noEmit -p ."

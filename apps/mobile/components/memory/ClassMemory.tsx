@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { MemoryIdea } from '@app/contract'
-import { FIGURE_COLOURS, type Rgb } from '@app/pixel'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { useSheetFloor } from '@/components/pixel/useSheetFloor'
 import { Button } from '@/components/ui/Button'
@@ -11,11 +10,12 @@ import { SheetCard } from '@/components/ui/SheetCard'
 import { Text } from '@/components/ui/Text'
 import { useTheme } from '@/contexts/ThemeContext'
 import { fadeStage } from '@/lib/chalk'
-
-type Student = 'Maya' | 'Omar'
+import { StudentFace, type Student } from './StudentFace'
 
 type Line = { idea: MemoryIdea; daysLeft: number; student: Student }
 
+/** A student's portrait beside a line. */
+const FACE_SIZE = 32
 /** How many ideas "Coming up" shows before "See all". */
 const COMING_UP = 3
 /** Where the board's top sits under the back button when every idea is shown. */
@@ -34,17 +34,6 @@ function inDays(daysLeft: number) {
 	if (daysLeft === 1) return 'tomorrow'
 	return `in ${daysLeft} days`
 }
-
-/** A palette colour as the hex string React Native takes. */
-function toHex([r, g, b]: Rgb) {
-	return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')
-}
-
-/** The student's colour, from the pixel students' own palette. */
-const FACE = {
-	Maya: toHex(FIGURE_COLOURS.maya[2]!),
-	Omar: toHex(FIGURE_COLOURS.omar[2]!)
-} as const
 
 /** Open ideas, soonest first, each with when it's asked and by whom. */
 function openLines(ideas: readonly MemoryIdea[], now: Date): Line[] {
@@ -246,17 +235,7 @@ export function ClassMemory({
 											}
 										]}
 									>
-										<View
-											style={[
-												s.face,
-												{ backgroundColor: FACE[line.student], borderRadius: radii.sm }
-											]}
-											accessibilityLabel={line.student}
-										>
-											<Text variant="label" style={{ color: c.surface }}>
-												{line.student[0]}
-											</Text>
-										</View>
+										<StudentFace student={line.student} size={FACE_SIZE} radius={radii.sm} />
 										<View style={s.rowText}>
 											<Text variant="label" numberOfLines={1}>
 												{line.idea.concept_title}
@@ -339,7 +318,6 @@ const s = StyleSheet.create({
 	note: { marginTop: 16, padding: 14, gap: 2 },
 	section: { marginTop: 22, gap: 4 },
 	row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-	face: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
 	rowText: { flex: 1, gap: 1 },
 	chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
 	chip: { paddingHorizontal: 12, paddingVertical: 8, maxWidth: '100%' }

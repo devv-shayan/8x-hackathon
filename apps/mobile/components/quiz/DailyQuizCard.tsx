@@ -52,7 +52,10 @@ export function DailyQuizCard() {
 	return (
 		<PressableScale
 			scaleTo="card"
-			onPress={() => router.push('/quiz')}
+			onPress={() => {
+				track('quiz_opened', { source: 'home' })
+				router.push('/quiz')
+			}}
 			accessibilityLabel={`Daily quiz. ${line}`}
 			style={[s.card, { backgroundColor: c.hero, borderRadius: radii['3xl'] }]}
 		>

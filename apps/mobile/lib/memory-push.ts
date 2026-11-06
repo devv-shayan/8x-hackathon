@@ -52,7 +52,7 @@ async function registerMemoryPush(): Promise<boolean> {
 		if (!granted) return false
 		if (Platform.OS === 'android') {
 			await Notifications.setNotificationChannelAsync('memory', {
-				name: "Maya's memory",
+				name: 'Class memory',
 				importance: Notifications.AndroidImportance.DEFAULT
 			})
 		}

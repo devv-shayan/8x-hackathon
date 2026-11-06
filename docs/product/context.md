@@ -84,7 +84,8 @@ as fill the blank, multiple choice or true or false, to beat their own best scor
 writes the words; code picks the ideas, cuts the blank from the stored quote and shuffles the
 answers. Every answer shows the video's real line. Nothing is saved on the server: the score and
 "played today" live on the device (`apps/mobile/lib/quiz.ts`), so they don't follow someone to a new
-phone or change with the signed-in account. `/dev/quiz` plays sample questions without sign-in or AI.
+phone or change with the signed-in account. So do the streak and this week's scores, shown on the
+glass panel when someone comes back after playing (`components/quiz/QuizComeBack.tsx`). `/dev/quiz` plays sample questions without sign-in or AI.
 
 ## Run it
 

@@ -14,11 +14,26 @@ const REMINDER_DAYS = 7
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const MS_PER_MINUTE = 60 * 1000
 
+/** One calendar week: all the week row ever shows. */
+const DAYS_KEPT = 7
+const MINUTES_PER_HOUR = 60
+const WEEK_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
+
+const dayScoreSchema = z.object({
+	day: z.string(),
+	score: z.number().int().nonnegative(),
+	total: z.number().int().nonnegative()
+})
+
 const recordSchema = z.object({
 	best: z.number().int().nonnegative(),
 	lastScore: z.number().int().nonnegative(),
 	lastTotal: z.number().int().nonnegative(),
-	playedDay: z.string()
+	playedDay: z.string(),
+	/** Days in a row, ending on `playedDay`. Records from before streaks have none: they count 1. */
+	streak: z.number().int().positive().optional(),
+	/** The recent days played, oldest first. Records from before this have only `playedDay`. */
+	week: z.array(dayScoreSchema).optional()
 })
 
 export type QuizRecord = z.infer<typeof recordSchema>
@@ -31,6 +46,10 @@ export type ClassGuess = { maya: boolean; omar: boolean }
 export function localDay(now: Date): string {
 	const pad = (n: number) => String(n).padStart(2, '0')
 	return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+function dayBefore(now: Date, days: number): Date {
+	return new Date(now.getFullYear(), now.getMonth(), now.getDate() - days)
 }
 
 export function playedToday(record: QuizRecord | null, now: Date): boolean {
@@ -53,12 +72,79 @@ export function nextRecord(
 	total: number,
 	now: Date
 ): QuizRecord {
+	const today = localDay(now)
+	const held = previous?.streak ?? 1
+	let streak = 1
+	if (previous?.playedDay === today) streak = held
+	else if (previous?.playedDay === localDay(dayBefore(now, 1))) streak = held + 1
+	const earlier = previous ? scoresOf(previous).filter(({ day }) => day !== today) : []
 	return {
 		best: Math.max(previous?.best ?? 0, score),
 		lastScore: score,
 		lastTotal: total,
-		playedDay: localDay(now)
+		playedDay: today,
+		streak,
+		week: [...earlier, { day: today, score, total }].slice(-DAYS_KEPT)
 	}
+}
+
+function scoresOf(record: QuizRecord) {
+	return (
+		record.week ?? [{ day: record.playedDay, score: record.lastScore, total: record.lastTotal }]
+	)
+}
+
+/** Days in a row, as of today: a streak ends once a whole day goes by unplayed. */
+export function streakDays(record: QuizRecord | null, now: Date): number {
+	if (!record) return 0
+	const live =
+		record.playedDay === localDay(now) || record.playedDay === localDay(dayBefore(now, 1))
+	return live ? (record.streak ?? 1) : 0
+}
+
+export function streakWords(days: number): string {
+	return days > 1 ? `${days} days in a row` : 'Day 1 of your streak'
+}
+
+export type WeekDay = {
+	/** The calendar day, as `localDay` writes it. */
+	date: string
+	letter: string
+	score: number | null
+	state: 'played' | 'today' | 'missed' | 'next' | 'later'
+}
+
+/** This week, Monday first: what they scored, what they missed, and tomorrow waiting. */
+export function weekDays(record: QuizRecord, now: Date): WeekDay[] {
+	const scores = new Map(scoresOf(record).map(({ day, score }) => [day, score]))
+	const today = localDay(now)
+	const tomorrow = localDay(dayBefore(now, -1))
+	const sinceMonday = (now.getDay() + WEEK_LETTERS.length - 1) % WEEK_LETTERS.length
+	return WEEK_LETTERS.map((letter, i) => {
+		const date = localDay(dayBefore(now, sinceMonday - i))
+		const score = scores.get(date) ?? null
+		let state: WeekDay['state'] = 'later'
+		if (date === today) state = 'today'
+		else if (date === tomorrow) state = 'next'
+		else if (date < today) state = score == null ? 'missed' : 'played'
+		return { date, letter, score, state }
+	})
+}
+
+/** Hours and minutes to the person's midnight, when the next quiz opens. */
+export function untilNextQuiz(now: Date): string {
+	const midnight = dayBefore(now, -1)
+	const minutes = Math.max(1, Math.ceil((midnight.getTime() - now.getTime()) / MS_PER_MINUTE))
+	const hours = Math.floor(minutes / MINUTES_PER_HOUR)
+	return hours > 0 ? `${hours}h ${minutes % MINUTES_PER_HOUR}m` : `${minutes}m`
+}
+
+/** Today's result beside the score to beat. */
+export function comeBackLine(record: QuizRecord): string {
+	const today = `${record.lastScore} of ${record.lastTotal} today.`
+	return record.lastScore >= record.best
+		? `${today} That’s your best.`
+		: `${today} Your best is ${record.best}.`
 }
 
 /** Saves the result. A write that fails still counts for this session. */

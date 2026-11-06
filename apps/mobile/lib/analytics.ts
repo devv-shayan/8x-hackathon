@@ -246,6 +246,9 @@ type EventName =
 	// on the server (memory_reminder_sent): the phone never sees that moment.
 	// THE metric is still memory_idea_tapped. The drop-off to watch is
 	// reminder sent → reminder opened → the due line practiced.
+	// memory_opened: they opened Class memory. metadata: { source: 'home' | 'tab' }, which way in
+	// earns its place. A reminder note has its own event, memory_reminder_opened.
+	| 'memory_opened'
 	| 'memory_viewed'
 	| 'memory_idea_tapped'
 	| 'memory_topic_opened'
@@ -281,6 +284,12 @@ type EventName =
 	//   quiz_finished        the score is shown. metadata: { score, total, new_best }
 	//   quiz_reminder_added  the calendar link was opened
 	// The server records quiz_served first-party, for retention cohorts.
+	//   quiz_opened          they opened the quiz. metadata: { source: 'home' | 'tab' }, which
+	//                        way in earns its place. Home's card hides once played; the tab stays.
+	//   quiz_done_viewed     they came back after today's quiz, and saw their week. metadata:
+	//                        { streak_days, played_this_week }, how the streak holds up
+	| 'quiz_opened'
+	| 'quiz_done_viewed'
 	| 'quiz_offered'
 	| 'quiz_started'
 	| 'quiz_answered'

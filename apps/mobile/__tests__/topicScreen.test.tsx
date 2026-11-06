@@ -94,6 +94,7 @@ describe('the topic page', () => {
 		await renderPage()
 		expect(screen.getByText('“write 1,667 words a day”')).toBeTruthy()
 		expect(screen.getByText('1 of 2 right')).toBeTruthy()
+		expect(screen.getByTestId('progress-squares')).toBeTruthy()
 		expect(screen.getByText('“So how did he finish it?”')).toBeTruthy()
 		expect(screen.getByText('He wrote 1,667 words every day.')).toBeTruthy()
 		// The older one waits behind "1 earlier".
