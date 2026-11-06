@@ -6,6 +6,7 @@ import { topicsQueryKey } from '@/components/RecentTopics'
 import { ClassStep } from '@/components/class/ClassStep'
 import { ExplainStep } from '@/components/class/ExplainStep'
 import { ResultsStep } from '@/components/class/ResultsStep'
+import { LoadingScreen } from '@/components/pixel/LoadingScreen'
 import {
 	answerOrCatchUp,
 	CLASS_TIMEOUT_MS,
@@ -190,13 +191,13 @@ export default function ClassScreen() {
 		)
 	}
 
+	if (open.isPending) {
+		return <LoadingScreen label="Checking for your class" onBack={leaveClass} />
+	}
+
 	return (
 		<Screen header={<PageHeader title="Explain" onBack={leaveClass} />} gap={14}>
-			{open.isPending ? (
-				<Text variant="body" tone="secondary">
-					Checking for your class…
-				</Text>
-			) : open.isError ? (
+			{open.isError ? (
 				<>
 					<Text variant="body">{errorMessage(open.error)}</Text>
 					<Button label="Try again" fullWidth onPress={() => open.refetch()} />

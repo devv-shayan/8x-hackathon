@@ -4,7 +4,17 @@ import { APP_NAME } from '@/lib/constants'
 import { Text } from './Text'
 
 /** The website's mark: a 3x3 block of pixels with one lime cell, a student's raised hand. */
-const CELLS = ['ink', 'ink', 'ink', 'ink', 'off', 'off', 'ink', 'ink', 'lime'] as const
+export const BRAND_MARK_CELLS = [
+	'ink',
+	'ink',
+	'ink',
+	'ink',
+	'off',
+	'off',
+	'ink',
+	'ink',
+	'lime'
+] as const
 const CELL = 6
 const GAP = 1
 
@@ -15,7 +25,7 @@ export function BrandMark({ light = false }: { light?: boolean }) {
 	return (
 		<View style={s.row} accessibilityRole="text" accessibilityLabel={APP_NAME}>
 			<View style={s.grid}>
-				{CELLS.map((cell, i) => (
+				{BRAND_MARK_CELLS.map((cell, i) => (
 					<View
 						key={i}
 						style={[
